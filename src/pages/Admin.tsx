@@ -1,371 +1,157 @@
-import React, { useEffect, useState } from 'react';
-import { collection, query, getDocs, updateDoc, deleteDoc, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { Trash2, CheckCircle, Edit, Save, X, Database, ShieldAlert, Eye, MessageSquare, FileText } from 'lucide-react';
+import { api } from '../lib/api';
+import { Eye, CheckCircle, Clock, MessageSquare, Users, Trash2, ShieldAlert, UserPlus, ExternalLink } from 'lucide-react';
 
 export default function Admin() {
-  const { userData, loading: authLoading, currentUser } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  
-  const [totalViews, setTotalViews] = useState(0);
+
+  const [stats, setStats] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  const [editingPostId, setEditingPostId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editContent, setEditContent] = useState('');
-  const [isSeeding, setIsSeeding] = useState(false);
+
+  const [nu, setNu] = useState({ username: '', displayName: '', email: '', password: '', role: 'user' });
+
+  const postsRef = useRef<HTMLDivElement>(null);
+  const commentsRef = useRef<HTMLDivElement>(null);
+  const usersRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (authLoading) return;
-    if (userData?.role !== 'admin') {
-      navigate('/');
-      return;
-    }
+    if (!user || user.role !== 'admin') { navigate('/'); return; }
+    Promise.all([
+      api.get('/stats'),
+      api.get('/posts?status=pending'),
+      api.get('/posts?status=approved'),
+      api.get('/posts?status=rejected'),
+      api.get('/comments'),
+      api.get('/users'),
+    ]).then(([s, pend, appr, rej, cs, us]) => {
+      setStats(s);
+      setPosts([...pend, ...appr, ...rej].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)));
+      setComments(cs); setUsers(us);
+    }).catch((e) => console.error(e)).finally(() => setLoading(false));
+  }, [user, authLoading, navigate]);
 
-    const fetchData = async () => {
-      try {
-        const postsSnap = await getDocs(query(collection(db, 'posts')));
-        let fetchedPosts = postsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        fetchedPosts.sort((a: any, b: any) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
-        setPosts(fetchedPosts);
-        
-        const commentsSnap = await getDocs(query(collection(db, 'comments')));
-        const allComments = commentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const scrollTo = (ref: React.RefObject<HTMLDivElement>) => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-        // Total website views from the single counter document
-        const statsSnap = await getDoc(doc(db, 'system', 'stats'));
-        setTotalViews(statsSnap.exists() ? (statsSnap.data().totalViews || 0) : 0);
+  const approve = async (id: string) => { const p = await api.patch(`/posts/${id}/approve`); setPosts((ps) => ps.map((x) => x.id === id ? { ...x, ...p } : x)); };
+  const reject = async (id: string) => { const reason = prompt('Lý do từ chối:', 'Nội dung chưa rõ ràng, thiếu thông tin'); if (!reason) return; const p = await api.patch(`/posts/${id}/reject`, { reason }); setPosts((ps) => ps.map((x) => x.id === id ? { ...x, ...p } : x)); };
+  const delPost = async (id: string) => { if (!confirm('Xoá bài viết này?')) return; await api.del(`/posts/${id}`); setPosts((ps) => ps.filter((x) => x.id !== id)); };
+  const delComment = async (id: string) => { if (!confirm('Xoá bình luận này?')) return; await api.del(`/comments/${id}`); setComments((cs) => cs.filter((x) => x.id !== id)); };
 
-        const displayComments = allComments
-          .filter((c: any) => c.postId !== 'global-stats')
-          .sort((a: any, b: any) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
-        setComments(displayComments);
-      } catch (error) {
-        console.error("Admin fetch error", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [userData, authLoading, navigate]);
-
-  const handleApprove = async (postId: string) => {
-    try {
-      await updateDoc(doc(db, 'posts', postId), { status: 'approved' });
-      setPosts(posts.map(p => p.id === postId ? { ...p, status: 'approved' } : p));
-    } catch (e) {
-      console.error(e);
-    }
+  const addUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try { const r = await api.post('/users', nu); setUsers((us) => [r.user, ...us]); setNu({ username: '', displayName: '', email: '', password: '', role: 'user' }); }
+    catch (err: any) { alert(err.message); }
   };
-
-  const handleDeletePost = async (postId: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xoá bài viết này?')) return;
-    try {
-      await deleteDoc(doc(db, 'posts', postId));
-      setPosts(posts.filter(p => p.id !== postId));
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const startEdit = (post: any) => {
-    setEditingPostId(post.id);
-    setEditTitle(post.title);
-    setEditContent(post.content);
-  };
-
-  const saveEdit = async () => {
-    if (!editingPostId) return;
-    try {
-      await updateDoc(doc(db, 'posts', editingPostId), {
-        title: editTitle,
-        content: editContent
-      });
-      setPosts(posts.map(p => p.id === editingPostId ? { ...p, title: editTitle, content: editContent } : p));
-      setEditingPostId(null);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleDeleteComment = async (commentId: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xoá bình luận này?')) return;
-    try {
-      await deleteDoc(doc(db, 'comments', commentId));
-      setComments(comments.filter(c => c.id !== commentId));
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleSeedData = async () => {
-    if (!confirm('Hành động này sẽ tạo thêm dữ liệu mẫu. Bạn có chắc chắn?')) return;
-    setIsSeeding(true);
-    try {
-      const demoUserId = currentUser?.uid;
-      const demoUserName = "Ngọc Lan";
-      
-      const newPostRef = await addDoc(collection(db, 'posts'), {
-        title: "Kinh nghiệm học Đại số Tuyến tính",
-        content: "Mọi người có tài liệu hay tips nào để học tốt môn Đại số tuyến tính không ạ? Sắp tới thi cuối kỳ rồi mà em thấy hoang mang quá 😢",
-        authorId: demoUserId,
-        authorName: "Nguyễn Hải Dương",
-        status: "approved",
-        views: 124,
-        likes: 32,
-        shares: 5,
-        createdAt: serverTimestamp()
-      });
-
-      await addDoc(collection(db, 'comments'), {
-        postId: newPostRef.id,
-        authorId: "demo-user-1",
-        authorName: demoUserName,
-        authorEmail: "ngoclan@example.com",
-        content: "Cậu thử lên thư viện mượn quyển bài tập của thầy Trần Đình Phùng xem, rất bám sát đề thi luôn.",
-        postRating: 5,
-        ratingAvg: 4.5,
-        ratingCount: 2,
-        createdAt: serverTimestamp()
-      });
-
-      await addDoc(collection(db, 'comments'), {
-        postId: newPostRef.id,
-        authorId: "demo-user-2",
-        authorName: "Trung Le",
-        authorEmail: "trungle@example.com",
-        content: "Năm ngoái anh học thì cứ làm kĩ đề cương là qua em nhé.",
-        postRating: 4,
-        ratingAvg: 0,
-        ratingCount: 0,
-        createdAt: serverTimestamp()
-      });
-
-      alert("Thêm dữ liệu mẫu thành công! Vui lòng tải lại trang.");
-      window.location.reload();
-    } catch (e) {
-      console.error("Lỗi khi tạo dữ liệu mẫu:", e);
-      alert("Lỗi khi tạo dữ liệu mẫu.");
-    } finally {
-      setIsSeeding(false);
-    }
-  };
+  const setRole = async (id: string, role: string) => { const r = await api.put(`/users/${id}`, { role }); setUsers((us) => us.map((u) => u.id === id ? r.user : u)); };
+  const resetPw = async (id: string) => { const pw = prompt('Mật khẩu mới cho người dùng:'); if (!pw) return; await api.put(`/users/${id}`, { password: pw }); alert('Đã đặt lại mật khẩu.'); };
+  const delUser = async (id: string) => { if (!confirm('Xoá người dùng này?')) return; try { await api.del(`/users/${id}`); setUsers((us) => us.filter((u) => u.id !== id)); } catch (e: any) { alert(e.message); } };
 
   if (loading || authLoading) return <div className="text-center py-12 text-slate-500 font-bold">Đang tải bảng điều khiển...</div>;
 
-  const approvedPostsCount = posts.filter(p => p.status === 'approved').length;
-  const pendingPostsCount = posts.filter(p => p.status === 'pending').length;
-  const totalCommentsCount = comments.length;
+  const kpis = [
+    { label: 'Lượt xem trang', value: stats?.totalViews ?? 0, icon: Eye, color: 'blue', onClick: () => {} },
+    { label: 'Bài đã duyệt', value: stats?.approvedPosts ?? 0, icon: CheckCircle, color: 'green', onClick: () => scrollTo(postsRef) },
+    { label: 'Bài chờ duyệt', value: stats?.pendingPosts ?? 0, icon: Clock, color: 'amber', onClick: () => scrollTo(postsRef) },
+    { label: 'Tổng bình luận', value: stats?.comments ?? 0, icon: MessageSquare, color: 'indigo', onClick: () => scrollTo(commentsRef) },
+    { label: 'Người dùng', value: stats?.users ?? 0, icon: Users, color: 'rose', onClick: () => scrollTo(usersRef) },
+  ];
+  const colorCls: any = { blue: 'bg-blue-50 text-blue-600', green: 'bg-green-50 text-green-600', amber: 'bg-amber-50 text-amber-600', indigo: 'bg-indigo-50 text-indigo-600', rose: 'bg-rose-50 text-rose-600' };
 
   return (
     <div className="space-y-6">
-      {/* Admin Title Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="space-y-1.5">
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <ShieldAlert className="w-7 h-7 text-red-600 animate-pulse" />
-            Bảng điều khiển Admin chuyên dụng
-          </h1>
-          <p className="text-sm font-semibold text-slate-400">Không gian quản lý nội dung và các bài đăng dành riêng cho Admin BKafe</p>
-          <button 
-            onClick={handleSeedData} 
-            disabled={isSeeding}
-            className="mt-2.5 flex items-center gap-2 bg-purple-50 border border-purple-100 text-purple-700 px-4 py-2 rounded-xl text-xs font-extrabold hover:bg-purple-100 transition-all disabled:opacity-50 cursor-pointer shadow-sm shadow-purple-50"
-          >
-            <Database className="w-4 h-4" />
-            {isSeeding ? 'Đang thiết lập...' : 'Khởi tạo lại dữ liệu mẫu chuẩn'}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2"><ShieldAlert className="w-7 h-7 text-red-600" /> Bảng điều khiển quản trị</h1>
+        <p className="text-sm font-semibold text-slate-400 mt-1">Bấm vào các thẻ thống kê để cuộn tới khu vực quản lý tương ứng.</p>
+      </div>
+
+      {/* KPI cards (clickable → scroll) */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {kpis.map((k) => (
+          <button key={k.label} onClick={k.onClick} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow-md hover:border-slate-300 transition-all text-left">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${colorCls[k.color]}`}><k.icon className="w-6 h-6" /></div>
+            <div>
+              <div className="text-2xl font-black text-slate-900">{k.value}</div>
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{k.label}</div>
+            </div>
           </button>
-        </div>
+        ))}
       </div>
 
-      {/* KPI Stats Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Views */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-            <Eye className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900">{totalViews}</div>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Lượt xem trang</div>
-          </div>
-        </div>
-
-        {/* Card 2: Approved Posts */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center text-green-600 shrink-0">
-            <CheckCircle className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900">{approvedPostsCount}</div>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Bài viết đã duyệt</div>
-          </div>
-        </div>
-
-        {/* Card 3: Pending Posts */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow relative overflow-hidden">
-          {pendingPostsCount > 0 && (
-            <span className="absolute top-3 right-3 flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-            </span>
-          )}
-          <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
-            <Database className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900">{pendingPostsCount}</div>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Bài viết chờ duyệt</div>
-          </div>
-        </div>
-
-        {/* Card 4: Comments */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-          <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
-            <MessageSquare className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-2xl font-black text-slate-900">{totalCommentsCount}</div>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tổng số bình luận</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Side-by-Side Admin Panels */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        
-        {/* Posts Panel */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-fit">
-          <div className="px-6 py-4 border-b border-slate-150 bg-slate-50 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-slate-500" />
-            <h2 className="font-extrabold text-slate-900 text-sm">Quản lý câu hỏi ({posts.length})</h2>
-          </div>
-          <div className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
-            {posts.map(post => (
-              <div key={post.id} className="p-5 transition-all hover:bg-slate-50/30">
-                {editingPostId === post.id ? (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 mb-1">Tiêu đề bài viết</label>
-                      <input 
-                        type="text" 
-                        value={editTitle} 
-                        onChange={e => setEditTitle(e.target.value)} 
-                        className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 mb-1">Nội dung bài viết</label>
-                      <textarea 
-                        value={editContent} 
-                        onChange={e => setEditContent(e.target.value)} 
-                        rows={5}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm resize-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
-                      />
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => setEditingPostId(null)} className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-1 text-xs font-extrabold transition-all cursor-pointer">
-                        <X className="w-4 h-4" /> Hủy
-                      </button>
-                      <button onClick={saveEdit} className="px-3.5 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg flex items-center gap-1 text-xs font-extrabold transition-all shadow-sm cursor-pointer">
-                        <Save className="w-4 h-4" /> Lưu
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1.5 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`px-2 py-0.5 rounded-md text-[9px] font-extrabold border ${
-                          post.status === 'approved' 
-                            ? 'bg-green-50 border-green-100 text-green-700' 
-                            : 'bg-amber-50 border-amber-100 text-amber-700 animate-pulse'
-                        }`}>
-                          {post.status === 'approved' ? 'Đã duyệt' : 'Chờ duyệt'}
-                        </span>
-                        <span className="text-xs text-slate-400 font-semibold">Tác giả: <strong className="text-slate-600">{post.authorName}</strong></span>
-                        <span className="text-[10px] text-slate-350 font-bold">({post.views || 0} xem)</span>
-                      </div>
-                      <h3 className="font-extrabold text-slate-900 text-sm truncate">{post.title}</h3>
-                      <p className="text-slate-650 text-xs line-clamp-2 leading-relaxed">{post.content}</p>
-                    </div>
-                    
-                    {/* Actions */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      {post.status === 'pending' && (
-                        <button 
-                          onClick={() => handleApprove(post.id)} 
-                          className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-all cursor-pointer"
-                          title="Duyệt bài đăng"
-                        >
-                          <CheckCircle className="w-4.5 h-4.5" />
-                        </button>
-                      )}
-                      <button 
-                        onClick={() => startEdit(post)} 
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
-                        title="Sửa nội dung"
-                      >
-                        <Edit className="w-4.5 h-4.5" />
-                      </button>
-                      <button 
-                        onClick={() => handleDeletePost(post.id)} 
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
-                        title="Xoá bài đăng"
-                      >
-                        <Trash2 className="w-4.5 h-4.5" />
-                      </button>
-                    </div>
-                  </div>
-                )}
+      {/* Users */}
+      <div ref={usersRef} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden scroll-mt-20">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2"><Users className="w-5 h-5 text-slate-500" /><h2 className="font-extrabold text-slate-900 text-sm">Quản lý tài khoản ({users.length})</h2></div>
+        <form onSubmit={addUser} className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 border-b border-slate-100 bg-slate-50/40 items-end">
+          <input required placeholder="Username *" value={nu.username} onChange={(e) => setNu({ ...nu, username: e.target.value })} className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
+          <input required placeholder="Tên hiển thị *" value={nu.displayName} onChange={(e) => setNu({ ...nu, displayName: e.target.value })} className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
+          <input required type="email" placeholder="Email *" value={nu.email} onChange={(e) => setNu({ ...nu, email: e.target.value })} className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
+          <input required placeholder="Mật khẩu *" value={nu.password} onChange={(e) => setNu({ ...nu, password: e.target.value })} className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
+          <select value={nu.role} onChange={(e) => setNu({ ...nu, role: e.target.value })} className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white outline-none"><option value="user">User</option><option value="admin">Admin</option></select>
+          <button className="flex items-center justify-center gap-1.5 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-blue-700"><UserPlus className="w-4 h-4" /> Thêm</button>
+        </form>
+        <div className="divide-y divide-slate-100 max-h-[420px] overflow-y-auto">
+          {users.map((u) => (
+            <div key={u.id} className="px-6 py-3 flex items-center gap-3 hover:bg-slate-50/50">
+              {u.photoURL ? <img src={u.photoURL} className="w-9 h-9 rounded-full object-cover border border-slate-200" /> : <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-xs">{u.displayName?.charAt(0).toUpperCase()}</div>}
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-extrabold text-slate-900 truncate">{u.displayName} <span className="text-slate-400 font-semibold">@{u.username}</span></div>
+                <div className="text-xs text-slate-400 truncate">{u.email}</div>
               </div>
-            ))}
-            {posts.length === 0 && <div className="p-8 text-center text-slate-400 font-bold text-xs">Chưa có câu hỏi nào.</div>}
-          </div>
+              <select value={u.role} onChange={(e) => setRole(u.id, e.target.value)} className="text-xs font-bold border border-slate-200 rounded-lg px-2 py-1 bg-white"><option value="user">User</option><option value="admin">Admin</option></select>
+              <button onClick={() => resetPw(u.id)} className="text-xs font-bold text-slate-500 hover:text-blue-600 px-2">Đặt lại MK</button>
+              <button onClick={() => delUser(u.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* Comments Panel */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-fit">
-          <div className="px-6 py-4 border-b border-slate-150 bg-slate-50 flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-slate-500" />
-            <h2 className="font-extrabold text-slate-900 text-sm">Quản lý bình luận ({comments.length})</h2>
-          </div>
-          <div className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
-            {comments.map(comment => (
-              <div key={comment.id} className="p-5 flex items-start justify-between gap-4 transition-all hover:bg-slate-50/30">
-                <div className="space-y-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
-                    <span className="font-extrabold text-slate-900 text-xs">{comment.authorName}</span>
-                    <span className="text-slate-400 truncate max-w-[150px]">({comment.authorEmail})</span>
-                    {comment.ratingCount > 0 && (
-                      <span className="text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 font-bold text-[9px]">
-                        {comment.ratingAvg.toFixed(1)}★ ({comment.ratingCount} đánh giá)
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-slate-750 text-xs leading-relaxed whitespace-pre-wrap">{comment.content}</p>
-                  <div className="text-[9px] font-bold text-slate-350 truncate">
-                    ID bài viết: {comment.postId}
-                  </div>
+      {/* Posts */}
+      <div ref={postsRef} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden scroll-mt-20">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2"><CheckCircle className="w-5 h-5 text-slate-500" /><h2 className="font-extrabold text-slate-900 text-sm">Quản lý bài viết ({posts.length})</h2></div>
+        <div className="divide-y divide-slate-100 max-h-[520px] overflow-y-auto">
+          {posts.map((p) => (
+            <div key={p.id} className="p-4 flex items-start justify-between gap-4 hover:bg-slate-50/50">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <span className={`px-2 py-0.5 rounded-md text-[9px] font-extrabold border ${p.status === 'approved' ? 'bg-green-50 border-green-100 text-green-700' : p.status === 'pending' ? 'bg-amber-50 border-amber-100 text-amber-700' : 'bg-red-50 border-red-100 text-red-700'}`}>{p.status === 'approved' ? 'Đã duyệt' : p.status === 'pending' ? 'Chờ duyệt' : 'Bị từ chối'}</span>
+                  <span className="text-xs text-slate-400 font-semibold">{p.authorName} · {p.views || 0} xem</span>
                 </div>
-                <button 
-                  onClick={() => handleDeleteComment(comment.id)} 
-                  className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg shrink-0 transition-all cursor-pointer" 
-                  title="Xóa bình luận"
-                >
-                  <Trash2 className="w-4.5 h-4.5" />
-                </button>
+                <Link to={`/post/${p.id}`} className="font-extrabold text-slate-900 text-sm hover:text-blue-600 flex items-center gap-1">{p.title} <ExternalLink className="w-3 h-3 text-slate-300" /></Link>
+                <p className="text-slate-500 text-xs line-clamp-1 mt-0.5">{p.content}</p>
               </div>
-            ))}
-            {comments.length === 0 && <div className="p-8 text-center text-slate-400 font-bold text-xs">Chưa có bình luận nào.</div>}
-          </div>
+              <div className="flex items-center gap-1 shrink-0">
+                {p.status !== 'approved' && <button onClick={() => approve(p.id)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg" title="Duyệt"><CheckCircle className="w-4 h-4" /></button>}
+                {p.status !== 'rejected' && <button onClick={() => reject(p.id)} className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="Từ chối"><Clock className="w-4 h-4" /></button>}
+                <button onClick={() => delPost(p.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg" title="Xoá"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </div>
+          ))}
+          {posts.length === 0 && <div className="p-8 text-center text-slate-400 font-bold text-xs">Chưa có bài viết nào.</div>}
         </div>
+      </div>
 
+      {/* Comments */}
+      <div ref={commentsRef} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden scroll-mt-20">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2"><MessageSquare className="w-5 h-5 text-slate-500" /><h2 className="font-extrabold text-slate-900 text-sm">Quản lý bình luận ({comments.length})</h2></div>
+        <div className="divide-y divide-slate-100 max-h-[520px] overflow-y-auto">
+          {comments.map((c) => (
+            <div key={c.id} className="p-4 flex items-start justify-between gap-4 hover:bg-slate-50/50">
+              <div className="min-w-0">
+                <div className="text-xs font-semibold"><span className="font-extrabold text-slate-900">{c.authorName}</span> <span className="text-slate-400">({c.authorEmail})</span></div>
+                <p className="text-slate-700 text-xs mt-0.5 whitespace-pre-wrap">{c.content}</p>
+                <Link to={`/post/${c.postId}`} className="text-[10px] font-bold text-blue-500 hover:underline">Xem bài viết →</Link>
+              </div>
+              <button onClick={() => delComment(c.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg shrink-0"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          ))}
+          {comments.length === 0 && <div className="p-8 text-center text-slate-400 font-bold text-xs">Chưa có bình luận nào.</div>}
+        </div>
       </div>
     </div>
   );
