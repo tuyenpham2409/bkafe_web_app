@@ -357,11 +357,6 @@ export default function Profile() {
                   >
                     <div className="flex items-center justify-between text-xs font-bold text-slate-400 mb-2">
                       <span>Đã bình luận vào: {comment.createdAt?.toDate ? comment.createdAt.toDate().toLocaleString('vi-VN') : 'Vừa xong'}</span>
-                      {comment.postRating !== undefined && comment.postRating >= 0 && (
-                        <span className="flex items-center gap-0.5 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100">
-                          Đã đánh giá: {comment.postRating}★
-                        </span>
-                      )}
                     </div>
                     <p className="text-slate-800 text-sm leading-relaxed whitespace-pre-wrap bg-slate-50 p-3 rounded-lg border border-slate-200/50 mb-2 font-medium">
                       {comment.content}

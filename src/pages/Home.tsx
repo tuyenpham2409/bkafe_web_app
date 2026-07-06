@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { fetchPhotoURLs } from '../lib/avatars';
 import { Link } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { MessageCircle, Share2, Eye, X, Coffee, Star } from 'lucide-react';
@@ -40,7 +41,16 @@ export default function Home() {
         fetchedPosts = fetchedPosts
           .filter(post => post.status === 'approved')
           .sort((a, b) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
-          
+
+        // Use each author's CURRENT avatar (so changing avatar updates old posts too)
+        const photoMap = await fetchPhotoURLs(fetchedPosts.map(p => (p as any).authorId));
+        fetchedPosts = fetchedPosts.map(p => ({
+          ...p,
+          authorPhotoURL: photoMap[(p as any).authorId] !== undefined
+            ? (photoMap[(p as any).authorId] || p.authorPhotoURL || '')
+            : p.authorPhotoURL,
+        }));
+
         setPosts(fetchedPosts);
       } catch (error) {
         console.error("Error fetching posts:", error);

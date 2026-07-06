@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, updateDoc, increment, collection, addDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { fetchPhotoURLs } from '../lib/avatars';
 import { useAuth } from '../contexts/AuthContext';
 import { Share2, Eye, Star, MessageCircle, CornerDownRight, Send } from 'lucide-react';
 
@@ -40,31 +41,20 @@ function StarRatingDisplay({ rating, count = 0 }: { rating: number; count?: numb
   );
 }
 
-// Inline star picker used inside the review form (hover to preview, click to choose).
-function StarSelector({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const [hover, setHover] = useState<number | null>(null);
-  const shown = hover !== null ? hover : value;
-  return (
-    <div className="flex items-center gap-1" onMouseLeave={() => setHover(null)}>
-      {[1, 2, 3, 4, 5].map((s) => (
-        <button
-          key={s}
-          type="button"
-          onMouseEnter={() => setHover(s)}
-          onClick={() => onChange(s)}
-          className="p-0.5 transition-transform hover:scale-110"
-          title={`${s} sao`}
-        >
-          <Star className={`w-7 h-7 ${shown >= s ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'}`} />
-        </button>
-      ))}
-      <span className="ml-2 text-sm font-black text-slate-600">{value}/5</span>
-    </div>
-  );
-}
-
 // Click to open, hover to preview, click a star to confirm (does not disappear on small mouse moves).
-function RatePopover({ myValue, onRate }: { myValue: number | null; onRate: (v: number) => void }) {
+function RatePopover({
+  myValue,
+  onRate,
+  direction = 'up',
+  loginMsg = 'Vui lòng đăng nhập để đánh giá bình luận!',
+  starClass = 'w-3.5 h-3.5',
+}: {
+  myValue: number | null;
+  onRate: (v: number) => void;
+  direction?: 'up' | 'down';
+  loginMsg?: string;
+  starClass?: string;
+}) {
   const { currentUser } = useAuth();
   const [open, setOpen] = useState(false);
   const [hover, setHover] = useState<number | null>(null);
@@ -72,7 +62,7 @@ function RatePopover({ myValue, onRate }: { myValue: number | null; onRate: (v: 
 
   const trigger = () => {
     if (!currentUser) {
-      alert('Vui lòng đăng nhập để đánh giá bình luận!');
+      alert(loginMsg);
       return;
     }
     setOpen((o) => !o);
@@ -85,7 +75,7 @@ function RatePopover({ myValue, onRate }: { myValue: number | null; onRate: (v: 
         onClick={trigger}
         className={`flex items-center gap-1 transition-colors ${myValue !== null ? 'text-amber-500 font-extrabold' : 'text-slate-500 hover:text-amber-500'}`}
       >
-        <Star className={`w-3.5 h-3.5 ${myValue !== null ? 'fill-current' : ''}`} />
+        <Star className={`${starClass} ${myValue !== null ? 'fill-current' : ''}`} />
         {myValue !== null ? `Đã đánh giá ${myValue}★` : 'Đánh giá'}
       </button>
 
@@ -95,7 +85,7 @@ function RatePopover({ myValue, onRate }: { myValue: number | null; onRate: (v: 
           <div className="fixed inset-0 z-10" onClick={() => { setOpen(false); setHover(null); }} />
           <div
             onMouseLeave={() => setHover(null)}
-            className="absolute bottom-full left-0 mb-1.5 bg-white border border-slate-200 shadow-xl rounded-full px-2.5 py-1.5 flex items-center gap-0.5 z-20 animate-in fade-in slide-in-from-bottom-1"
+            className={`absolute left-0 bg-white border border-slate-200 shadow-xl rounded-full px-2.5 py-1.5 flex items-center gap-0.5 z-20 animate-in fade-in ${direction === 'up' ? 'bottom-full mb-1.5 slide-in-from-bottom-1' : 'top-full mt-1.5 slide-in-from-top-1'}`}
           >
             <button
               type="button"
@@ -158,7 +148,6 @@ export default function PostDetail() {
   const [commentContent, setCommentContent] = useState('');
   const [commentName, setCommentName] = useState('');
   const [commentEmail, setCommentEmail] = useState('');
-  const [postRating, setPostRating] = useState(5);
   const [submitting, setSubmitting] = useState(false);
 
   // Reply state
@@ -184,13 +173,9 @@ export default function PostDetail() {
         const docRef = doc(db, 'posts', id);
         const docSnap = await getDoc(docRef);
 
+        let postData: any = null;
         if (docSnap.exists()) {
-          const data = { id: docSnap.id, ...docSnap.data() } as any;
-          setPost(data);
-          // Pre-fill the review stars with this user's existing rating (if any)
-          if (currentUser && data.ratings && data.ratings[currentUser.uid] !== undefined) {
-            setPostRating(data.ratings[currentUser.uid]);
-          }
+          postData = { id: docSnap.id, ...docSnap.data() };
           // Count a view (rules require auth; guests simply don't increment)
           try { await updateDoc(docRef, { views: increment(1) }); } catch { /* ignore for guests */ }
         }
@@ -199,7 +184,19 @@ export default function PostDetail() {
         const commentsSnap = await getDocs(q);
         const fetched = commentsSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
         fetched.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
-        setComments(fetched);
+
+        // Look up the CURRENT avatar of every author so old posts/comments show the latest photo
+        const photoMap = await fetchPhotoURLs([postData?.authorId, ...fetched.map((c) => c.authorId)]);
+        if (postData && photoMap[postData.authorId] !== undefined) {
+          postData.authorPhotoURL = photoMap[postData.authorId] || postData.authorPhotoURL || '';
+        }
+        const enriched = fetched.map((c) => ({
+          ...c,
+          authorPhotoURL: photoMap[c.authorId] !== undefined ? (photoMap[c.authorId] || c.authorPhotoURL || '') : c.authorPhotoURL,
+        }));
+
+        if (postData) setPost(postData);
+        setComments(enriched);
       } catch (error) {
         console.error('Error fetching detail:', error);
       } finally {
@@ -221,7 +218,7 @@ export default function PostDetail() {
     }
   };
 
-  // Submit a top-level review: creates a comment AND records the star rating for the post.
+  // Submit a comment (rating the post is a separate, optional action)
   const submitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id || !currentUser) return;
@@ -240,7 +237,6 @@ export default function PostDetail() {
         authorPhotoURL: userData?.photoURL || '',
         content: commentContent.trim(),
         parentId: null,
-        postRating,
         ratings: {},
         ratingAvg: 0,
         ratingCount: 0,
@@ -248,10 +244,6 @@ export default function PostDetail() {
       };
 
       const docRef = await addDoc(collection(db, 'comments'), newComment);
-
-      // Record this user's rating on the post itself
-      const updated = await applyRating('posts', id, post.ratings, currentUser.uid, postRating);
-      setPost((prev: any) => ({ ...prev, ...updated }));
 
       setComments([
         { id: docRef.id, ...newComment, createdAt: { toMillis: () => Date.now(), toDate: () => new Date() } },
@@ -263,6 +255,17 @@ export default function PostDetail() {
       alert('Đã xảy ra lỗi khi gửi bình luận.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Rate the post itself (does not require writing a comment)
+  const ratePost = async (value: number) => {
+    if (!id || !currentUser || !post) return;
+    try {
+      const updated = await applyRating('posts', id, post.ratings, currentUser.uid, value);
+      setPost((prev: any) => ({ ...prev, ...updated }));
+    } catch (e) {
+      console.error('Error rating post:', e);
     }
   };
 
@@ -445,7 +448,17 @@ export default function PostDetail() {
 
         <div className="text-[15px] leading-relaxed text-slate-700 whitespace-pre-wrap font-medium mb-6">{post.content}</div>
 
-        <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-100 text-slate-500 font-bold text-sm">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 pt-4 border-t border-slate-100 text-slate-500 font-bold text-sm">
+          {/* Rate the post directly — no comment required */}
+          <div className="px-3 py-2">
+            <RatePopover
+              myValue={currentUser ? (post.ratings?.[currentUser.uid] ?? null) : null}
+              onRate={ratePost}
+              direction="down"
+              starClass="w-5 h-5"
+              loginMsg="Vui lòng đăng nhập để đánh giá bài viết!"
+            />
+          </div>
           <div className="flex items-center gap-1.5 px-3 py-2">
             <MessageCircle className="w-5 h-5 text-slate-400" />
             <span>Thảo luận ({comments.length})</span>
@@ -469,17 +482,11 @@ export default function PostDetail() {
         {/* Review form (logged-in only) */}
         {currentUser ? (
           <form onSubmit={submitComment} className="space-y-4 bg-slate-50 p-4 rounded-2xl border border-slate-200/60">
-            <h3 className="font-extrabold text-sm text-slate-700">Đóng góp ý kiến & Đánh giá</h3>
+            <h3 className="font-extrabold text-sm text-slate-700">Đóng góp ý kiến</h3>
 
             <div className="flex items-center gap-2 text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-3 py-2 rounded-xl w-fit">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
               Đang gửi với tên: <span className="text-slate-900">{commentName}</span> ({commentEmail})
-            </div>
-
-            {/* Star rating for the post */}
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Đánh giá của bạn cho bài viết *</label>
-              <StarSelector value={postRating} onChange={setPostRating} />
             </div>
 
             <div>
@@ -494,13 +501,14 @@ export default function PostDetail() {
               />
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-slate-200/40">
+            <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-200/40">
+              <span className="text-xs font-semibold text-slate-400">Muốn chấm điểm? Dùng nút <span className="text-amber-500 font-bold">Đánh giá</span> ở khung bài viết phía trên.</span>
               <button
                 type="submit"
                 disabled={submitting}
-                className="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 cursor-pointer shadow-sm shadow-blue-100"
+                className="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 cursor-pointer shadow-sm shadow-blue-100 shrink-0"
               >
-                {submitting ? 'Đang gửi...' : 'Đăng bình luận & đánh giá'}
+                {submitting ? 'Đang gửi...' : 'Đăng bình luận'}
               </button>
             </div>
           </form>
