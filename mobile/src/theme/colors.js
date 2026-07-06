@@ -1,0 +1,23 @@
+// Shared palette — mirrors the blue/slate theme used on the BKafe web app.
+export const colors = {
+  primary: '#2563eb',
+  primaryDark: '#1d4ed8',
+  primaryLight: '#eff6ff',
+  slate50: '#f8fafc',
+  slate100: '#f1f5f9',
+  slate200: '#e2e8f0',
+  slate300: '#cbd5e1',
+  slate400: '#94a3b8',
+  slate500: '#64748b',
+  slate600: '#475569',
+  slate700: '#334155',
+  slate900: '#0f172a',
+  white: '#ffffff',
+  red: '#dc2626',
+  redLight: '#fef2f2',
+  green: '#16a34a',
+  greenLight: '#f0fdf4',
+  amber: '#d97706',
+  amberLight: '#fffbeb',
+  star: '#fbbf24',
+};
