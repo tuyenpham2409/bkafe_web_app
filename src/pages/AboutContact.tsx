@@ -70,7 +70,7 @@ export default function AboutContact() {
                 required 
                 value={name} 
                 onChange={e => setName(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
                 placeholder="Tên của bạn"
               />
             </div>
@@ -81,7 +81,7 @@ export default function AboutContact() {
                 required 
                 value={email} 
                 onChange={e => setEmail(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
                 placeholder="Email liên hệ"
               />
             </div>
@@ -92,11 +92,11 @@ export default function AboutContact() {
                 value={message} 
                 onChange={e => setMessage(e.target.value)}
                 rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none resize-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none resize-none"
                 placeholder="Nhập nội dung bạn muốn gửi..."
               />
             </div>
-            <button type="submit" disabled={loading} className="bg-gray-900 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:opacity-50">
+            <button type="submit" disabled={loading} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50">
               {loading ? 'Đang gửi...' : 'Gửi liên hệ'}
             </button>
           </form>

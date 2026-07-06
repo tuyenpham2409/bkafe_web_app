@@ -3,17 +3,20 @@ import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Link } from 'react-router-dom';
 import Cookies from 'js-cookie';
-import { Heart, MessageCircle, Share2, Eye, X, Coffee } from 'lucide-react';
+import { MessageCircle, Share2, Eye, X, Coffee, Star } from 'lucide-react';
 
 interface Post {
   id: string;
   title: string;
   content: string;
   authorName: string;
+  authorPhotoURL?: string;
   createdAt: any;
   views: number;
   likes: number;
   shares: number;
+  ratingAvg?: number;
+  ratingCount?: number;
   status?: string;
 }
 
@@ -78,9 +81,13 @@ export default function Home() {
           {posts.map(post => (
             <Link key={post.id} to={`/post/${post.id}`} className="block bg-white rounded-2xl shadow-sm border border-gray-200 p-5 hover:border-gray-300 transition-colors">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600">
-                  {post.authorName?.charAt(0).toUpperCase() || 'U'}
-                </div>
+                {post.authorPhotoURL ? (
+                  <img src={post.authorPhotoURL} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-black text-blue-600">
+                    {post.authorName?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                )}
                 <div>
                   <div className="font-semibold text-gray-900">{post.authorName}</div>
                   <div className="text-xs text-gray-500">
@@ -88,18 +95,20 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              
+
               <h2 className="text-lg font-bold text-gray-900 mb-2">{post.title}</h2>
               <p className="text-gray-700 mb-4 line-clamp-3">{post.content}</p>
-              
+
               <div className="flex items-center gap-6 text-gray-500">
-                <div className="flex items-center gap-1.5 hover:text-red-500 transition-colors">
-                  <Heart className="w-5 h-5" />
-                  <span className="text-sm font-medium">{post.likes || 0}</span>
+                <div className="flex items-center gap-1.5 text-amber-500">
+                  <Star className={`w-5 h-5 ${(post.ratingCount || 0) > 0 ? 'fill-amber-400' : 'fill-slate-200 text-slate-300'}`} />
+                  <span className="text-sm font-medium">
+                    {(post.ratingCount || 0) > 0 ? `${(post.ratingAvg || 0).toFixed(1)}/5 (${post.ratingCount})` : 'Chưa đánh giá'}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 hover:text-blue-500 transition-colors">
                   <MessageCircle className="w-5 h-5" />
-                  <span className="text-sm font-medium">Bình luận</span>
+                  <span className="text-sm font-medium">Thảo luận</span>
                 </div>
                 <div className="flex items-center gap-1.5 hover:text-green-500 transition-colors">
                   <Share2 className="w-5 h-5" />

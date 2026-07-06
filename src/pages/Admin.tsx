@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, getDocs, updateDoc, deleteDoc, doc, addDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, query, getDocs, updateDoc, deleteDoc, doc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -35,9 +35,10 @@ export default function Admin() {
         
         const commentsSnap = await getDocs(query(collection(db, 'comments')));
         const allComments = commentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        
-        const viewsCount = allComments.filter((c: any) => c.postId === 'global-stats').length;
-        setTotalViews(2450 + viewsCount);
+
+        // Total website views from the single counter document
+        const statsSnap = await getDoc(doc(db, 'system', 'stats'));
+        setTotalViews(statsSnap.exists() ? (statsSnap.data().totalViews || 0) : 0);
 
         const displayComments = allComments
           .filter((c: any) => c.postId !== 'global-stats')

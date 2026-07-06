@@ -6,6 +6,8 @@ import { doc, getDoc } from 'firebase/firestore';
 interface UserData {
   role: 'admin' | 'user';
   displayName: string;
+  photoURL?: string;
+  username?: string;
 }
 
 interface AuthContextType {

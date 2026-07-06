@@ -3,7 +3,35 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { User as UserIcon, Calendar, FileText, MessageSquare, Edit2, Check, X } from 'lucide-react';
+import { User as UserIcon, Calendar, FileText, MessageSquare, Edit2, Check, X, Camera } from 'lucide-react';
+
+// Resize an image file to a small square and return a compact base64 data URL
+// (stored directly in Firestore, so no external storage/library is needed).
+function resizeImageToDataUrl(file: File, size = 256): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('no canvas'));
+        // cover-crop to a centered square
+        const scale = Math.max(size / img.width, size / img.height);
+        const w = img.width * scale;
+        const h = img.height * scale;
+        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = reject;
+      img.src = reader.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function Profile() {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +50,28 @@ export default function Profile() {
   const [editName, setEditName] = useState('');
   const [editBio, setEditBio] = useState('');
   const [saveLoading, setSaveLoading] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file later
+    if (!file || !id || !currentUser || currentUser.uid !== id) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Vui lòng chọn một tệp ảnh.');
+      return;
+    }
+    setAvatarUploading(true);
+    try {
+      const dataUrl = await resizeImageToDataUrl(file, 256);
+      await updateDoc(doc(db, 'users', id), { photoURL: dataUrl });
+      setProfileUser((prev: any) => ({ ...prev, photoURL: dataUrl }));
+    } catch (err) {
+      console.error('Avatar upload failed:', err);
+      alert('Lỗi khi tải ảnh đại diện. Vui lòng thử ảnh khác.');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -112,9 +162,32 @@ export default function Profile() {
       {/* Profile Info Card */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-          {/* Avatar Icon */}
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-4xl shrink-0 shadow-md shadow-blue-100">
-            {profileUser.displayName?.charAt(0).toUpperCase() || 'U'}
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            {profileUser.photoURL ? (
+              <img
+                src={profileUser.photoURL}
+                alt={profileUser.displayName}
+                className="w-24 h-24 rounded-full object-cover border-2 border-white shadow-md shadow-blue-100"
+              />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-4xl shadow-md shadow-blue-100">
+                {profileUser.displayName?.charAt(0).toUpperCase() || 'U'}
+              </div>
+            )}
+            {isOwnProfile && (
+              <label
+                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center cursor-pointer shadow-md border-2 border-white transition-colors"
+                title="Đổi ảnh đại diện"
+              >
+                {avatarUploading ? (
+                  <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4" />
+                )}
+                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} disabled={avatarUploading} />
+              </label>
+            )}
           </div>
 
           <div className="flex-1 text-center md:text-left space-y-2.5 w-full">

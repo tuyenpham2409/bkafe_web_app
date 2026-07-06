@@ -3,140 +3,119 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, updateDoc, increment, collection, addDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { Heart, Share2, Eye, Star, MessageCircle } from 'lucide-react';
+import { Share2, Eye, Star, MessageCircle, CornerDownRight, Send } from 'lucide-react';
 
-// Star Rating Display helper
-function StarRatingDisplay({ rating, count = 0 }: { rating: number, count?: number }) {
-  const roundedStars = Math.round(rating);
+/* ------------------------------------------------------------------ */
+/*  Small reusable UI helpers                                          */
+/* ------------------------------------------------------------------ */
+
+// Round avatar that shows the uploaded photo or falls back to the initial letter.
+function AvatarCircle({ url, name, size, className = '' }: { url?: string; name?: string; size: string; className?: string }) {
+  if (url) {
+    return <img src={url} alt={name || ''} className={`${size} rounded-full object-cover border border-slate-200 ${className}`} />;
+  }
   return (
-    <div className="flex items-center gap-1">
+    <div className={`${size} rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-black text-blue-600 ${className}`}>
+      {name?.charAt(0).toUpperCase() || 'U'}
+    </div>
+  );
+}
+
+// Read-only summary: "★★★★☆  4.2/5 (12 đánh giá)"
+function StarRatingDisplay({ rating, count = 0 }: { rating: number; count?: number }) {
+  const rounded = Math.round(rating);
+  return (
+    <div className="flex items-center gap-1.5">
       <div className="flex items-center">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star 
-            key={star} 
-            className={`w-4 h-4 ${roundedStars >= star ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'}`} 
-          />
+        {[1, 2, 3, 4, 5].map((s) => (
+          <Star key={s} className={`w-4 h-4 ${rounded >= s ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'}`} />
         ))}
       </div>
       {count > 0 ? (
-        <span className="text-xs font-bold text-slate-500 ml-1.5">
-          {rating.toFixed(1)}/5 ({count} đánh giá)
-        </span>
+        <span className="text-xs font-bold text-slate-500">{rating.toFixed(1)}/5 ({count} đánh giá)</span>
       ) : (
-        <span className="text-xs font-bold text-slate-400 ml-1.5">Chưa có đánh giá</span>
+        <span className="text-xs font-bold text-slate-400">Chưa có đánh giá</span>
       )}
     </div>
   );
 }
 
-// Clickable Comment Rating Component (0-5 stars)
-function CommentRating({ 
-  commentId, 
-  initialRating = 0, 
-  initialCount = 0,
-  onRate
-}: { 
-  commentId: string, 
-  initialRating?: number, 
-  initialCount?: number,
-  onRate?: (rating: number, count: number) => void
-}) {
+// Inline star picker used inside the review form (hover to preview, click to choose).
+function StarSelector({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const shown = hover !== null ? hover : value;
+  return (
+    <div className="flex items-center gap-1" onMouseLeave={() => setHover(null)}>
+      {[1, 2, 3, 4, 5].map((s) => (
+        <button
+          key={s}
+          type="button"
+          onMouseEnter={() => setHover(s)}
+          onClick={() => onChange(s)}
+          className="p-0.5 transition-transform hover:scale-110"
+          title={`${s} sao`}
+        >
+          <Star className={`w-7 h-7 ${shown >= s ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'}`} />
+        </button>
+      ))}
+      <span className="ml-2 text-sm font-black text-slate-600">{value}/5</span>
+    </div>
+  );
+}
+
+// Click to open, hover to preview, click a star to confirm (does not disappear on small mouse moves).
+function RatePopover({ myValue, onRate }: { myValue: number | null; onRate: (v: number) => void }) {
   const { currentUser } = useAuth();
-  const [rating, setRating] = useState(initialRating);
-  const [count, setCount] = useState(initialCount);
-  const [showPopover, setShowPopover] = useState(false);
-  const [myRating, setMyRating] = useState<number | null>(null);
+  const [open, setOpen] = useState(false);
+  const [hover, setHover] = useState<number | null>(null);
+  const shown = hover !== null ? hover : (myValue ?? 0);
 
-  // Load user's vote from localStorage
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('bkafe_comment_ratings') || '{}');
-    if (saved[commentId] !== undefined) {
-      setMyRating(saved[commentId]);
-    }
-  }, [commentId]);
-
-  useEffect(() => {
-    setRating(initialRating);
-    setCount(initialCount);
-  }, [initialRating, initialCount]);
-
-  const handleRate = async (value: number) => {
-    try {
-      let newCount = count;
-      let newRating = rating;
-
-      const saved = JSON.parse(localStorage.getItem('bkafe_comment_ratings') || '{}');
-      const oldValue = saved[commentId];
-
-      if (oldValue === undefined) {
-        // First time rating
-        newCount = count + 1;
-        newRating = ((rating * count) + value) / newCount;
-      } else {
-        // Change rating
-        newRating = ((rating * count) - oldValue + value) / count;
-      }
-
-      setRating(newRating);
-      setCount(newCount);
-      setMyRating(value);
-
-      saved[commentId] = value;
-      localStorage.setItem('bkafe_comment_ratings', JSON.stringify(saved));
-
-      await updateDoc(doc(db, 'comments', commentId), {
-        ratingAvg: newRating,
-        ratingCount: newCount
-      });
-      
-      if (onRate) {
-        onRate(newRating, newCount);
-      }
-      setShowPopover(false);
-    } catch (e) {
-      console.error("Error rating comment:", e);
-    }
-  };
-
-  const handleTriggerClick = () => {
+  const trigger = () => {
     if (!currentUser) {
-      alert("Vui lòng đăng nhập để đánh giá bình luận!");
+      alert('Vui lòng đăng nhập để đánh giá bình luận!');
       return;
     }
-    setShowPopover(!showPopover);
+    setOpen((o) => !o);
   };
 
   return (
-    <div className="relative">
-      <button 
+    <div className="relative inline-block">
+      <button
         type="button"
-        onClick={handleTriggerClick}
-        className={`hover:text-amber-500 transition-colors flex items-center gap-0.5 cursor-pointer ${myRating !== null ? 'text-amber-500 font-extrabold' : 'text-slate-500'}`}
+        onClick={trigger}
+        className={`flex items-center gap-1 transition-colors ${myValue !== null ? 'text-amber-500 font-extrabold' : 'text-slate-500 hover:text-amber-500'}`}
       >
-        {myRating !== null ? `Đã đánh giá: ${myRating}★` : `Đánh giá`} {count > 0 ? `(${rating.toFixed(1)}★)` : ''}
+        <Star className={`w-3.5 h-3.5 ${myValue !== null ? 'fill-current' : ''}`} />
+        {myValue !== null ? `Đã đánh giá ${myValue}★` : 'Đánh giá'}
       </button>
-      
-      {showPopover && (
+
+      {open && (
         <>
-          {/* Overlay to close popover when clicking outside */}
-          <div className="fixed inset-0 z-10" onClick={() => setShowPopover(false)} />
-          <div className="absolute bottom-full left-0 mb-1.5 bg-white border border-slate-200 shadow-xl rounded-full px-3 py-1.5 flex items-center gap-1.5 z-20 animate-in fade-in slide-in-from-bottom-2">
-            <button 
+          {/* click-outside catcher */}
+          <div className="fixed inset-0 z-10" onClick={() => { setOpen(false); setHover(null); }} />
+          <div
+            onMouseLeave={() => setHover(null)}
+            className="absolute bottom-full left-0 mb-1.5 bg-white border border-slate-200 shadow-xl rounded-full px-2.5 py-1.5 flex items-center gap-0.5 z-20 animate-in fade-in slide-in-from-bottom-1"
+          >
+            <button
               type="button"
-              onClick={() => handleRate(0)}
-              className="text-xs font-extrabold text-red-500 hover:bg-red-50 px-1.5 py-0.5 rounded border-r border-slate-100 pr-2 mr-0.5"
+              onMouseEnter={() => setHover(0)}
+              onClick={() => { onRate(0); setOpen(false); setHover(null); }}
+              className="text-[10px] font-extrabold text-slate-400 hover:text-red-500 px-1 mr-0.5 border-r border-slate-100"
               title="0 sao"
             >
-              0★
+              0
             </button>
-            {[1, 2, 3, 4, 5].map(star => (
+            {[1, 2, 3, 4, 5].map((s) => (
               <button
-                key={star}
+                key={s}
                 type="button"
-                onClick={() => handleRate(star)}
-                className="text-slate-200 hover:text-amber-400 hover:scale-125 transition-all p-0.5"
+                onMouseEnter={() => setHover(s)}
+                onClick={() => { onRate(s); setOpen(false); setHover(null); }}
+                className="p-0.5 transition-transform hover:scale-125"
+                title={`${s} sao`}
               >
-                <Star className={`w-4 h-4 hover:fill-amber-400 ${myRating !== null && myRating >= star ? 'text-amber-400 fill-current' : 'text-slate-200 fill-current'}`} />
+                <Star className={`w-4 h-4 ${shown >= s ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'}`} />
               </button>
             ))}
           </div>
@@ -146,126 +125,28 @@ function CommentRating({
   );
 }
 
-// Clickable Post Rating Widget (0-5 stars)
-function PostRatingWidget({ 
-  postId, 
-  initialRating = 0, 
-  initialCount = 0,
-  onRate
-}: { 
-  postId: string, 
-  initialRating?: number, 
-  initialCount?: number,
-  onRate?: (rating: number, count: number) => void
-}) {
-  const { currentUser } = useAuth();
-  const [rating, setRating] = useState(initialRating);
-  const [count, setCount] = useState(initialCount);
-  const [showPopover, setShowPopover] = useState(false);
-  const [myRating, setMyRating] = useState<number | null>(null);
-
-  // Load user's vote from localStorage
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('bkafe_post_ratings') || '{}');
-    if (saved[postId] !== undefined) {
-      setMyRating(saved[postId]);
-    }
-  }, [postId]);
-
-  useEffect(() => {
-    setRating(initialRating);
-    setCount(initialCount);
-  }, [initialRating, initialCount]);
-
-  const handleRate = async (value: number) => {
-    try {
-      let newCount = count;
-      let newRating = rating;
-
-      const saved = JSON.parse(localStorage.getItem('bkafe_post_ratings') || '{}');
-      const oldValue = saved[postId];
-
-      if (oldValue === undefined) {
-        // First time rating
-        newCount = count + 1;
-        newRating = ((rating * count) + value) / newCount;
-      } else {
-        // Change rating
-        newRating = ((rating * count) - oldValue + value) / count;
-      }
-
-      setRating(newRating);
-      setCount(newCount);
-      setMyRating(value);
-
-      saved[postId] = value;
-      localStorage.setItem('bkafe_post_ratings', JSON.stringify(saved));
-
-      await updateDoc(doc(db, 'posts', postId), {
-        ratingAvg: newRating,
-        ratingCount: newCount
-      });
-      
-      if (onRate) {
-        onRate(newRating, newCount);
-      }
-      setShowPopover(false);
-    } catch (e) {
-      console.error("Error rating post:", e);
-    }
-  };
-
-  const handleTriggerClick = () => {
-    if (!currentUser) {
-      alert("Vui lòng đăng nhập để đánh giá bài viết!");
-      return;
-    }
-    setShowPopover(!showPopover);
-  };
-
-  return (
-    <div className="relative">
-      <button 
-        type="button"
-        onClick={handleTriggerClick}
-        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all hover:bg-slate-50 cursor-pointer ${myRating !== null ? 'text-amber-500 bg-amber-50/40 hover:bg-amber-50' : 'text-slate-500 hover:text-amber-500'}`}
-      >
-        <Star className={`w-5 h-5 ${myRating !== null ? 'fill-current' : ''}`} />
-        <span>
-          {myRating !== null ? `Đã đánh giá: ${myRating}★` : `Đánh giá bài viết`} {count > 0 ? `(${rating.toFixed(1)}★)` : ''}
-        </span>
-      </button>
-
-      {showPopover && (
-        <>
-          {/* Overlay to close popover when clicking outside */}
-          <div className="fixed inset-0 z-10" onClick={() => setShowPopover(false)} />
-          <div className="absolute top-full left-0 mt-1.5 bg-white border border-slate-200 shadow-xl rounded-full px-3 py-1.5 flex items-center gap-1.5 z-20 animate-in fade-in slide-in-from-top-2">
-            <button 
-              type="button"
-              onClick={() => handleRate(0)}
-              className="text-xs font-extrabold text-red-500 hover:bg-red-50 px-1.5 py-0.5 rounded border-r border-slate-100 pr-2 mr-0.5"
-              title="0 sao"
-            >
-              0★
-            </button>
-            {[1, 2, 3, 4, 5].map(star => (
-              <button
-                key={star}
-                type="button"
-                onClick={() => handleRate(star)}
-                className="text-slate-200 hover:text-amber-400 hover:scale-125 transition-all p-0.5"
-              >
-                <Star className={`w-4 h-4 hover:fill-amber-400 ${myRating !== null && myRating >= star ? 'text-amber-400 fill-current' : 'text-slate-200 fill-current'}`} />
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
+/* ------------------------------------------------------------------ */
+/*  Rating helper: keeps one rating per user in a `ratings` map        */
+/* ------------------------------------------------------------------ */
+async function applyRating(
+  collectionName: 'posts' | 'comments',
+  docId: string,
+  existingRatings: Record<string, number> | undefined,
+  uid: string,
+  value: number
+) {
+  const newRatings: Record<string, number> = { ...(existingRatings || {}) };
+  newRatings[uid] = value;
+  const values = Object.values(newRatings);
+  const count = values.length;
+  const avg = count ? values.reduce((a, b) => a + b, 0) / count : 0;
+  await updateDoc(doc(db, collectionName, docId), { ratings: newRatings, ratingAvg: avg, ratingCount: count });
+  return { ratings: newRatings, ratingAvg: avg, ratingCount: count };
 }
 
+/* ------------------------------------------------------------------ */
+/*  Page                                                              */
+/* ------------------------------------------------------------------ */
 export default function PostDetail() {
   const { id } = useParams<{ id: string }>();
   const [post, setPost] = useState<any>(null);
@@ -273,14 +154,19 @@ export default function PostDetail() {
   const [loading, setLoading] = useState(true);
   const { currentUser, userData } = useAuth();
 
-  // Form states
+  // Review form state
   const [commentContent, setCommentContent] = useState('');
   const [commentName, setCommentName] = useState('');
   const [commentEmail, setCommentEmail] = useState('');
-  const [postRating, setPostRating] = useState(5); // Default 5 stars
+  const [postRating, setPostRating] = useState(5);
   const [submitting, setSubmitting] = useState(false);
 
-  // Sync user info into fields when logged in
+  // Reply state
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
+  const [replySubmitting, setReplySubmitting] = useState(false);
+
+  // Sync identity fields from the logged-in account
   useEffect(() => {
     if (currentUser && userData) {
       setCommentName(userData.displayName || '');
@@ -297,35 +183,31 @@ export default function PostDetail() {
       try {
         const docRef = doc(db, 'posts', id);
         const docSnap = await getDoc(docRef);
-        
+
         if (docSnap.exists()) {
-          setPost({ id: docSnap.id, ...docSnap.data() });
-          await updateDoc(docRef, { views: increment(1) });
+          const data = { id: docSnap.id, ...docSnap.data() } as any;
+          setPost(data);
+          // Pre-fill the review stars with this user's existing rating (if any)
+          if (currentUser && data.ratings && data.ratings[currentUser.uid] !== undefined) {
+            setPostRating(data.ratings[currentUser.uid]);
+          }
+          // Count a view (rules require auth; guests simply don't increment)
+          try { await updateDoc(docRef, { views: increment(1) }); } catch { /* ignore for guests */ }
         }
 
         const q = query(collection(db, 'comments'), where('postId', '==', id));
         const commentsSnap = await getDocs(q);
-        const fetchedComments = commentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        fetchedComments.sort((a: any, b: any) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
-        setComments(fetchedComments);
+        const fetched = commentsSnap.docs.map((d) => ({ id: d.id, ...d.data() })) as any[];
+        fetched.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+        setComments(fetched);
       } catch (error) {
-        console.error("Error fetching detail:", error);
+        console.error('Error fetching detail:', error);
       } finally {
         setLoading(false);
       }
     };
     fetchPostAndComments();
-  }, [id]);
-
-  const handleLike = async () => {
-    if (!id) return;
-    try {
-      await updateDoc(doc(db, 'posts', id), { likes: increment(1) });
-      setPost((prev: any) => ({ ...prev, likes: (prev.likes || 0) + 1 }));
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  }, [id, currentUser]);
 
   const handleShare = async () => {
     if (!id) return;
@@ -333,18 +215,18 @@ export default function PostDetail() {
       await updateDoc(doc(db, 'posts', id), { shares: increment(1) });
       setPost((prev: any) => ({ ...prev, shares: (prev.shares || 0) + 1 }));
       navigator.clipboard.writeText(window.location.href);
-      alert("Đã sao chép liên kết vào bộ nhớ tạm!");
+      alert('Đã sao chép liên kết vào bộ nhớ tạm!');
     } catch (e) {
       console.error(e);
     }
   };
 
+  // Submit a top-level review: creates a comment AND records the star rating for the post.
   const submitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id) return;
-    
-    if (!commentName.trim() || !commentEmail.trim() || !commentContent.trim()) {
-      alert("Vui lòng điền đầy đủ các trường thông tin!");
+    if (!id || !currentUser) return;
+    if (!commentContent.trim()) {
+      alert('Vui lòng nhập nội dung bình luận!');
       return;
     }
 
@@ -352,61 +234,196 @@ export default function PostDetail() {
     try {
       const newComment = {
         postId: id,
-        authorId: currentUser ? currentUser.uid : 'anonymous',
+        authorId: currentUser.uid,
         authorName: commentName.trim(),
         authorEmail: commentEmail.trim(),
+        authorPhotoURL: userData?.photoURL || '',
         content: commentContent.trim(),
-        postRating: postRating,
+        parentId: null,
+        postRating,
+        ratings: {},
         ratingAvg: 0,
         ratingCount: 0,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
       };
-      
+
       const docRef = await addDoc(collection(db, 'comments'), newComment);
-      
-      // Update local comments state
-      setComments([{
-        id: docRef.id,
-        ...newComment,
-        createdAt: { toDate: () => new Date() } // placeholder for instant display
-      }, ...comments]);
-      
+
+      // Record this user's rating on the post itself
+      const updated = await applyRating('posts', id, post.ratings, currentUser.uid, postRating);
+      setPost((prev: any) => ({ ...prev, ...updated }));
+
+      setComments([
+        { id: docRef.id, ...newComment, createdAt: { toMillis: () => Date.now(), toDate: () => new Date() } },
+        ...comments,
+      ]);
       setCommentContent('');
-      // Reset postRating to 5, reset anonymous inputs if not logged in
-      setPostRating(5);
-      if (!currentUser) {
-        setCommentName('');
-        setCommentEmail('');
-      }
     } catch (error) {
-      console.error("Error adding comment:", error);
-      alert("Đã xảy ra lỗi khi gửi bình luận.");
+      console.error('Error adding comment:', error);
+      alert('Đã xảy ra lỗi khi gửi bình luận.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Submit a reply to a comment
+  const submitReply = async (parentId: string) => {
+    if (!id || !currentUser || !replyContent.trim()) return;
+    setReplySubmitting(true);
+    try {
+      const newReply = {
+        postId: id,
+        authorId: currentUser.uid,
+        authorName: userData?.displayName || currentUser.email || 'User',
+        authorEmail: currentUser.email || '',
+        authorPhotoURL: userData?.photoURL || '',
+        content: replyContent.trim(),
+        parentId,
+        ratings: {},
+        ratingAvg: 0,
+        ratingCount: 0,
+        createdAt: serverTimestamp(),
+      };
+      const docRef = await addDoc(collection(db, 'comments'), newReply);
+      setComments((prev) => [
+        ...prev,
+        { id: docRef.id, ...newReply, createdAt: { toMillis: () => Date.now(), toDate: () => new Date() } },
+      ]);
+      setReplyContent('');
+      setReplyingTo(null);
+    } catch (e) {
+      console.error('Error adding reply:', e);
+      alert('Đã xảy ra lỗi khi gửi trả lời.');
+    } finally {
+      setReplySubmitting(false);
+    }
+  };
+
+  const rateComment = async (comment: any, value: number) => {
+    if (!currentUser) return;
+    try {
+      const updated = await applyRating('comments', comment.id, comment.ratings, currentUser.uid, value);
+      setComments((prev) => prev.map((c) => (c.id === comment.id ? { ...c, ...updated } : c)));
+    } catch (e) {
+      console.error('Error rating comment:', e);
     }
   };
 
   if (loading) return <div className="text-center py-12 text-slate-500 font-bold">Đang tải nội dung...</div>;
   if (!post) return <div className="text-center py-12 text-slate-500 font-bold">Không tìm thấy câu hỏi này.</div>;
 
-  const averagePostRating = post?.ratingAvg || 0;
-  const totalPostRatingCount = post?.ratingCount || 0;
+  const topComments = comments.filter((c) => !c.parentId);
+  const repliesOf = (pid: string) =>
+    comments
+      .filter((c) => c.parentId === pid)
+      .sort((a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
+
+  // Renders a single comment (top-level or reply)
+  const renderComment = (comment: any, isReply: boolean) => {
+    const myRating = currentUser ? (comment.ratings?.[currentUser.uid] ?? null) : null;
+    const isRealUser = comment.authorId && comment.authorId !== 'anonymous';
+    return (
+      <div key={comment.id} className={`flex gap-3 ${isReply ? 'mt-3' : ''}`}>
+        <Link
+          to={isRealUser ? `/profile/${comment.authorId}` : '#'}
+          className={isRealUser ? 'hover:ring-2 ring-blue-500 rounded-full transition-all shrink-0' : 'shrink-0 cursor-default'}
+        >
+          <AvatarCircle url={comment.authorPhotoURL} name={comment.authorName} size={isReply ? 'w-8 h-8' : 'w-10 h-10'} />
+        </Link>
+
+        <div className="flex-1 min-w-0">
+          <div className="inline-block bg-slate-100 border border-slate-200/40 rounded-2xl px-4 py-2.5 max-w-full">
+            <div className="flex items-center gap-2">
+              <Link
+                to={isRealUser ? `/profile/${comment.authorId}` : '#'}
+                className={`font-black text-xs text-slate-900 ${isRealUser ? 'hover:underline hover:text-blue-600' : 'cursor-default'}`}
+              >
+                {comment.authorName}
+              </Link>
+              {!isRealUser && (
+                <span className="text-[10px] font-extrabold px-1.5 py-0.5 bg-slate-200 text-slate-500 rounded-md">Vãng lai</span>
+              )}
+            </div>
+            <p className="text-[14px] text-slate-700 mt-1 whitespace-pre-wrap leading-relaxed font-medium">{comment.content}</p>
+          </div>
+
+          {/* Footer: time · reply · rate · average */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 ml-2 text-xs text-slate-500 font-bold">
+            <span>{comment.createdAt?.toDate ? comment.createdAt.toDate().toLocaleString('vi-VN') : 'Vừa xong'}</span>
+
+            {!isReply && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!currentUser) { alert('Vui lòng đăng nhập để trả lời!'); return; }
+                  setReplyingTo(replyingTo === comment.id ? null : comment.id);
+                }}
+                className="hover:text-blue-600 transition-colors"
+              >
+                Trả lời
+              </button>
+            )}
+
+            <RatePopover myValue={myRating} onRate={(v) => rateComment(comment, v)} />
+
+            {comment.ratingCount > 0 && (
+              <span className="flex items-center gap-0.5 text-amber-600">
+                <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                {comment.ratingAvg.toFixed(1)}/5 ({comment.ratingCount})
+              </span>
+            )}
+          </div>
+
+          {/* Reply form */}
+          {!isReply && replyingTo === comment.id && currentUser && (
+            <div className="flex items-center gap-2 mt-2">
+              <AvatarCircle url={userData?.photoURL} name={commentName} size="w-8 h-8" />
+              <input
+                type="text"
+                autoFocus
+                value={replyContent}
+                onChange={(e) => setReplyContent(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') submitReply(comment.id); }}
+                placeholder={`Trả lời ${comment.authorName}...`}
+                className="flex-1 bg-slate-100 border border-slate-200 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 focus:bg-white"
+              />
+              <button
+                type="button"
+                onClick={() => submitReply(comment.id)}
+                disabled={replySubmitting || !replyContent.trim()}
+                className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors disabled:opacity-40"
+                title="Gửi trả lời"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Nested replies */}
+          {!isReply && repliesOf(comment.id).length > 0 && (
+            <div className="mt-2 pl-4 border-l-2 border-slate-100">
+              {repliesOf(comment.id).map((reply) => renderComment(reply, true))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
-      {/* Post Content Card */}
+      {/* Post card */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-        {/* Post Meta */}
         <div className="flex items-center gap-3.5 mb-5">
-          <Link 
-            to={post.authorId ? `/profile/${post.authorId}` : '#'} 
-            className="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-black text-blue-600 text-lg hover:ring-2 ring-blue-500 transition-all shrink-0"
+          <Link
+            to={post.authorId ? `/profile/${post.authorId}` : '#'}
+            className="hover:ring-2 ring-blue-500 rounded-full transition-all shrink-0"
           >
-            {post.authorName?.charAt(0).toUpperCase() || 'U'}
+            <AvatarCircle url={post.authorPhotoURL} name={post.authorName} size="w-12 h-12" className="text-lg" />
           </Link>
           <div>
-            <Link 
-              to={post.authorId ? `/profile/${post.authorId}` : '#'} 
+            <Link
+              to={post.authorId ? `/profile/${post.authorId}` : '#'}
               className="font-bold text-slate-900 hover:text-blue-600 transition-colors text-base"
             >
               {post.authorName}
@@ -419,46 +436,22 @@ export default function PostDetail() {
           </div>
         </div>
 
-        {/* Post Title */}
         <h1 className="text-2xl font-black text-slate-900 leading-tight mb-3">{post.title}</h1>
-        
-        {/* Post Star Rating (Dynamic average from reviews) */}
+
+        {/* Post rating summary (average of all reviewers) */}
         <div className="mb-5 pb-4 border-b border-slate-100">
-          <StarRatingDisplay rating={averagePostRating} count={totalPostRatingCount} />
+          <StarRatingDisplay rating={post.ratingAvg || 0} count={post.ratingCount || 0} />
         </div>
 
-        {/* Post Body */}
-        <div className="text-[15px] leading-relaxed text-slate-700 whitespace-pre-wrap font-medium mb-6">
-          {post.content}
-        </div>
+        <div className="text-[15px] leading-relaxed text-slate-700 whitespace-pre-wrap font-medium mb-6">{post.content}</div>
 
-        {/* Post Actions */}
         <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-100 text-slate-500 font-bold text-sm">
-          <button 
-            onClick={handleLike} 
-            className="flex items-center gap-1.5 hover:bg-slate-50 hover:text-red-600 px-3 py-2 rounded-xl transition-all"
-          >
-            <Heart className="w-5 h-5" />
-            <span>Thích ({post.likes || 0})</span>
-          </button>
-          
-          {/* Post Rating widget */}
-          <PostRatingWidget 
-            postId={post.id} 
-            initialRating={post.ratingAvg || 0} 
-            initialCount={post.ratingCount || 0}
-            onRate={(newRating, newCount) => {
-              setPost((prev: any) => ({ ...prev, ratingAvg: newRating, ratingCount: newCount }));
-            }}
-          />
-
           <div className="flex items-center gap-1.5 px-3 py-2">
             <MessageCircle className="w-5 h-5 text-slate-400" />
             <span>Thảo luận ({comments.length})</span>
           </div>
-          
-          <button 
-            onClick={handleShare} 
+          <button
+            onClick={handleShare}
             className="flex items-center gap-1.5 hover:bg-slate-50 hover:text-blue-600 px-3 py-2 rounded-xl transition-all ml-auto"
           >
             <Share2 className="w-5 h-5" />
@@ -467,127 +460,69 @@ export default function PostDetail() {
         </div>
       </div>
 
-      {/* Discussion & Comments */}
+      {/* Discussion */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
         <h2 className="text-lg font-black text-slate-900 tracking-tight pb-3 border-b border-slate-100">
           Phần bình luận và giải đáp
         </h2>
-        
-        {/* Comment Form (Open to Logged-in Users only) */}
+
+        {/* Review form (logged-in only) */}
         {currentUser ? (
           <form onSubmit={submitComment} className="space-y-4 bg-slate-50 p-4 rounded-2xl border border-slate-200/60">
             <h3 className="font-extrabold text-sm text-slate-700">Đóng góp ý kiến & Đánh giá</h3>
-            
-            {/* Identity fields */}
+
             <div className="flex items-center gap-2 text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-3 py-2 rounded-xl w-fit">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
               Đang gửi với tên: <span className="text-slate-900">{commentName}</span> ({commentEmail})
             </div>
 
-            {/* Comment text area */}
+            {/* Star rating for the post */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Đánh giá của bạn cho bài viết *</label>
+              <StarSelector value={postRating} onChange={setPostRating} />
+            </div>
+
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Nội dung bình luận *</label>
-              <textarea 
-                required 
+              <textarea
+                required
                 rows={3}
                 value={commentContent}
-                onChange={e => setCommentContent(e.target.value)}
+                onChange={(e) => setCommentContent(e.target.value)}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 bg-white resize-none"
                 placeholder="Bạn nghĩ gì về câu hỏi này? Đóng góp lời giải..."
               />
             </div>
 
-            {/* Submit Button */}
             <div className="flex justify-end pt-2 border-t border-slate-200/40">
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={submitting}
                 className="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 cursor-pointer shadow-sm shadow-blue-100"
               >
-                {submitting ? 'Đang gửi...' : 'Đăng bình luận'}
+                {submitting ? 'Đang gửi...' : 'Đăng bình luận & đánh giá'}
               </button>
             </div>
           </form>
         ) : (
           <div className="bg-blue-50/60 border border-blue-100 rounded-2xl p-5 text-center space-y-2">
             <p className="text-sm font-bold text-blue-700 leading-relaxed">
-              Bạn cần{" "}
-              <Link to="/login" className="underline text-blue-800 hover:text-blue-950 font-black">
-                Đăng nhập
-              </Link>{" "}
-              hoặc{" "}
-              <Link to="/register" className="underline text-blue-800 hover:text-blue-950 font-black">
-                Đăng ký tài khoản
-              </Link>{" "}
+              Bạn cần{' '}
+              <Link to="/login" className="underline text-blue-800 hover:text-blue-950 font-black">Đăng nhập</Link>{' '}
+              hoặc{' '}
+              <Link to="/register" className="underline text-blue-800 hover:text-blue-950 font-black">Đăng ký tài khoản</Link>{' '}
               để gửi bình luận và đánh giá bài đăng này.
             </p>
           </div>
         )}
 
-        {/* Facebook-style Comment List */}
+        {/* Comment list */}
         <div className="space-y-5 pt-4">
-          {comments.map((comment) => (
-            <div key={comment.id} className="flex gap-3">
-              {/* Commenter Avatar */}
-              <Link 
-                to={comment.authorId !== 'anonymous' ? `/profile/${comment.authorId}` : '#'} 
-                className={`w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-black text-slate-600 text-sm shrink-0 ${comment.authorId !== 'anonymous' ? 'hover:ring-2 ring-blue-500 transition-all' : 'cursor-default'}`}
-              >
-                {comment.authorName?.charAt(0).toUpperCase() || 'U'}
-              </Link>
-              
-              {/* Comment Bubble */}
-              <div className="flex-1 min-w-0">
-                <div className="relative inline-block bg-slate-100 border border-slate-200/35 rounded-2xl px-4 py-2.5 max-w-full">
-                  <div className="flex items-center gap-2">
-                    <Link 
-                      to={comment.authorId !== 'anonymous' ? `/profile/${comment.authorId}` : '#'} 
-                      className={`font-black text-xs text-slate-900 ${comment.authorId !== 'anonymous' ? 'hover:underline hover:text-blue-600' : 'cursor-default'}`}
-                    >
-                      {comment.authorName}
-                    </Link>
-                    {comment.authorId === 'anonymous' && (
-                      <span className="text-[10px] font-extrabold px-1.5 py-0.5 bg-slate-200 text-slate-500 rounded-md">Vãng lai</span>
-                    )}
-                  </div>
-                  
-                  <p className="text-[14px] text-slate-700 mt-1 whitespace-pre-wrap leading-relaxed font-medium">
-                    {comment.content}
-                  </p>
-                  
-                  {/* Comment Rating Badge inside Bubble */}
-                  {comment.ratingCount > 0 && (
-                    <div className="absolute -bottom-2 -right-2 bg-white shadow-md border border-slate-100 rounded-full px-2 py-0.5 flex items-center gap-0.5 text-[10px] font-black text-amber-600">
-                      <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                      <span>{comment.ratingAvg ? comment.ratingAvg.toFixed(1) : '0.0'}</span>
-                    </div>
-                  )}
-                </div>
+          {topComments.map((comment) => renderComment(comment, false))}
 
-                {/* Comment Actions / Footer */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 ml-2 text-xs text-slate-500 font-bold">
-                  <span>
-                    {comment.createdAt?.toDate ? comment.createdAt.toDate().toLocaleString('vi-VN') : 'Vừa xong'}
-                  </span>
-                  <button className="hover:text-slate-800 transition-colors">Thích</button>
-                  <button className="hover:text-slate-800 transition-colors">Trả lời</button>
-                  
-                  {/* Comment Click Rating Trigger */}
-                  <CommentRating 
-                    commentId={comment.id}
-                    initialRating={comment.ratingAvg}
-                    initialCount={comment.ratingCount}
-                    onRate={(newRating, newCount) => {
-                      setComments(prev => prev.map(c => c.id === comment.id ? { ...c, ratingAvg: newRating, ratingCount: newCount } : c));
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {comments.length === 0 && (
-            <div className="text-center py-8 bg-slate-50 rounded-2xl text-slate-400 font-bold text-sm">
+          {topComments.length === 0 && (
+            <div className="text-center py-8 bg-slate-50 rounded-2xl text-slate-400 font-bold text-sm flex flex-col items-center gap-1">
+              <CornerDownRight className="w-5 h-5 text-slate-300" />
               Chưa có bình luận nào. Hãy đóng góp câu trả lời đầu tiên!
             </div>
           )}

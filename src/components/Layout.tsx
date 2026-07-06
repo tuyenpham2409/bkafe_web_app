@@ -3,7 +3,7 @@ import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { auth, db } from '../lib/firebase';
 import { signOut } from 'firebase/auth';
-import { collection, getDocs, addDoc, query, where, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, setDoc, increment } from 'firebase/firestore';
 import { 
   Coffee, LogOut, User as UserIcon, PlusCircle, ShieldAlert, 
   Search, Menu, X, Home, Info, BookOpen, ExternalLink, BarChart2 
@@ -17,19 +17,17 @@ export default function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [stats, setStats] = useState({ views: 0, posts: 0, comments: 0 });
 
-  // Track global views (session-based to prevent double-counting on quick reloads)
+  // Track total website views in a single counter document (system/stats).
+  // Session-based so a reload in the same tab is not counted twice.
   useEffect(() => {
     const trackView = async () => {
       const hasViewed = sessionStorage.getItem('bkafe_site_viewed');
       if (!hasViewed) {
         sessionStorage.setItem('bkafe_site_viewed', 'true');
         try {
-          await addDoc(collection(db, 'comments'), {
-            postId: 'global-stats',
-            createdAt: serverTimestamp()
-          });
+          await setDoc(doc(db, 'system', 'stats'), { totalViews: increment(1) }, { merge: true });
         } catch (e) {
-          console.error("Error updating system stats:", e);
+          console.error("Error updating view counter:", e);
         }
       }
     };
@@ -40,20 +38,18 @@ export default function Layout() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Read views (count of comment documents with postId == 'global-stats')
-        const viewsQuery = query(collection(db, 'comments'), where('postId', '==', 'global-stats'));
-        const viewsSnap = await getDocs(viewsQuery);
-        const viewsVal = 2450 + viewsSnap.size; // 2450 base views + new guest views
-        
-        // Read post count
+        // Read the global view counter
+        const statsSnap = await getDoc(doc(db, 'system', 'stats'));
+        const viewsVal = statsSnap.exists() ? (statsSnap.data().totalViews || 0) : 0;
+
+        // Read post count (approved only)
         const postsSnap = await getDocs(collection(db, 'posts'));
-        // Count only approved posts for user stats
         const postsVal = postsSnap.docs.filter(d => d.data().status === 'approved').length;
-        
-        // Read comment count (excluding global-stats documents)
+
+        // Read comment count (ignore any legacy global-stats junk docs)
         const commentsSnap = await getDocs(collection(db, 'comments'));
         const commentsVal = commentsSnap.docs.filter(d => d.data().postId !== 'global-stats').length;
-        
+
         setStats({ views: viewsVal, posts: postsVal, comments: commentsVal });
       } catch (e) {
         console.error("Error fetching stats:", e);
@@ -131,11 +127,17 @@ export default function Layout() {
                     <span className="hidden lg:inline">Quản trị</span>
                   </Link>
                 )}
-                <Link 
-                  to={`/profile/${currentUser.uid}`} 
-                  className="flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-blue-600 transition-colors bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200"
+                <Link
+                  to={`/profile/${currentUser.uid}`}
+                  className="flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-blue-600 transition-colors bg-slate-50 hover:bg-slate-100 pl-1 pr-3 py-1 rounded-full border border-slate-200"
                 >
-                  <UserIcon className="w-4 h-4 text-slate-500" />
+                  {userData?.photoURL ? (
+                    <img src={userData.photoURL} alt="" className="w-6 h-6 rounded-full object-cover border border-slate-200" />
+                  ) : (
+                    <span className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black">
+                      {(userData?.displayName || currentUser.email || 'U').charAt(0).toUpperCase()}
+                    </span>
+                  )}
                   <span className="hidden md:inline max-w-[120px] truncate">{userData?.displayName || currentUser.email}</span>
                 </Link>
                 <button 

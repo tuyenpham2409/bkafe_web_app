@@ -25,11 +25,15 @@ export default function CreatePost() {
         content,
         authorId: currentUser.uid,
         authorName: userData.displayName,
+        authorPhotoURL: userData.photoURL || '',
         createdAt: serverTimestamp(),
         status,
         views: 0,
         likes: 0,
-        shares: 0
+        shares: 0,
+        ratings: {},
+        ratingAvg: 0,
+        ratingCount: 0
       });
 
       if (status === 'pending') {
@@ -59,7 +63,7 @@ export default function CreatePost() {
             required 
             value={title} 
             onChange={e => setTitle(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none"
             placeholder="Nhập tiêu đề bài viết..."
           />
         </div>
@@ -70,7 +74,7 @@ export default function CreatePost() {
             value={content} 
             onChange={e => setContent(e.target.value)}
             rows={6}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none resize-none"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none resize-none"
             placeholder="Bạn đang nghĩ gì? Hãy đặt câu hỏi hoặc chia sẻ..."
           />
         </div>
@@ -78,7 +82,7 @@ export default function CreatePost() {
           <button type="button" onClick={() => navigate(-1)} className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-colors">
             Hủy
           </button>
-          <button type="submit" disabled={loading} className="bg-gray-900 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:opacity-50">
+          <button type="submit" disabled={loading} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50">
             {loading ? 'Đang đăng...' : 'Đăng bài'}
           </button>
         </div>
