@@ -2,8 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLoginGate } from '../contexts/LoginGate';
+import { useToast } from '../components/Toast';
 import { api } from '../lib/api';
 import { Share2, Eye, Star, MessageCircle, Send, MoreVertical, CheckCircle, XCircle, Edit, Trash2, Hash } from 'lucide-react';
+
+// Module-level Set: marks a post as viewed within this browser session.
+// Using a synchronous in-memory structure avoids the async race condition
+// caused by React StrictMode double-invoking effects.
+const viewedInSession = new Set<string>();
 
 const REJECT_REASONS = [
   'Nội dung không phù hợp thuần phong mỹ tục',
@@ -36,13 +42,14 @@ function RatePopover({ myValue, onRate, direction = 'up', starClass = 'w-3.5 h-3
   const { requireLogin } = useLoginGate();
   const [open, setOpen] = useState(false);
   const [hover, setHover] = useState<number | null>(null);
-  const shown = hover !== null ? hover : (myValue ?? 0);
+  const realValue = (myValue === 0 || myValue === null) ? null : myValue;
+  const shown = hover !== null ? hover : (realValue ?? 0);
   const trigger = () => { if (!user) return requireLogin('Bạn cần đăng nhập để đánh giá.'); setOpen((o) => !o); };
   return (
     <div className="relative inline-block">
-      <button type="button" onClick={trigger} className={`flex items-center gap-1 transition-colors ${myValue !== null ? 'text-amber-500 font-extrabold' : 'text-slate-500 hover:text-amber-500'}`}>
-        <Star className={`${starClass} ${myValue !== null ? 'fill-current' : ''}`} />
-        {myValue !== null ? `Đã đánh giá ${myValue}★` : 'Đánh giá'}
+      <button type="button" onClick={trigger} className={`flex items-center gap-1 transition-colors ${realValue !== null ? 'text-amber-500 font-extrabold' : 'text-slate-500 hover:text-amber-500'}`}>
+        <Star className={`${starClass} ${realValue !== null ? 'fill-current' : ''}`} />
+        {realValue !== null ? `Đã đánh giá ${realValue}★` : 'Đánh giá'}
       </button>
       {open && (
         <>
@@ -66,6 +73,7 @@ export default function PostDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { requireLogin } = useLoginGate();
+  const { showToast } = useToast();
 
   const [post, setPost] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
@@ -83,13 +91,23 @@ export default function PostDetail() {
   const [editData, setEditData] = useState({ title: '', content: '', topic: '' });
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState(REJECT_REASONS[0]);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
 
   const isAdmin = user?.role === 'admin';
   const isOwner = user && post && user.id === post.authorId;
 
   const load = async () => {
     try {
-      const [p, cs] = await Promise.all([api.get(`/posts/${id}`), api.get(`/posts/${id}/comments`)]);
+      // Mark synchronously before fetching to prevent double-increment
+      // in React StrictMode (which runs effects twice in development).
+      const alreadyViewed = viewedInSession.has(id!);
+      if (!alreadyViewed) viewedInSession.add(id!);
+
+      const [p, cs] = await Promise.all([
+        alreadyViewed ? api.get(`/posts/${id}?noview=1`) : api.get(`/posts/${id}`),
+        api.get(`/posts/${id}/comments`),
+      ]);
       setPost(p);
       setComments(cs);
       setEditData({ title: p.title, content: p.content, topic: p.topic });
@@ -99,11 +117,22 @@ export default function PostDetail() {
       setLoading(false);
     }
   };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
+  useEffect(() => {
+    load();
+    // Scroll to top when opening a post
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    /* eslint-disable-next-line */
+  }, [id]);
   useEffect(() => { api.get('/topics').then(setTopics).catch(() => {}); }, []);
 
+
   const share = async () => {
-    try { const r = await api.post(`/posts/${id}/share`); setPost((p: any) => ({ ...p, shares: r.shares })); navigator.clipboard.writeText(location.href); alert('Đã sao chép liên kết!'); } catch (e) { console.error(e); }
+    try {
+      const r = await api.post(`/posts/${id}/share`);
+      setPost((p: any) => ({ ...p, shares: r.shares }));
+      await navigator.clipboard.writeText(location.href);
+      showToast('Đã sao chép liên kết!', 'success');
+    } catch (e) { console.error(e); }
   };
 
   const ratePost = async (value: number) => {
@@ -138,7 +167,11 @@ export default function PostDetail() {
   // admin/owner actions
   const doApprove = async () => { const p = await api.patch(`/posts/${id}/approve`); setPost((x: any) => ({ ...x, ...p })); setMenuOpen(false); };
   const doReject = async () => { const p = await api.patch(`/posts/${id}/reject`, { reason: rejectReason }); setPost((x: any) => ({ ...x, ...p })); setRejectOpen(false); setMenuOpen(false); };
-  const doDelete = async () => { if (!confirm('Xoá bài viết này?')) return; await api.del(`/posts/${id}`); navigate('/'); };
+  const doDelete = async () => {
+    await api.del(`/posts/${id}`);
+    setDeleteOpen(false);
+    navigate('/');
+  };
   const saveEdit = async () => {
     const form = new FormData();
     form.append('title', editData.title); form.append('content', editData.content); form.append('topic', editData.topic);
@@ -215,10 +248,10 @@ export default function PostDetail() {
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
                   <div className="absolute right-0 mt-1 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-1.5 text-sm font-bold">
-                    {isAdmin && post.status !== 'approved' && <button onClick={doApprove} className="w-full flex items-center gap-2 px-4 py-2 text-green-700 hover:bg-green-50"><CheckCircle className="w-4 h-4" /> Duyệt bài</button>}
-                    {isAdmin && post.status !== 'rejected' && <button onClick={() => { setRejectOpen(true); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-amber-700 hover:bg-amber-50"><XCircle className="w-4 h-4" /> Từ chối duyệt</button>}
+                    {isAdmin && post.status === 'pending' && <button onClick={doApprove} className="w-full flex items-center gap-2 px-4 py-2 text-green-700 hover:bg-green-50"><CheckCircle className="w-4 h-4" /> Duyệt bài</button>}
+                    {isAdmin && post.status !== 'approved' && <button onClick={() => { setRejectOpen(true); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-amber-700 hover:bg-amber-50"><XCircle className="w-4 h-4" /> Từ chối duyệt</button>}
                     <button onClick={() => { setEditing(true); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-blue-700 hover:bg-blue-50"><Edit className="w-4 h-4" /> Sửa bài</button>
-                    <button onClick={doDelete} className="w-full flex items-center gap-2 px-4 py-2 text-red-700 hover:bg-red-50"><Trash2 className="w-4 h-4" /> Xoá bài</button>
+                    <button onClick={() => { setDeleteOpen(true); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-red-700 hover:bg-red-50"><Trash2 className="w-4 h-4" /> Xoá bài</button>
                   </div>
                 </>
               )}
@@ -244,7 +277,9 @@ export default function PostDetail() {
           </div>
         ) : (
           <>
-            <h1 className="text-2xl font-black text-slate-900 leading-tight mb-3">{post.title}</h1>
+            <h1 className="text-2xl font-black text-slate-900 leading-tight mb-3">
+              {post.title?.trim() || post.content?.substring(0, 60) + (post.content?.length > 60 ? '...' : '')}
+            </h1>
             <div className="mb-5 pb-4 border-b border-slate-100"><StarRatingDisplay rating={post.ratingAvg || 0} count={post.ratingCount || 0} /></div>
             <div className="text-[15px] leading-relaxed text-slate-700 whitespace-pre-wrap font-medium mb-6">{post.content}</div>
 
@@ -286,6 +321,27 @@ export default function PostDetail() {
             <div className="flex justify-end gap-2">
               <button onClick={() => setRejectOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-bold">Hủy</button>
               <button onClick={doReject} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700">Xác nhận từ chối</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteOpen && (
+        <div className="fixed inset-0 z-[150] bg-slate-900/50 flex items-center justify-center p-4" onClick={() => setDeleteOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-black text-slate-900 mb-3 flex items-center gap-2"><Trash2 className="w-5 h-5 text-red-600" /> Xoá câu hỏi</h3>
+            <p className="text-xs text-slate-500 font-semibold mb-3">Lý do xoá (tùy chọn, sẽ không gửi thông báo):</p>
+            <input
+              type="text"
+              value={deleteReason}
+              onChange={(e) => setDeleteReason(e.target.value)}
+              placeholder="Nhập lý do xoá..."
+              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-400 mb-4"
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setDeleteOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-bold">Hủy</button>
+              <button onClick={doDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700">Xác nhận xoá</button>
             </div>
           </div>
         </div>

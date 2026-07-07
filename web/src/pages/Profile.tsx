@@ -188,7 +188,7 @@ export default function Profile() {
           {posts.map((post) => (
             <Link key={post.id} to={`/post/${post.id}`} className="block hover:bg-slate-50 p-4 rounded-xl border border-slate-100 transition-colors">
               <div className="flex justify-between items-start gap-4 mb-2">
-                <h3 className="text-base font-black text-slate-900 hover:text-blue-600">{post.title}</h3>
+                <h3 className="text-base font-black text-slate-900 hover:text-blue-600">{post.title?.trim() || post.content?.substring(0, 50) + (post.content?.length > 50 ? '...' : '')}</h3>
                 {post.status !== 'approved' && <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-md border shrink-0 ${post.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-red-50 text-red-600 border-red-100'}`}>{post.status === 'pending' ? 'Chờ duyệt' : 'Bị từ chối'}</span>}
               </div>
               <p className="text-slate-500 text-sm line-clamp-2 mb-3">{post.content}</p>

@@ -1,6 +1,7 @@
 import Post from '../models/Post.js';
 import Comment from '../models/Comment.js';
 import Notification from '../models/Notification.js';
+import User from '../models/User.js';
 import { asyncHandler } from '../middlewares/errorHandler.js';
 import { shapePost } from '../utils/serialize.js';
 import { env } from '../config/env.js';
@@ -59,24 +60,26 @@ export const listPosts = asyncHandler(async (req, res) => {
   res.json(posts.map((p) => ({ ...shapePost(p, req.user), commentCount: countMap[String(p._id)] || 0 })));
 });
 
-// GET /api/posts/:id
+// GET /api/posts/:id  (?noview=1 to skip view increment)
 export const getPost = asyncHandler(async (req, res) => {
-  const post = await Post.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } }, { new: true }).populate(
-    'author',
-    AUTHOR_FIELDS
-  );
+  const skipView = req.query.noview === '1';
+  const post = skipView
+    ? await Post.findById(req.params.id).populate('author', AUTHOR_FIELDS)
+    : await Post.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } }, { new: true }).populate('author', AUTHOR_FIELDS);
   if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
   res.json(shapePost(post, req.user));
+
 });
 
 // POST /api/posts   (multipart: title, content, topic, media[])
 export const createPost = asyncHandler(async (req, res) => {
   const { title, content, topic } = req.body;
-  if (!title?.trim() || !content?.trim() || !topic?.trim()) {
-    return res.status(400).json({ message: 'Vui lòng nhập tiêu đề, nội dung và chọn chủ đề.' });
+  // Chỉ bắt buộc content và topic; title có thể để trống
+  if (!content?.trim() || !topic?.trim()) {
+    return res.status(400).json({ message: 'Vui lòng nhập nội dung và chọn chủ đề.' });
   }
   const post = await Post.create({
-    title: title.trim(),
+    title: title?.trim() || '',
     content: content.trim(),
     topic: topic.trim(),
     author: req.user._id,
@@ -84,6 +87,21 @@ export const createPost = asyncHandler(async (req, res) => {
     status: req.user.role === 'admin' ? 'approved' : 'pending',
   });
   await post.populate('author', AUTHOR_FIELDS);
+  // Gửi thông báo đến tất cả admin khi có câu hỏi mới chờ duyệt
+  if (req.user.role !== 'admin') {
+    const admins = await User.find({ role: 'admin' }).select('_id').lean();
+    await Promise.all(
+      admins.map((a) =>
+        Notification.create({
+          user: a._id,
+          type: 'new_pending_post',
+          title: 'Có câu hỏi mới cần duyệt',
+          message: `${req.user.displayName} vừa đăng câu hỏi mới đang chờ duyệt.`,
+          link: `/post/${post._id}`,
+        })
+      )
+    );
+  }
   res.status(201).json(shapePost(post, req.user));
 });
 
@@ -155,7 +173,7 @@ export const rejectPost = asyncHandler(async (req, res) => {
   res.json(shapePost(post, req.user));
 });
 
-// POST /api/posts/:id/rate  { value 0..5 }
+// POST /api/posts/:id/rate  { value 0..5 }  —  value=0 xoá đánh giá
 export const ratePost = asyncHandler(async (req, res) => {
   const value = Number(req.body.value);
   if (!Number.isFinite(value) || value < 0 || value > 5) {
@@ -163,11 +181,17 @@ export const ratePost = asyncHandler(async (req, res) => {
   }
   const post = await Post.findById(req.params.id);
   if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
-  post.ratings.set(String(req.user._id), value);
+  if (value === 0) {
+    post.ratings.delete(String(req.user._id)); // 0 = huỷ đánh giá
+    post.markModified('ratings');
+  } else {
+    post.ratings.set(String(req.user._id), value);
+  }
   post.recomputeRating();
   await post.save();
-  res.json({ ratingAvg: post.ratingAvg, ratingCount: post.ratingCount, myRating: value });
+  res.json({ ratingAvg: post.ratingAvg, ratingCount: post.ratingCount, myRating: value === 0 ? null : value });
 });
+
 
 // POST /api/posts/:id/share
 export const sharePost = asyncHandler(async (req, res) => {

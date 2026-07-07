@@ -10,7 +10,7 @@ const mediaSchema = new mongoose.Schema(
 
 const postSchema = new mongoose.Schema(
   {
-    title: { type: String, required: true, trim: true },
+    title: { type: String, trim: true },
     content: { type: String, required: true },
     topic: { type: String, required: true, index: true }, // Topic.slug
     author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

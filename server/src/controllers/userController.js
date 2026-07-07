@@ -44,6 +44,7 @@ export const listUsers = asyncHandler(async (_req, res) => {
       role: u.role,
       photoURL: u.photoURL || '',
       joinedAt: u.createdAt,
+      lastActiveAt: u.lastActiveAt,
     }))
   );
 });
@@ -88,4 +89,26 @@ export const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findByIdAndDelete(req.params.id);
   if (!user) return res.status(404).json({ message: 'Không tìm thấy người dùng.' });
   res.json({ message: 'Đã xoá người dùng.' });
+});
+
+// GET /api/users/search?q=  (public) — tìm kiếm user theo displayName hoặc username
+export const searchUsers = asyncHandler(async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  if (!q) return res.json([]);
+  // Escape ký tự đặc biệt regex để tránh lỗi
+  const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+  const users = await User.find({ $or: [{ displayName: rx }, { username: rx }] })
+    .limit(20)
+    .lean();
+  res.json(
+    users.map((u) => ({
+      id: String(u._id),
+      username: u.username,
+      displayName: u.displayName,
+      photoURL: u.photoURL || '',
+      role: u.role,
+      joinedAt: u.createdAt,
+      lastActiveAt: u.lastActiveAt,
+    }))
+  );
 });

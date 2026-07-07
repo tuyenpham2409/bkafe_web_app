@@ -1,18 +1,40 @@
 import Contact from '../models/Contact.js';
+import Notification from '../models/Notification.js';
+import User from '../models/User.js';
 import { asyncHandler } from '../middlewares/errorHandler.js';
+import { env } from '../config/env.js';
 
-// POST /api/contacts  (public; auth optional) { name, email, message }
+// POST /api/contacts  (public; auth optional) { name, email, message } + media files
 export const createContact = asyncHandler(async (req, res) => {
   const { name, email, message } = req.body;
   if (!name?.trim() || !email?.trim() || !message?.trim()) {
     return res.status(400).json({ message: 'Vui lòng điền đầy đủ họ tên, email và nội dung.' });
   }
+  // Xử lý file media đính kèm (nếu có)
+  const media = (req.files || []).map((f) => ({
+    type: f.mimetype.startsWith('video') ? 'video' : 'image',
+    url: `${env.apiUrl}/uploads/${f.filename}`,
+  }));
   await Contact.create({
     name: name.trim(),
     email: email.trim(),
     message: message.trim(),
     user: req.user?._id || null,
+    media,
   });
+  // Gửi thông báo đến tất cả admin khi có góp ý mới
+  const admins = await User.find({ role: 'admin' }).select('_id').lean();
+  await Promise.all(
+    admins.map((a) =>
+      Notification.create({
+        user: a._id,
+        type: 'new_contact',
+        title: 'Có góp ý mới',
+        message: `${name.trim()} vừa gửi một góp ý mới.`,
+        link: '/about',
+      })
+    )
+  );
   res.status(201).json({ message: 'Cảm ơn bạn đã gửi ý kiến! Chúng tôi sẽ phản hồi sớm nhất.' });
 });
 
@@ -27,6 +49,7 @@ export const listContacts = asyncHandler(async (_req, res) => {
       message: c.message,
       handled: c.handled,
       createdAt: c.createdAt,
+      media: c.media || [],
     }))
   );
 });

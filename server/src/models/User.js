@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema(
     // password reset
     resetToken: { type: String, select: false },
     resetTokenExp: { type: Date, select: false },
+    lastActiveAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
@@ -39,6 +40,7 @@ userSchema.methods.toPublic = function () {
     photoURL: this.photoURL,
     bio: this.bio,
     joinedAt: this.createdAt,
+    lastActiveAt: this.lastActiveAt,
   };
 };
 

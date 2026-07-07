@@ -64,7 +64,7 @@ export const replyComment = asyncHandler(async (req, res) => {
   res.status(201).json(shapeComment(reply, req.user));
 });
 
-// POST /api/comments/:id/rate  { value }
+// POST /api/comments/:id/rate  { value }  —  value=0 xoá đánh giá
 export const rateComment = asyncHandler(async (req, res) => {
   const value = Number(req.body.value);
   if (!Number.isFinite(value) || value < 0 || value > 5) {
@@ -72,10 +72,15 @@ export const rateComment = asyncHandler(async (req, res) => {
   }
   const comment = await Comment.findById(req.params.id);
   if (!comment) return res.status(404).json({ message: 'Không tìm thấy bình luận.' });
-  comment.ratings.set(String(req.user._id), value);
+  if (value === 0) {
+    comment.ratings.delete(String(req.user._id)); // 0 = huỷ đánh giá
+    comment.markModified('ratings');
+  } else {
+    comment.ratings.set(String(req.user._id), value);
+  }
   comment.recomputeRating();
   await comment.save();
-  res.json({ ratingAvg: comment.ratingAvg, ratingCount: comment.ratingCount, myRating: value });
+  res.json({ ratingAvg: comment.ratingAvg, ratingCount: comment.ratingCount, myRating: value === 0 ? null : value });
 });
 
 // DELETE /api/comments/:id  (admin)

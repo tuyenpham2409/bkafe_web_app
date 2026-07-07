@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { api } from '../lib/api';
-import { MessageCircle, Eye, X, Coffee, Star, Image as ImageIcon } from 'lucide-react';
+import { MessageCircle, Eye, X, Coffee, Star, Play } from 'lucide-react';
 
 export default function Home() {
   const { slug } = useParams<{ slug: string }>();
@@ -39,6 +39,10 @@ export default function Home() {
 
   const topicName = slug ? topics.find((t) => t.slug === slug)?.name : null;
 
+  // Helper: hiển thị thời gian ngắn gọn
+  const displayTitle = (post: any) =>
+    post.title?.trim() || post.content?.substring(0, 50) + (post.content?.length > 50 ? '...' : '');
+
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-2xl font-black mb-1 text-slate-900">{topicName ? `Chủ đề: ${topicName}` : 'Dành cho bạn'}</h1>
@@ -47,7 +51,7 @@ export default function Home() {
       {loading ? (
         <div className="text-center py-10 text-slate-500">Đang tải...</div>
       ) : posts.length === 0 ? (
-        <div className="text-center py-10 text-slate-500 bg-white rounded-2xl shadow-sm border border-slate-200">Chưa có bài viết nào.</div>
+        <div className="text-center py-10 text-slate-500 bg-white rounded-2xl shadow-sm border border-slate-200">Chưa có câu hỏi nào.</div>
       ) : (
         <div className="space-y-6">
           {posts.map((post) => (
@@ -67,12 +71,36 @@ export default function Home() {
                 )}
               </div>
 
-              <h2 className="text-lg font-bold text-slate-900 mb-2">{post.title}</h2>
+              <h2 className="text-lg font-bold text-slate-900 mb-2">{displayTitle(post)}</h2>
               <p className="text-slate-700 mb-4 line-clamp-3">{post.content}</p>
 
+              {/* Media preview */}
               {post.media?.length > 0 && (
-                <div className="mb-4 flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                  <ImageIcon className="w-4 h-4" /> {post.media.length} tệp đính kèm
+                <div className="mb-4 grid grid-cols-3 gap-2">
+                  {post.media.slice(0, 3).map((m: any, i: number) => (
+                    m.type === 'video' ? (
+                      <div key={i} className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-900 flex items-center justify-center col-span-3">
+                        <video src={m.url} className="w-full h-full object-cover opacity-80" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-10 h-10 bg-white/80 rounded-full flex items-center justify-center">
+                            <Play className="w-5 h-5 text-slate-800 fill-slate-800" />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        key={i}
+                        className={`rounded-xl overflow-hidden border border-slate-200 ${post.media.length === 1 ? 'col-span-3 aspect-video' : 'aspect-square'}`}
+                      >
+                        <img src={m.url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      </div>
+                    )
+                  ))}
+                  {post.media.length > 3 && (
+                    <div className="aspect-square rounded-xl bg-slate-800/80 flex items-center justify-center text-white font-black text-sm">
+                      +{post.media.length - 3}
+                    </div>
+                  )}
                 </div>
               )}
 

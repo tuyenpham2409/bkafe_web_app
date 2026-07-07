@@ -6,7 +6,7 @@ const notificationSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true }, // recipient
     type: {
       type: String,
-      enum: ['post_approved', 'post_rejected', 'reply', 'system'],
+      enum: ['post_approved', 'post_rejected', 'reply', 'system', 'new_pending_post', 'new_contact'],
       required: true,
     },
     title: { type: String, required: true },

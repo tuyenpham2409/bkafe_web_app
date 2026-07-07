@@ -3,8 +3,8 @@ import { Link, Outlet, useNavigate, useLocation, useParams } from 'react-router-
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../lib/api';
 import {
-  Coffee, LogOut, User as UserIcon, PlusCircle, ShieldAlert,
-  Search, Menu, X, Home, Info, BookOpen, ExternalLink, Bell, Hash,
+  Coffee, LogOut, User as UserIcon, PlusCircle, ShieldCheck,
+  Search, Menu, X, Home, BookOpen, ExternalLink, Bell, Hash, Inbox,
 } from 'lucide-react';
 
 interface Topic { slug: string; name: string; }
@@ -80,10 +80,20 @@ export default function Layout() {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [topics, setTopics] = useState<Topic[]>([]);
+  const [unreadContacts, setUnreadContacts] = useState(0);
 
   useEffect(() => {
     api.get('/topics').then(setTopics).catch(() => {});
   }, []);
+
+  // Load unread contacts count for admin
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      api.get('/contacts').then((cs: any[]) => {
+        setUnreadContacts(cs.filter((c) => !c.handled).length);
+      }).catch(() => {});
+    }
+  }, [user]);
 
   // Count one website view per browser session
   useEffect(() => {
@@ -110,6 +120,8 @@ export default function Layout() {
   const linkCls = (active: boolean) =>
     `flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${active ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`;
 
+  const isAdminPage = location.pathname === '/admin';
+
   const SidebarNav = () => (
     <nav className="flex flex-col gap-1">
       <Link to="/" className={linkCls(location.pathname === '/')}><Home className="w-5 h-5" /> Trang chủ</Link>
@@ -118,14 +130,26 @@ export default function Layout() {
           <Hash className="w-5 h-5" /> {t.name}
         </Link>
       ))}
-      <Link to="/about" className={linkCls(location.pathname === '/about')}><Info className="w-5 h-5" /> Giới thiệu & Liên hệ</Link>
-      {user && (
-        <Link to={`/profile/${user.id}`} className={linkCls(location.pathname.startsWith('/profile'))}><UserIcon className="w-5 h-5" /> Trang cá nhân</Link>
+      {user?.role === 'admin' ? (
+        /* Admin sees "Hộp thư góp ý" with badge */
+        <Link to="/about" className={`${linkCls(location.pathname === '/about')} justify-between`}>
+          <span className="flex items-center gap-3"><Inbox className="w-5 h-5" /> Hộp thư góp ý</span>
+          {unreadContacts > 0 && (
+            <span className="min-w-[20px] h-5 px-1 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
+              {unreadContacts > 99 ? '99+' : unreadContacts}
+            </span>
+          )}
+        </Link>
+      ) : (
+        <Link to="/about" className={linkCls(location.pathname === '/about')}><Inbox className="w-5 h-5" /> Giới thiệu &amp; Liên hệ</Link>
       )}
       {user?.role === 'admin' && (
-        <Link to="/admin" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${location.pathname === '/admin' ? 'bg-red-50 text-red-600' : 'text-slate-600 hover:bg-slate-100'}`}>
-          <ShieldAlert className="w-5 h-5" /> Quản trị viên
+        <Link to="/admin" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${isAdminPage ? 'bg-red-50 text-red-600' : 'text-slate-600 hover:bg-slate-100'}`}>
+          <ShieldCheck className="w-5 h-5" /> Trang quản trị
         </Link>
+      )}
+      {user && (
+        <Link to={`/profile/${user.id}`} className={linkCls(location.pathname.startsWith('/profile'))}><UserIcon className="w-5 h-5" /> Trang cá nhân</Link>
       )}
     </nav>
   );
@@ -146,7 +170,7 @@ export default function Layout() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Tìm bài viết, câu hỏi..."
+                  placeholder="Tìm câu hỏi, người dùng..."
                   className="w-full bg-slate-100 text-sm px-4 py-2.5 pl-10 rounded-full border border-transparent focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                 />
                 <Search className="w-4.5 h-4.5 text-slate-400 absolute left-3.5 top-3" />
@@ -157,6 +181,17 @@ export default function Layout() {
           <div className="flex items-center gap-2 md:gap-3">
             {user ? (
               <>
+                {/* Admin shortcut button in header */}
+                {user.role === 'admin' && (
+                  <Link
+                    to="/admin"
+                    className={`hidden md:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold transition-colors border ${isAdminPage ? 'bg-red-50 text-red-600 border-red-200' : 'text-slate-600 border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200'}`}
+                    title="Trang quản trị"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    <span className="hidden lg:inline">Trang quản trị</span>
+                  </Link>
+                )}
                 <Link to="/create-post" className="bg-blue-600 text-white p-2 md:px-4 md:py-2 rounded-full md:rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors flex items-center gap-1.5 shadow-sm shadow-blue-100" title="Đăng câu hỏi">
                   <PlusCircle className="w-5 h-5" />
                   <span className="hidden md:inline">Đăng câu hỏi</span>
@@ -202,7 +237,7 @@ export default function Layout() {
         </div>
       )}
 
-      <div className={`flex-1 w-full max-w-[1400px] mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[220px_1fr] ${location.pathname === '/admin' ? '' : 'lg:grid-cols-[240px_1fr_300px]'} gap-6`}>
+      <div className={`flex-1 w-full max-w-[1400px] mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[220px_1fr] ${isAdminPage ? '' : 'lg:grid-cols-[240px_1fr_300px]'} gap-6`}>
         <aside className="hidden md:block space-y-6">
           <div className="sticky top-22 space-y-4">
             <SidebarNav />
@@ -216,7 +251,7 @@ export default function Layout() {
 
         <main className="min-w-0"><Outlet /></main>
 
-        {location.pathname !== '/admin' && (
+        {!isAdminPage && (
           <aside className="hidden lg:block space-y-6">
             <div className="sticky top-22 space-y-6">
               <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">

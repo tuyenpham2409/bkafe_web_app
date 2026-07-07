@@ -6,6 +6,9 @@ const r = Router();
 // own profile update (must come before '/:id' matching for clarity)
 r.put('/me', auth(), u.updateMe);
 
+// tìm kiếm user công khai (phải đặt trước /:id để tránh match nhầm)
+r.get('/search', u.searchUsers);
+
 // admin user management
 r.get('/', auth(), isAdmin, u.listUsers);
 r.post('/', auth(), isAdmin, u.createUser);
