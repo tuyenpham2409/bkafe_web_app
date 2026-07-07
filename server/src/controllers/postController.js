@@ -73,6 +73,10 @@ export const getPost = asyncHandler(async (req, res) => {
 
 // POST /api/posts   (multipart: title, content, topic, media[])
 export const createPost = asyncHandler(async (req, res) => {
+  // Kiểm tra bị khóa đăng bài
+  if (req.user.bannedPosting) {
+    return res.status(403).json({ message: 'Tài khoản của bạn đã bị hạn chế quyền đăng bài.' });
+  }
   const { title, content, topic } = req.body;
   // Chỉ bắt buộc content và topic; title có thể để trống
   if (!content?.trim() || !topic?.trim()) {
@@ -105,13 +109,17 @@ export const createPost = asyncHandler(async (req, res) => {
   res.status(201).json(shapePost(post, req.user));
 });
 
-// PUT /api/posts/:id   (author or admin) — title/content/topic + optional new media
+// PUT /api/posts/:id   (author only) — không cho sửa bài đã approved
 export const updatePost = asyncHandler(async (req, res) => {
   const post = await Post.findById(req.params.id);
   if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
   const isOwner = String(post.author) === String(req.user._id);
   if (!isOwner && req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Bạn không có quyền sửa bài viết này.' });
+  }
+  // Bài đã approved không thể sửa (theo quy định)
+  if (post.status === 'approved') {
+    return res.status(403).json({ message: 'Không thể chỉnh sửa bài viết đã được duyệt.' });
   }
   const { title, content, topic } = req.body;
   if (title !== undefined) post.title = title.trim();
@@ -123,12 +131,25 @@ export const updatePost = asyncHandler(async (req, res) => {
   res.json(shapePost(post, req.user));
 });
 
-// DELETE /api/posts/:id  (author or admin)
+// DELETE /api/posts/:id  { reason }  (author or admin)
 export const deletePost = asyncHandler(async (req, res) => {
   const post = await Post.findById(req.params.id);
   if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
-  if (String(post.author) !== String(req.user._id) && req.user.role !== 'admin') {
+  const isOwner = String(post.author) === String(req.user._id);
+  if (!isOwner && req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Bạn không có quyền xoá bài viết này.' });
+  }
+  const reason = String(req.body.reason || '').trim();
+  // Admin xoá bài của người khác → gửi thông báo cho tác giả
+  if (req.user.role === 'admin' && !isOwner) {
+    const displayTitle = post.title?.trim() || post.content?.substring(0, 50);
+    await Notification.create({
+      user: post.author,
+      type: 'post_deleted_by_admin',
+      title: 'Bài viết bị xoá bởi quản trị viên',
+      message: `Bài viết "${displayTitle}" của bạn đã bị xoá.${reason ? ` Lý do: ${reason}` : ''}`,
+      link: '/',
+    });
   }
   await Comment.deleteMany({ post: post._id });
   await post.deleteOne();

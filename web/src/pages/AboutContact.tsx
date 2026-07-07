@@ -91,11 +91,25 @@ export default function AboutContact() {
 
   if (user?.role === 'admin') return <AdminInbox />;
 
+  const [fileError, setFileError] = useState('');
+
+  const MAX_IMAGE = 5 * 1024 * 1024;
+  const MAX_VIDEO = 20 * 1024 * 1024;
+
   const addFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
-    setFiles((prev) => [...prev, ...selected].slice(0, 5));
+    const invalid: string[] = [];
+    const valid = selected.filter((f) => {
+      if (f.type.startsWith('video/') && f.size > MAX_VIDEO) { invalid.push(`"${f.name}" vượt quá 20MB`); return false; }
+      if (f.type.startsWith('image/') && f.size > MAX_IMAGE) { invalid.push(`"${f.name}" vượt quá 5MB`); return false; }
+      return true;
+    });
+    if (invalid.length) setFileError(`File quá lớn: ${invalid.join(', ')}. Ảnh tối đa 5MB, video tối đa 20MB.`);
+    else setFileError('');
+    setFiles((prev) => [...prev, ...valid].slice(0, 5));
     e.target.value = '';
   };
+
   const removeFile = (i: number) => setFiles((prev) => prev.filter((_, idx) => idx !== i));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -145,7 +159,8 @@ export default function AboutContact() {
 
             {/* Media upload */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Ảnh / Video đính kèm (tối đa 5)</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Ảnh / Video đính kèm (tối đa 5, ảnh ≤5MB, video ≤20MB)</label>
+              {fileError && <div className="mb-2 text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{fileError}</div>}
               <div className="flex flex-wrap gap-3">
                 {files.map((f, i) => (
                   <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center">

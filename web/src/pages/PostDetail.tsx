@@ -119,14 +119,17 @@ export default function PostDetail() {
   };
   useEffect(() => {
     load();
-    // Scroll to top when opening a post
-    window.scrollTo({ top: 0, behavior: 'instant' });
     /* eslint-disable-next-line */
   }, [id]);
   useEffect(() => { api.get('/topics').then(setTopics).catch(() => {}); }, []);
 
 
+  // share with 3-second debounce to prevent spam
+  const [sharing, setSharing] = useState(false);
   const share = async () => {
+    if (sharing) return;
+    setSharing(true);
+    setTimeout(() => setSharing(false), 3000);
     try {
       const r = await api.post(`/posts/${id}/share`);
       setPost((p: any) => ({ ...p, shares: r.shares }));
@@ -165,13 +168,22 @@ export default function PostDetail() {
   };
 
   // admin/owner actions
-  const doApprove = async () => { const p = await api.patch(`/posts/${id}/approve`); setPost((x: any) => ({ ...x, ...p })); setMenuOpen(false); };
-  const doReject = async () => { const p = await api.patch(`/posts/${id}/reject`, { reason: rejectReason }); setPost((x: any) => ({ ...x, ...p })); setRejectOpen(false); setMenuOpen(false); };
-  const doDelete = async () => {
-    await api.del(`/posts/${id}`);
-    setDeleteOpen(false);
-    navigate('/');
+  const doApprove = async () => {
+    try { const p = await api.patch(`/posts/${id}/approve`); setPost((x: any) => ({ ...x, ...p })); setMenuOpen(false); }
+    catch (e: any) { showToast(e.message, 'error'); }
   };
+  const doReject = async () => {
+    try { const p = await api.patch(`/posts/${id}/reject`, { reason: rejectReason }); setPost((x: any) => ({ ...x, ...p })); setRejectOpen(false); setMenuOpen(false); }
+    catch (e: any) { showToast(e.message, 'error'); }
+  };
+  const doDelete = async () => {
+    try {
+      await api.del(`/posts/${id}`, deleteReason ? { reason: deleteReason } : undefined);
+      setDeleteOpen(false);
+      navigate(-1);
+    } catch (e: any) { showToast(e.message, 'error'); }
+  };
+
   const saveEdit = async () => {
     const form = new FormData();
     form.append('title', editData.title); form.append('content', editData.content); form.append('topic', editData.topic);
@@ -225,6 +237,14 @@ export default function PostDetail() {
 
   return (
     <div className="space-y-6">
+      {/* Back button */}
+      <button
+        onClick={() => navigate(-1)}
+        className="flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-lg transition-all"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+        Quay lại
+      </button>
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
         <div className="flex items-start justify-between gap-3 mb-5">
           <div className="flex items-center gap-3.5">
@@ -247,11 +267,16 @@ export default function PostDetail() {
               {menuOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 mt-1 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-1.5 text-sm font-bold">
+                  <div className="absolute right-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-1.5 text-sm font-bold">
+                    {/* Pending: [Duyệt] [Từ chối] [Xóa] */}
                     {isAdmin && post.status === 'pending' && <button onClick={doApprove} className="w-full flex items-center gap-2 px-4 py-2 text-green-700 hover:bg-green-50"><CheckCircle className="w-4 h-4" /> Duyệt bài</button>}
-                    {isAdmin && post.status !== 'approved' && <button onClick={() => { setRejectOpen(true); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-amber-700 hover:bg-amber-50"><XCircle className="w-4 h-4" /> Từ chối duyệt</button>}
-                    <button onClick={() => { setEditing(true); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-blue-700 hover:bg-blue-50"><Edit className="w-4 h-4" /> Sửa bài</button>
-                    <button onClick={() => { setDeleteOpen(true); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-red-700 hover:bg-red-50"><Trash2 className="w-4 h-4" /> Xoá bài</button>
+                    {isAdmin && post.status === 'pending' && <button onClick={() => { setRejectOpen(true); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-amber-700 hover:bg-amber-50"><XCircle className="w-4 h-4" /> Từ chối duyệt</button>}
+                    {/* Rejected: [Duyệt lại] [Xóa] */}
+                    {isAdmin && post.status === 'rejected' && <button onClick={doApprove} className="w-full flex items-center gap-2 px-4 py-2 text-green-700 hover:bg-green-50"><CheckCircle className="w-4 h-4" /> Duyệt lại</button>}
+                    {/* Owner (not admin) can edit non-approved posts */}
+                    {isOwner && !isAdmin && post.status !== 'approved' && <button onClick={() => { setEditing(true); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-blue-700 hover:bg-blue-50"><Edit className="w-4 h-4" /> Sửa bài</button>}
+                    {/* Delete: admin always, owner always */}
+                    {(isAdmin || isOwner) && <button onClick={() => { setDeleteOpen(true); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-red-700 hover:bg-red-50"><Trash2 className="w-4 h-4" /> Xoá bài</button>}
                   </div>
                 </>
               )}
@@ -331,15 +356,21 @@ export default function PostDetail() {
         <div className="fixed inset-0 z-[150] bg-slate-900/50 flex items-center justify-center p-4" onClick={() => setDeleteOpen(false)}>
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-black text-slate-900 mb-3 flex items-center gap-2"><Trash2 className="w-5 h-5 text-red-600" /> Xoá câu hỏi</h3>
-            <p className="text-xs text-slate-500 font-semibold mb-3">Lý do xoá (tùy chọn, sẽ không gửi thông báo):</p>
-            <input
-              type="text"
-              value={deleteReason}
-              onChange={(e) => setDeleteReason(e.target.value)}
-              placeholder="Nhập lý do xoá..."
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-400 mb-4"
-            />
-            <div className="flex justify-end gap-2">
+            <p className="text-xs text-slate-500 font-semibold mb-3">
+              {isAdmin && !isOwner
+                ? 'Lý do xoá (sẽ gửi thông báo cho người đăng):'
+                : 'Xác nhận xoá bài viết này?'}
+            </p>
+            {isAdmin && !isOwner && (
+              <input
+                type="text"
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                placeholder="Nhập lý do xoá..."
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-400 mb-4"
+              />
+            )}
+            <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => setDeleteOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-bold">Hủy</button>
               <button onClick={doDelete} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700">Xác nhận xoá</button>
             </div>

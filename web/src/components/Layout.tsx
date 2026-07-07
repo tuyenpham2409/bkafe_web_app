@@ -81,19 +81,23 @@ export default function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [unreadContacts, setUnreadContacts] = useState(0);
+  const [pendingPostCount, setPendingPostCount] = useState(0);
 
   useEffect(() => {
     api.get('/topics').then(setTopics).catch(() => {});
   }, []);
 
-  // Load unread contacts count for admin
+  // Load admin-only badges
   useEffect(() => {
     if (user?.role === 'admin') {
       api.get('/contacts').then((cs: any[]) => {
-        setUnreadContacts(cs.filter((c) => !c.handled).length);
+        setUnreadContacts(cs.filter((c: any) => !c.handled).length);
+      }).catch(() => {});
+      api.get('/posts?status=pending').then((ps: any[]) => {
+        setPendingPostCount(ps.length);
       }).catch(() => {});
     }
-  }, [user]);
+  }, [user, location.pathname]); // re-fetch on route change to keep badges fresh
 
   // Count one website view per browser session
   useEffect(() => {
@@ -144,8 +148,11 @@ export default function Layout() {
         <Link to="/about" className={linkCls(location.pathname === '/about')}><Inbox className="w-5 h-5" /> Giới thiệu &amp; Liên hệ</Link>
       )}
       {user?.role === 'admin' && (
-        <Link to="/admin" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${isAdminPage ? 'bg-red-50 text-red-600' : 'text-slate-600 hover:bg-slate-100'}`}>
-          <ShieldCheck className="w-5 h-5" /> Trang quản trị
+        <Link to="/admin" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all justify-between ${isAdminPage ? 'bg-red-50 text-red-600' : 'text-slate-600 hover:bg-slate-100'}`}>
+          <span className="flex items-center gap-3"><ShieldCheck className="w-5 h-5" /> Trang quản trị</span>
+          {pendingPostCount > 0 && (
+            <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" title={`${pendingPostCount} bài chờ duyệt`} />
+          )}
         </Link>
       )}
       {user && (
@@ -185,11 +192,14 @@ export default function Layout() {
                 {user.role === 'admin' && (
                   <Link
                     to="/admin"
-                    className={`hidden md:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold transition-colors border ${isAdminPage ? 'bg-red-50 text-red-600 border-red-200' : 'text-slate-600 border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200'}`}
+                    className={`hidden md:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold transition-colors border relative ${isAdminPage ? 'bg-red-50 text-red-600 border-red-200' : 'text-slate-600 border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200'}`}
                     title="Trang quản trị"
                   >
                     <ShieldCheck className="w-4 h-4" />
                     <span className="hidden lg:inline">Trang quản trị</span>
+                    {pendingPostCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-white" />
+                    )}
                   </Link>
                 )}
                 <Link to="/create-post" className="bg-blue-600 text-white p-2 md:px-4 md:py-2 rounded-full md:rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors flex items-center gap-1.5 shadow-sm shadow-blue-100" title="Đăng câu hỏi">

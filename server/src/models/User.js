@@ -16,6 +16,10 @@ const userSchema = new mongoose.Schema(
     resetToken: { type: String, select: false },
     resetTokenExp: { type: Date, select: false },
     lastActiveAt: { type: Date, default: Date.now },
+    // Admin can restrict specific activities
+    bannedPosting:    { type: Boolean, default: false },
+    bannedCommenting: { type: Boolean, default: false },
+    banReason:        { type: String, default: '' },
   },
   { timestamps: true }
 );
@@ -41,6 +45,9 @@ userSchema.methods.toPublic = function () {
     bio: this.bio,
     joinedAt: this.createdAt,
     lastActiveAt: this.lastActiveAt,
+    bannedPosting: this.bannedPosting,
+    bannedCommenting: this.bannedCommenting,
+    banReason: this.banReason,
   };
 };
 

@@ -53,11 +53,23 @@ export default function CreatePost() {
     );
   }
 
+  const MAX_IMAGE = 5 * 1024 * 1024;  // 5MB
+  const MAX_VIDEO = 20 * 1024 * 1024; // 20MB
+
   const addFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
-    setFiles((prev) => [...prev, ...selected].slice(0, 5));
+    const invalid: string[] = [];
+    const valid = selected.filter((f) => {
+      if (f.type.startsWith('video/') && f.size > MAX_VIDEO) { invalid.push(`"${f.name}" vượt quá 20MB`); return false; }
+      if (f.type.startsWith('image/') && f.size > MAX_IMAGE) { invalid.push(`"${f.name}" vượt quá 5MB`); return false; }
+      return true;
+    });
+    if (invalid.length) setError(`File quá lớn: ${invalid.join(', ')}. Ảnh tối đa 5MB, video tối đa 20MB.`);
+    else setError('');
+    setFiles((prev) => [...prev, ...valid].slice(0, 5));
     e.target.value = '';
   };
+
   const removeFile = (i: number) => setFiles((prev) => prev.filter((_, idx) => idx !== i));
 
   const handleSubmit = async (e: React.FormEvent) => {

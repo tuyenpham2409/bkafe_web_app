@@ -12,6 +12,7 @@ r.get('/search', u.searchUsers);
 // admin user management
 r.get('/', auth(), isAdmin, u.listUsers);
 r.post('/', auth(), isAdmin, u.createUser);
+r.patch('/:id/ban', auth(), isAdmin, u.banUser);
 r.put('/:id', auth(), isAdmin, u.adminUpdateUser);
 r.delete('/:id', auth(), isAdmin, u.deleteUser);
 

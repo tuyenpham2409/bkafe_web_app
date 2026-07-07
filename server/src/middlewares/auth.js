@@ -25,7 +25,10 @@ export function auth(required = true) {
       }
 
       req.user = user;
+      // Fire-and-forget: update lastActiveAt without blocking the request
+      User.findByIdAndUpdate(user._id, { lastActiveAt: new Date() }).catch(() => {});
       next();
+
     } catch (err) {
       if (required) return res.status(401).json({ message: 'Phiên đăng nhập đã hết hạn hoặc không hợp lệ.' });
       req.user = null;

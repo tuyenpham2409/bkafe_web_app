@@ -76,6 +76,47 @@ function DeleteModal({ onConfirm, onClose, label = 'câu hỏi' }: { onConfirm: 
   );
 }
 
+// ─── Ban Modal ───────────────────────────────────────────
+function BanModal({ user, onConfirm, onClose }: { user: any; onConfirm: (bannedPosting: boolean, bannedCommenting: boolean, reason: string) => void; onClose: () => void }) {
+  const [bannedPosting, setBannedPosting] = useState(user.bannedPosting ?? false);
+  const [bannedCommenting, setBannedCommenting] = useState(user.bannedCommenting ?? false);
+  const [reason, setReason] = useState('');
+  const isUnlocking = !bannedPosting && !bannedCommenting;
+  return (
+    <div className="fixed inset-0 z-[200] bg-slate-900/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+        <h3 className="font-black text-slate-900 mb-1">Hạn chế hoạt động: {user.displayName}</h3>
+        <p className="text-xs text-slate-500 font-semibold mb-4">Chọn quyền cần hạn chế. Bỏ chọn để mở khóa.</p>
+        <div className="space-y-2 mb-4">
+          <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+            <input type="checkbox" checked={bannedPosting} onChange={(e) => setBannedPosting(e.target.checked)} className="w-4 h-4 accent-red-600" />
+            <div>
+              <div className="text-sm font-bold text-slate-900">Đăng bài</div>
+              <div className="text-xs text-slate-500">Không được đăng câu hỏi mới</div>
+            </div>
+          </label>
+          <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
+            <input type="checkbox" checked={bannedCommenting} onChange={(e) => setBannedCommenting(e.target.checked)} className="w-4 h-4 accent-red-600" />
+            <div>
+              <div className="text-sm font-bold text-slate-900">Bình luận</div>
+              <div className="text-xs text-slate-500">Không được bình luận và trả lời</div>
+            </div>
+          </label>
+        </div>
+        {!isUnlocking && (
+          <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Lý do hạn chế (sẽ gửi thông báo)" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-400 mb-4" />
+        )}
+        <div className="flex justify-end gap-2 mt-4">
+          <button onClick={onClose} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-bold">Hủy</button>
+          <button onClick={() => onConfirm(bannedPosting, bannedCommenting, reason)} className={`px-4 py-2 text-white rounded-lg text-sm font-bold ${isUnlocking ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>
+            {isUnlocking ? 'Mở khóa' : 'Xác nhận hạn chế'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Section: User Management ─────────────────────────────
 function UsersSection({ onBack }: { onBack: () => void }) {
   const { user: me } = useAuth();
@@ -85,6 +126,7 @@ function UsersSection({ onBack }: { onBack: () => void }) {
   const [roleFilter, setRoleFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [nu, setNu] = useState({ username: '', displayName: '', email: '', password: '', role: 'user' });
+  const [banTarget, setBanTarget] = useState<any | null>(null);
 
   useEffect(() => { api.get('/users').then(setUsers).catch(() => {}).finally(() => setLoading(false)); }, []);
 
@@ -109,6 +151,14 @@ function UsersSection({ onBack }: { onBack: () => void }) {
   const setRole = async (id: string, role: string) => { const r = await api.put(`/users/${id}`, { role }); setUsers((us) => us.map((u) => u.id === id ? r.user : u)); };
   const resetPw = async (id: string) => { const pw = prompt('Mật khẩu mới cho người dùng:'); if (!pw) return; await api.put(`/users/${id}`, { password: pw }); alert('Đã đặt lại mật khẩu.'); };
   const delUser = async (id: string) => { if (!confirm('Xoá người dùng này?')) return; try { await api.del(`/users/${id}`); setUsers((us) => us.filter((u) => u.id !== id)); } catch (e: any) { alert(e.message); } };
+  const banUserFn = async (bannedPosting: boolean, bannedCommenting: boolean, reason: string) => {
+    if (!banTarget) return;
+    try {
+      const r = await api.patch(`/users/${banTarget.id}/ban`, { bannedPosting, bannedCommenting, reason });
+      setUsers((us) => us.map((u) => u.id === banTarget.id ? { ...u, bannedPosting: r.bannedPosting, bannedCommenting: r.bannedCommenting, banReason: r.banReason } : u));
+      setBanTarget(null);
+    } catch (e: any) { alert(e.message); }
+  };
 
   return (
     <div className="space-y-4">
@@ -158,7 +208,11 @@ function UsersSection({ onBack }: { onBack: () => void }) {
               <div key={u.id} className="px-5 py-3.5 flex items-center gap-3 hover:bg-slate-50/50">
                 {u.photoURL ? <img src={u.photoURL} className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0" /> : <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-sm shrink-0">{u.displayName?.charAt(0).toUpperCase()}</div>}
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-extrabold text-slate-900 truncate">{u.displayName} <span className="text-slate-400 font-semibold">@{u.username}</span></div>
+                  <div className="text-sm font-extrabold text-slate-900 truncate flex items-center gap-2 flex-wrap">
+                    {u.displayName} <span className="text-slate-400 font-semibold">@{u.username}</span>
+                    {u.bannedPosting && <span className="text-[9px] font-extrabold px-1.5 py-0.5 bg-red-100 text-red-700 rounded border border-red-200">Khóa đăng bài</span>}
+                    {u.bannedCommenting && <span className="text-[9px] font-extrabold px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded border border-orange-200">Khóa bình luận</span>}
+                  </div>
                   <div className="text-xs text-slate-400 truncate flex items-center gap-2">
                     <span>{u.email}</span>
                     <span className="text-slate-300">·</span>
@@ -172,6 +226,19 @@ function UsersSection({ onBack }: { onBack: () => void }) {
                   <option value="admin">Admin</option>
                 </select>
                 <button onClick={() => resetPw(u.id)} className="text-xs font-bold text-slate-500 hover:text-blue-600 px-2 shrink-0">Đặt lại MK</button>
+                {u.id !== me?.id && u.role !== 'admin' && (
+                  <button
+                    onClick={() => setBanTarget(u)}
+                    className={`text-xs font-bold px-2 py-1 rounded-lg shrink-0 border ${
+                      u.bannedPosting || u.bannedCommenting
+                        ? 'text-green-700 border-green-200 hover:bg-green-50'
+                        : 'text-amber-700 border-amber-200 hover:bg-amber-50'
+                    }`}
+                    title={u.bannedPosting || u.bannedCommenting ? 'Mở khóa' : 'Hạn chế'}
+                  >
+                    {u.bannedPosting || u.bannedCommenting ? 'Mở khóa' : 'Hạn chế'}
+                  </button>
+                )}
                 {u.id !== me?.id && (
                   <button onClick={() => delUser(u.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg shrink-0"><Trash2 className="w-4 h-4" /></button>
                 )}
@@ -224,7 +291,7 @@ function PostsSection({ onBack }: { onBack: () => void }) {
 
   const approve = async (id: string) => { const p = await api.patch(`/posts/${id}/approve`); setAllPosts((ps) => ps.map((x) => x.id === id ? { ...x, ...p } : x)); };
   const reject = async (id: string, reason: string) => { const p = await api.patch(`/posts/${id}/reject`, { reason }); setAllPosts((ps) => ps.map((x) => x.id === id ? { ...x, ...p } : x)); setRejectTarget(null); };
-  const delPost = async (id: string) => { await api.del(`/posts/${id}`); setAllPosts((ps) => ps.filter((x) => x.id !== id)); setDeleteTarget(null); };
+  const delPost = async (id: string, reason?: string) => { await api.del(`/posts/${id}`, reason ? { reason } : undefined); setAllPosts((ps) => ps.filter((x) => x.id !== id)); setDeleteTarget(null); };
 
   const pending = allPosts.filter((p) => p.status === 'pending').length;
   const approved = allPosts.filter((p) => p.status === 'approved').length;
@@ -278,8 +345,13 @@ function PostsSection({ onBack }: { onBack: () => void }) {
                   <p className="text-slate-500 text-xs line-clamp-1 mt-0.5">{p.content}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
+                  {/* Pending: [Duyệt] [Từ chối] [Xóa] */}
                   {p.status === 'pending' && <button onClick={() => approve(p.id)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg" title="Duyệt"><CheckCircle className="w-4 h-4" /></button>}
-                  {p.status !== 'approved' && <button onClick={() => setRejectTarget(p.id)} className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="Từ chối"><XCircle className="w-4 h-4" /></button>}
+                  {p.status === 'pending' && <button onClick={() => setRejectTarget(p.id)} className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="Từ chối"><XCircle className="w-4 h-4" /></button>}
+                  {/* Rejected: [Duyệt lại] [Xóa] */}
+                  {p.status === 'rejected' && <button onClick={() => approve(p.id)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg" title="Duyệt lại"><CheckCircle className="w-4 h-4" /></button>}
+                  {/* Approved: [Xóa only] */}
+                  {/* Delete: always */}
                   <button onClick={() => setDeleteTarget(p.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg" title="Xoá"><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
@@ -290,7 +362,7 @@ function PostsSection({ onBack }: { onBack: () => void }) {
       </div>
 
       {rejectTarget && <RejectModal onConfirm={(r) => reject(rejectTarget, r)} onClose={() => setRejectTarget(null)} />}
-      {deleteTarget && <DeleteModal onConfirm={() => delPost(deleteTarget)} onClose={() => setDeleteTarget(null)} />}
+      {deleteTarget && <DeleteModal label="câu hỏi (thông báo sẽ được gửi cho tác giả)" onConfirm={(r) => delPost(deleteTarget, r)} onClose={() => setDeleteTarget(null)} />}
     </div>
   );
 }

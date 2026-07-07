@@ -50,7 +50,7 @@ export const api = {
   post: (p: string, body?: any) => request(p, { method: 'POST', body }),
   put: (p: string, body?: any) => request(p, { method: 'PUT', body }),
   patch: (p: string, body?: any) => request(p, { method: 'PATCH', body }),
-  del: (p: string) => request(p, { method: 'DELETE' }),
+  del: (p: string, body?: any) => request(p, { method: 'DELETE', body }),
   postForm: (p: string, form: FormData) => request(p, { method: 'POST', body: form, isForm: true }),
   putForm: (p: string, form: FormData) => request(p, { method: 'PUT', body: form, isForm: true }),
 };

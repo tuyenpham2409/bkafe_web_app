@@ -17,6 +17,9 @@ export const listComments = asyncHandler(async (req, res) => {
 
 // POST /api/posts/:postId/comments  { content }
 export const createComment = asyncHandler(async (req, res) => {
+  if (req.user.bannedCommenting) {
+    return res.status(403).json({ message: 'Tài khoản của bạn đã bị hạn chế quyền bình luận.' });
+  }
   const content = String(req.body.content || '').trim();
   if (!content) return res.status(400).json({ message: 'Vui lòng nhập nội dung bình luận.' });
   const post = await Post.findById(req.params.postId);
@@ -36,6 +39,9 @@ export const createComment = asyncHandler(async (req, res) => {
 
 // POST /api/comments/:id/reply  { content }
 export const replyComment = asyncHandler(async (req, res) => {
+  if (req.user.bannedCommenting) {
+    return res.status(403).json({ message: 'Tài khoản của bạn đã bị hạn chế quyền bình luận.' });
+  }
   const content = String(req.body.content || '').trim();
   if (!content) return res.status(400).json({ message: 'Vui lòng nhập nội dung trả lời.' });
   const parent = await Comment.findById(req.params.id);

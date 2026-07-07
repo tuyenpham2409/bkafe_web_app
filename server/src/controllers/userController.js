@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import Post from '../models/Post.js';
 import Comment from '../models/Comment.js';
+import Notification from '../models/Notification.js';
 import { asyncHandler } from '../middlewares/errorHandler.js';
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,15}$/;
@@ -45,6 +46,9 @@ export const listUsers = asyncHandler(async (_req, res) => {
       photoURL: u.photoURL || '',
       joinedAt: u.createdAt,
       lastActiveAt: u.lastActiveAt,
+      bannedPosting: u.bannedPosting || false,
+      bannedCommenting: u.bannedCommenting || false,
+      banReason: u.banReason || '',
     }))
   );
 });
@@ -95,7 +99,6 @@ export const deleteUser = asyncHandler(async (req, res) => {
 export const searchUsers = asyncHandler(async (req, res) => {
   const q = String(req.query.q || '').trim();
   if (!q) return res.json([]);
-  // Escape ký tự đặc biệt regex để tránh lỗi
   const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
   const users = await User.find({ $or: [{ displayName: rx }, { username: rx }] })
     .limit(20)
@@ -111,4 +114,58 @@ export const searchUsers = asyncHandler(async (req, res) => {
       lastActiveAt: u.lastActiveAt,
     }))
   );
+});
+
+// PATCH /api/users/:id/ban  (admin)  { bannedPosting, bannedCommenting, reason }
+export const banUser = asyncHandler(async (req, res) => {
+  if (String(req.user._id) === String(req.params.id)) {
+    return res.status(400).json({ message: 'Không thể khóa tài khoản của chính mình.' });
+  }
+  const target = await User.findById(req.params.id);
+  if (!target) return res.status(404).json({ message: 'Không tìm thấy người dùng.' });
+  if (target.role === 'admin') {
+    return res.status(403).json({ message: 'Không thể khóa tài khoản admin.' });
+  }
+
+  const { bannedPosting, bannedCommenting, reason } = req.body;
+  const banReason = String(reason || '').trim();
+
+  target.bannedPosting    = bannedPosting    ?? target.bannedPosting;
+  target.bannedCommenting = bannedCommenting ?? target.bannedCommenting;
+  target.banReason = banReason || target.banReason;
+
+  // Nếu mở khóa tất cả thì xóa lý do
+  if (!target.bannedPosting && !target.bannedCommenting) {
+    target.banReason = '';
+  }
+  await target.save();
+
+  // Gửi thông báo cho người dùng bị khóa (chỉ khi khóa, không khi mở)
+  const isLocking = bannedPosting || bannedCommenting;
+  if (isLocking) {
+    const restrictions = [];
+    if (bannedPosting)    restrictions.push('đăng bài');
+    if (bannedCommenting) restrictions.push('bình luận');
+    await Notification.create({
+      user: target._id,
+      type: 'account_banned',
+      title: 'Tài khoản bị hạn chế hoạt động',
+      message: `Tài khoản của bạn đã bị hạn chế quyền ${restrictions.join(' và ')}.${banReason ? ` Lý do: ${banReason}` : ''}`,
+      link: '/',
+    });
+  }
+
+  res.json({
+    id: String(target._id),
+    username: target.username,
+    displayName: target.displayName,
+    email: target.email,
+    role: target.role,
+    photoURL: target.photoURL || '',
+    joinedAt: target.createdAt,
+    lastActiveAt: target.lastActiveAt,
+    bannedPosting: target.bannedPosting,
+    bannedCommenting: target.bannedCommenting,
+    banReason: target.banReason,
+  });
 });
