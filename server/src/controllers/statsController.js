@@ -16,13 +16,14 @@ export const trackView = asyncHandler(async (_req, res) => {
 
 // GET /api/stats  — numbers for the admin dashboard + sidebar
 export const getStats = asyncHandler(async (_req, res) => {
-  const [viewsDoc, approved, pending, rejected, comments, users] = await Promise.all([
+  const [viewsDoc, approved, pending, rejected, comments, users, active] = await Promise.all([
     Counter.findOne({ key: 'totalViews' }).lean(),
     Post.countDocuments({ status: 'approved' }),
     Post.countDocuments({ status: 'pending' }),
     Post.countDocuments({ status: 'rejected' }),
     Comment.countDocuments({}),
     User.countDocuments({}),
+    User.countDocuments({ lastActiveAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) } }),
   ]);
   res.json({
     totalViews: viewsDoc?.value || 0,
@@ -31,5 +32,6 @@ export const getStats = asyncHandler(async (_req, res) => {
     rejectedPosts: rejected,
     comments,
     users,
+    activeUsers: active || 1, // ít nhất là admin hiện tại đang xem
   });
 });

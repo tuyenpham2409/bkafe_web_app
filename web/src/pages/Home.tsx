@@ -4,11 +4,13 @@ import Cookies from 'js-cookie';
 import { api } from '../lib/api';
 import { MessageCircle, Eye, X, Coffee, Star, Play } from 'lucide-react';
 
+
 export default function Home() {
   const { slug } = useParams<{ slug: string }>();
   const [posts, setPosts] = useState<any[]>([]);
   const [topics, setTopics] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
@@ -24,6 +26,39 @@ export default function Home() {
       .finally(() => setLoading(false));
   }, [slug]);
 
+  // Disable browser automatic scroll restoration to avoid interference
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+  }, []);
+
+  // Save scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      sessionStorage.setItem('homepage-scroll', String(window.scrollY));
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Restore scroll position when posts finish loading (stepped to handle dynamic rendering)
+  useEffect(() => {
+    if (!loading && posts.length > 0) {
+      const saved = sessionStorage.getItem('homepage-scroll');
+      if (saved) {
+        const scrollVal = parseInt(saved, 10);
+        const delays = [50, 150, 300, 500];
+        const timers = delays.map((d) =>
+          setTimeout(() => {
+            window.scrollTo(0, scrollVal);
+          }, d)
+        );
+        return () => timers.forEach(clearTimeout);
+      }
+    }
+  }, [loading, posts]);
+
   // Ad popup after 1 minute, suppressed forever once closed (cookie)
   useEffect(() => {
     if (!Cookies.get('hasSeenPopup')) {
@@ -36,6 +71,8 @@ export default function Home() {
     setShowPopup(false);
     Cookies.set('hasSeenPopup', 'true', { expires: 365 });
   };
+
+
 
   const topicName = slug ? topics.find((t) => t.slug === slug)?.name : null;
 
@@ -139,3 +176,4 @@ export default function Home() {
     </div>
   );
 }
+

@@ -109,7 +109,7 @@ export const createPost = asyncHandler(async (req, res) => {
   res.status(201).json(shapePost(post, req.user));
 });
 
-// PUT /api/posts/:id   (author only) — không cho sửa bài đã approved
+// PUT /api/posts/:id   (author or admin)
 export const updatePost = asyncHandler(async (req, res) => {
   const post = await Post.findById(req.params.id);
   if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
@@ -117,15 +117,30 @@ export const updatePost = asyncHandler(async (req, res) => {
   if (!isOwner && req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Bạn không có quyền sửa bài viết này.' });
   }
-  // Bài đã approved không thể sửa (theo quy định)
-  if (post.status === 'approved') {
-    return res.status(403).json({ message: 'Không thể chỉnh sửa bài viết đã được duyệt.' });
-  }
   const { title, content, topic } = req.body;
   if (title !== undefined) post.title = title.trim();
   if (content !== undefined) post.content = content.trim();
   if (topic !== undefined) post.topic = topic.trim();
   if (req.files?.length) post.media = [...post.media, ...mediaFromFiles(req.files)];
+
+  // Nếu bài đã approved được sửa đổi bởi người dùng thường, reset trạng thái về pending để duyệt lại
+  if (post.status === 'approved' && req.user.role !== 'admin') {
+    post.status = 'pending';
+    // Gửi thông báo đến tất cả admin khi bài viết cập nhật cần duyệt lại
+    const admins = await User.find({ role: 'admin' }).select('_id').lean();
+    await Promise.all(
+      admins.map((a) =>
+        Notification.create({
+          user: a._id,
+          type: 'new_pending_post',
+          title: 'Câu hỏi được cập nhật cần duyệt lại',
+          message: `${req.user.displayName} vừa cập nhật câu hỏi "${post.title || 'không tiêu đề'}". Vui lòng duyệt lại.`,
+          link: `/post/${post._id}`,
+        })
+      )
+    );
+  }
+
   await post.save();
   await post.populate('author', AUTHOR_FIELDS);
   res.json(shapePost(post, req.user));

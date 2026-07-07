@@ -26,6 +26,16 @@ function relativeTime(date: string | Date | undefined): string {
   return `${Math.floor(diff / 86400)} ngày trước`;
 }
 
+function userActiveTime(date: string | Date | undefined): string {
+  if (!date) return 'Chưa có lịch sử';
+  const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000); // seconds
+  if (diff < 60) return 'Đang hoạt động';
+  if (diff < 3600) return `Hoạt động ${Math.floor(diff / 60)} phút trước`;
+  if (diff < 86400) return `Hoạt động ${Math.floor(diff / 3600)} giờ trước`;
+  return `Hoạt động ${Math.floor(diff / 86400)} ngày trước`;
+}
+
+
 function displayTitle(post: any) {
   return post.title?.trim() || post.content?.substring(0, 50) + (post.content?.length > 50 ? '...' : '');
 }
@@ -216,10 +226,11 @@ function UsersSection({ onBack }: { onBack: () => void }) {
                   <div className="text-xs text-slate-400 truncate flex items-center gap-2">
                     <span>{u.email}</span>
                     <span className="text-slate-300">·</span>
-                    <span className={u.lastActiveAt ? 'text-green-600 font-semibold' : 'text-slate-400'}>
-                      {u.lastActiveAt ? `Hoạt động ${relativeTime(u.lastActiveAt)}` : 'Chưa có lịch sử'}
+                    <span className={u.lastActiveAt && (Math.floor((Date.now() - new Date(u.lastActiveAt).getTime()) / 1000) < 60) ? 'text-green-600 font-extrabold' : 'text-slate-400'}>
+                      {userActiveTime(u.lastActiveAt)}
                     </span>
                   </div>
+
                 </div>
                 <select value={u.role} onChange={(e) => setRole(u.id, e.target.value)} className="text-xs font-bold border border-slate-200 rounded-lg px-2 py-1 bg-white shrink-0">
                   <option value="user">User</option>
@@ -248,9 +259,11 @@ function UsersSection({ onBack }: { onBack: () => void }) {
           </div>
         )}
       </div>
+      {banTarget && <BanModal user={banTarget} onConfirm={banUserFn} onClose={() => setBanTarget(null)} />}
     </div>
   );
 }
+
 
 // ─── Section: Post Management ─────────────────────────────
 function PostsSection({ onBack }: { onBack: () => void }) {
@@ -459,18 +472,19 @@ export default function Admin() {
 
   // Dashboard view
   const kpis = [
-    { label: 'Lượt xem trang', value: stats?.totalViews ?? 0, icon: Eye, color: 'blue' },
-    { label: 'Bài đã duyệt', value: stats?.approvedPosts ?? 0, icon: CheckCircle, color: 'green', onClick: () => setView('posts') },
+    { label: 'Lượt xem trang', value: stats?.totalViews ?? 0, icon: Eye, color: 'blue', desc: 'Tính theo số phiên trình duyệt truy cập.' },
+    { label: 'Đang truy cập', value: stats?.activeUsers ?? 1, icon: Users, color: 'rose', desc: 'Thành viên hoạt động 5 phút qua.' },
+    { label: 'Người dùng', value: stats?.users ?? 0, icon: Users, color: 'indigo', onClick: () => setView('users') },
     { label: 'Chờ duyệt', value: stats?.pendingPosts ?? 0, icon: Clock, color: 'amber', onClick: () => setView('posts') },
+    { label: 'Bài đã duyệt', value: stats?.approvedPosts ?? 0, icon: CheckCircle, color: 'green', onClick: () => setView('posts') },
     { label: 'Bình luận', value: stats?.comments ?? 0, icon: MessageSquare, color: 'indigo', onClick: () => setView('comments') },
-    { label: 'Người dùng', value: stats?.users ?? 0, icon: Users, color: 'rose', onClick: () => setView('users') },
   ];
-  const colorCls: any = { blue: 'bg-blue-50 text-blue-600', green: 'bg-green-50 text-green-600', amber: 'bg-amber-50 text-amber-600', indigo: 'bg-indigo-50 text-indigo-600', rose: 'bg-rose-50 text-rose-600' };
+  const colorCls: any = { blue: 'bg-blue-50 text-blue-600', rose: 'bg-rose-50 text-rose-600', green: 'bg-green-50 text-green-600', amber: 'bg-amber-50 text-amber-600', indigo: 'bg-indigo-50 text-indigo-600' };
 
   const sections = [
     { key: 'users' as AdminView, icon: Users, label: 'Quản lý tài khoản', desc: 'Thêm, sửa, xoá và phân quyền tài khoản người dùng.', color: 'blue', badge: stats?.users },
     { key: 'posts' as AdminView, icon: FileText, label: 'Quản lý câu hỏi', desc: 'Duyệt, từ chối và quản lý tất cả câu hỏi trên hệ thống.', color: 'indigo', badge: stats?.pendingPosts, badgeLabel: 'chờ duyệt', badgeColor: 'amber' },
-    { key: 'comments' as AdminView, icon: MessageSquare, label: 'Quản lý bình luận', desc: 'Xem và xoá các bình luận vi phạm quy định.', color: 'violet', badge: stats?.comments },
+    { key: 'comments' as AdminView, icon: MessageSquare, label: 'Quản lý bình luận', desc: 'Xem và xoá các bình luận vi phạm quy định.', color: 'indigo', badge: stats?.comments },
   ];
 
   return (
@@ -482,17 +496,19 @@ export default function Admin() {
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {kpis.map((k) => (
           <button key={k.label} onClick={k.onClick} className={`bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 transition-all text-left ${k.onClick ? 'hover:shadow-md hover:border-slate-300 cursor-pointer' : 'cursor-default'}`}>
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${colorCls[k.color]}`}><k.icon className="w-6 h-6" /></div>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${colorCls[k.color] || 'bg-slate-50 text-slate-600'}`}><k.icon className="w-6 h-6" /></div>
             <div>
               <div className="text-2xl font-black text-slate-900">{k.value}</div>
               <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{k.label}</div>
+              {k.desc && <div className="text-[10px] text-slate-400 mt-1 font-semibold normal-case leading-tight">{k.desc}</div>}
             </div>
           </button>
         ))}
       </div>
+
 
       {/* Section cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

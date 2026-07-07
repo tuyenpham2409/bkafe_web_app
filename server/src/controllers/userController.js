@@ -130,27 +130,39 @@ export const banUser = asyncHandler(async (req, res) => {
   const { bannedPosting, bannedCommenting, reason } = req.body;
   const banReason = String(reason || '').trim();
 
+  const wasBanned = target.bannedPosting || target.bannedCommenting;
+
   target.bannedPosting    = bannedPosting    ?? target.bannedPosting;
   target.bannedCommenting = bannedCommenting ?? target.bannedCommenting;
   target.banReason = banReason || target.banReason;
 
+  const isBannedNow = target.bannedPosting || target.bannedCommenting;
+
   // Nếu mở khóa tất cả thì xóa lý do
-  if (!target.bannedPosting && !target.bannedCommenting) {
+  if (!isBannedNow) {
     target.banReason = '';
   }
   await target.save();
 
-  // Gửi thông báo cho người dùng bị khóa (chỉ khi khóa, không khi mở)
-  const isLocking = bannedPosting || bannedCommenting;
-  if (isLocking) {
+  // Gửi thông báo cho người dùng bị khóa hoặc mở khóa
+  if (isBannedNow) {
     const restrictions = [];
-    if (bannedPosting)    restrictions.push('đăng bài');
-    if (bannedCommenting) restrictions.push('bình luận');
+    if (target.bannedPosting)    restrictions.push('đăng bài');
+    if (target.bannedCommenting) restrictions.push('bình luận');
     await Notification.create({
       user: target._id,
       type: 'account_banned',
       title: 'Tài khoản bị hạn chế hoạt động',
-      message: `Tài khoản của bạn đã bị hạn chế quyền ${restrictions.join(' và ')}.${banReason ? ` Lý do: ${banReason}` : ''}`,
+      message: `Tài khoản của bạn đã bị hạn chế quyền ${restrictions.join(' và ')}.${target.banReason ? ` Lý do: ${target.banReason}` : ''}`,
+      link: '/',
+    });
+  } else if (wasBanned && !isBannedNow) {
+    // Gửi thông báo mở khóa
+    await Notification.create({
+      user: target._id,
+      type: 'account_banned',
+      title: 'Tài khoản đã được mở khóa',
+      message: 'Tài khoản của bạn đã được gỡ bỏ tất cả các hạn chế hoạt động.',
       link: '/',
     });
   }

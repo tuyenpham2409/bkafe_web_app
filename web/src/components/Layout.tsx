@@ -87,17 +87,37 @@ export default function Layout() {
     api.get('/topics').then(setTopics).catch(() => {});
   }, []);
 
-  // Load admin-only badges
+  // Load admin-only badges with custom event listeners and periodic polling
   useEffect(() => {
-    if (user?.role === 'admin') {
-      api.get('/contacts').then((cs: any[]) => {
-        setUnreadContacts(cs.filter((c: any) => !c.handled).length);
-      }).catch(() => {});
-      api.get('/posts?status=pending').then((ps: any[]) => {
-        setPendingPostCount(ps.length);
-      }).catch(() => {});
-    }
-  }, [user, location.pathname]); // re-fetch on route change to keep badges fresh
+    const updateBadges = () => {
+      if (user?.role === 'admin') {
+        api.get('/contacts').then((cs: any[]) => {
+          setUnreadContacts(cs.filter((c: any) => !c.handled).length);
+        }).catch(() => {});
+        api.get('/posts?status=pending').then((ps: any[]) => {
+          setPendingPostCount(ps.length);
+        }).catch(() => {});
+      } else {
+        setUnreadContacts(0);
+        setPendingPostCount(0);
+      }
+    };
+
+    updateBadges();
+
+    window.addEventListener('bkafe-contacts-changed', updateBadges);
+    window.addEventListener('bkafe-posts-changed', updateBadges);
+    
+    // Poll every 10s as a fallback
+    const interval = setInterval(updateBadges, 10000);
+
+    return () => {
+      window.removeEventListener('bkafe-contacts-changed', updateBadges);
+      window.removeEventListener('bkafe-posts-changed', updateBadges);
+      clearInterval(interval);
+    };
+  }, [user, location.pathname]);
+
 
   // Count one website view per browser session
   useEffect(() => {

@@ -18,8 +18,8 @@ function AdminInbox() {
 
   useEffect(() => { load(); }, []);
 
-  const toggle = async (id: string) => { const r = await api.patch(`/contacts/${id}/handled`); setContacts((cs) => cs.map((c) => c.id === id ? { ...c, handled: r.handled } : c)); setUnhandledCount((n) => r.handled ? n - 1 : n + 1); };
-  const remove = async (id: string) => { if (!confirm('Xoá góp ý này?')) return; await api.del(`/contacts/${id}`); setContacts((cs) => cs.filter((c) => c.id !== id)); };
+  const toggle = async (id: string) => { const r = await api.patch(`/contacts/${id}/handled`); setContacts((cs) => cs.map((c) => c.id === id ? { ...c, handled: r.handled } : c)); setUnhandledCount((n) => r.handled ? n - 1 : n + 1); window.dispatchEvent(new Event('bkafe-contacts-changed')); };
+  const remove = async (id: string) => { if (!confirm('Xoá góp ý này?')) return; await api.del(`/contacts/${id}`); setContacts((cs) => cs.filter((c) => c.id !== id)); window.dispatchEvent(new Event('bkafe-contacts-changed')); };
 
   return (
     <div className="max-w-3xl mx-auto space-y-4">
@@ -123,9 +123,11 @@ export default function AboutContact() {
       files.forEach((f) => form.append('media', f));
       await api.postForm('/contacts', form);
       setSubmitted(true);
+      window.dispatchEvent(new Event('bkafe-contacts-changed'));
       setTimeout(() => { setMessage(''); setFiles([]); setSubmitted(false); }, 3000);
     } catch (err: any) { alert(err.message); } finally { setLoading(false); }
   };
+
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">

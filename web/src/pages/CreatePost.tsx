@@ -140,7 +140,7 @@ export default function CreatePost() {
 
         {/* Media */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Ảnh / Video đính kèm (tối đa 5)</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Ảnh / Video đính kèm (tối đa 5, ảnh ≤5MB, video ≤20MB)</label>
           <div className="flex flex-wrap gap-3">
             {files.map((f, i) => (
               <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center">

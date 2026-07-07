@@ -119,6 +119,7 @@ export default function PostDetail() {
   };
   useEffect(() => {
     load();
+    window.scrollTo(0, 0);
     /* eslint-disable-next-line */
   }, [id]);
   useEffect(() => { api.get('/topics').then(setTopics).catch(() => {}); }, []);
@@ -157,29 +158,42 @@ export default function PostDetail() {
     } catch (err: any) { alert(err.message); } finally { setSubmitting(false); }
   };
 
-  const submitReply = async (parentId: string) => {
+  const handleReplyClick = (c: any) => {
+    if (!user) return requireLogin('Đăng nhập để trả lời.');
+    setReplyingTo(replyingTo === c.id ? null : c.id);
+    if (c.parentId) {
+      setReplyContent(`@${c.authorName} `);
+    } else {
+      setReplyContent('');
+    }
+  };
+
+  const submitReply = async (comment: any) => {
     if (!user) return requireLogin('Bạn cần đăng nhập để trả lời.');
     if (!replyContent.trim()) return;
+    const targetParentId = comment.parentId || comment.id;
     try {
-      const c = await api.post(`/comments/${parentId}/reply`, { content: replyContent.trim() });
+      const c = await api.post(`/comments/${targetParentId}/reply`, { content: replyContent.trim() });
       setComments((prev) => [...prev, c]);
-      setReplyContent(''); setReplyingTo(null);
+      setReplyContent('');
+      setReplyingTo(null);
     } catch (err: any) { alert(err.message); }
   };
 
   // admin/owner actions
   const doApprove = async () => {
-    try { const p = await api.patch(`/posts/${id}/approve`); setPost((x: any) => ({ ...x, ...p })); setMenuOpen(false); }
+    try { const p = await api.patch(`/posts/${id}/approve`); setPost((x: any) => ({ ...x, ...p })); setMenuOpen(false); window.dispatchEvent(new Event('bkafe-posts-changed')); }
     catch (e: any) { showToast(e.message, 'error'); }
   };
   const doReject = async () => {
-    try { const p = await api.patch(`/posts/${id}/reject`, { reason: rejectReason }); setPost((x: any) => ({ ...x, ...p })); setRejectOpen(false); setMenuOpen(false); }
+    try { const p = await api.patch(`/posts/${id}/reject`, { reason: rejectReason }); setPost((x: any) => ({ ...x, ...p })); setRejectOpen(false); setMenuOpen(false); window.dispatchEvent(new Event('bkafe-posts-changed')); }
     catch (e: any) { showToast(e.message, 'error'); }
   };
   const doDelete = async () => {
     try {
       await api.del(`/posts/${id}`, deleteReason ? { reason: deleteReason } : undefined);
       setDeleteOpen(false);
+      window.dispatchEvent(new Event('bkafe-posts-changed'));
       navigate(-1);
     } catch (e: any) { showToast(e.message, 'error'); }
   };
@@ -189,7 +203,14 @@ export default function PostDetail() {
     form.append('title', editData.title); form.append('content', editData.content); form.append('topic', editData.topic);
     const p = await api.putForm(`/posts/${id}`, form);
     setPost((x: any) => ({ ...x, ...p })); setEditing(false);
+    window.dispatchEvent(new Event('bkafe-posts-changed'));
+    if (p.status === 'pending') {
+      showToast('Bài viết đã được cập nhật và đang chờ duyệt lại.', 'info');
+    } else {
+      showToast('Bài viết đã được cập nhật thành công.', 'success');
+    }
   };
+
   const deleteComment = async (cid: string) => { if (!confirm('Xoá bình luận này?')) return; await api.del(`/comments/${cid}`); setComments((prev) => prev.filter((c) => c.id !== cid && c.parentId !== cid)); };
 
   if (loading) return <div className="text-center py-12 text-slate-500 font-bold">Đang tải nội dung...</div>;
@@ -217,16 +238,16 @@ export default function PostDetail() {
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 ml-2 text-xs text-slate-500 font-bold">
             <span>{new Date(c.createdAt).toLocaleString('vi-VN')}</span>
-            {!isReply && <button type="button" onClick={() => { if (!user) return requireLogin('Đăng nhập để trả lời.'); setReplyingTo(replyingTo === c.id ? null : c.id); }} className="hover:text-blue-600">Trả lời</button>}
+            <button type="button" onClick={() => handleReplyClick(c)} className="hover:text-blue-600">Trả lời</button>
             <RatePopover myValue={myRating} onRate={(v) => rateComment(c, v)} />
             {c.ratingCount > 0 && <span className="flex items-center gap-0.5 text-amber-600"><Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />{c.ratingAvg.toFixed(1)}/5 ({c.ratingCount})</span>}
             {isAdmin && <button type="button" onClick={() => deleteComment(c.id)} className="text-red-500 hover:text-red-700">Xoá</button>}
           </div>
-          {!isReply && replyingTo === c.id && user && (
+          {replyingTo === c.id && user && (
             <div className="flex items-center gap-2 mt-2">
               <AvatarCircle url={user.photoURL} name={user.displayName} size="w-8 h-8" />
-              <input autoFocus value={replyContent} onChange={(e) => setReplyContent(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') submitReply(c.id); }} placeholder={`Trả lời ${c.authorName}...`} className="flex-1 bg-slate-100 border border-slate-200 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 focus:bg-white" />
-              <button type="button" onClick={() => submitReply(c.id)} className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700"><Send className="w-4 h-4" /></button>
+              <input autoFocus value={replyContent} onChange={(e) => setReplyContent(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') submitReply(c); }} placeholder={`Trả lời ${c.authorName}...`} className="flex-1 bg-slate-100 border border-slate-200 rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 focus:bg-white" />
+              <button type="button" onClick={() => submitReply(c)} className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700"><Send className="w-4 h-4" /></button>
             </div>
           )}
           {!isReply && repliesOf(c.id).length > 0 && <div className="mt-2 pl-4 border-l-2 border-slate-100">{repliesOf(c.id).map((r) => renderComment(r, true))}</div>}
@@ -273,8 +294,8 @@ export default function PostDetail() {
                     {isAdmin && post.status === 'pending' && <button onClick={() => { setRejectOpen(true); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-amber-700 hover:bg-amber-50"><XCircle className="w-4 h-4" /> Từ chối duyệt</button>}
                     {/* Rejected: [Duyệt lại] [Xóa] */}
                     {isAdmin && post.status === 'rejected' && <button onClick={doApprove} className="w-full flex items-center gap-2 px-4 py-2 text-green-700 hover:bg-green-50"><CheckCircle className="w-4 h-4" /> Duyệt lại</button>}
-                    {/* Owner (not admin) can edit non-approved posts */}
-                    {isOwner && !isAdmin && post.status !== 'approved' && <button onClick={() => { setEditing(true); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-blue-700 hover:bg-blue-50"><Edit className="w-4 h-4" /> Sửa bài</button>}
+                    {/* Owner can edit their post at any time */}
+                    {isOwner && <button onClick={() => { setEditing(true); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-blue-700 hover:bg-blue-50"><Edit className="w-4 h-4" /> Sửa bài</button>}
                     {/* Delete: admin always, owner always */}
                     {(isAdmin || isOwner) && <button onClick={() => { setDeleteOpen(true); setMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-2 text-red-700 hover:bg-red-50"><Trash2 className="w-4 h-4" /> Xoá bài</button>}
                   </div>
