@@ -117,11 +117,23 @@ export const updatePost = asyncHandler(async (req, res) => {
   if (!isOwner && req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Bạn không có quyền sửa bài viết này.' });
   }
-  const { title, content, topic } = req.body;
+  const { title, content, topic, keepMedia } = req.body;
   if (title !== undefined) post.title = title.trim();
   if (content !== undefined) post.content = content.trim();
   if (topic !== undefined) post.topic = topic.trim();
-  if (req.files?.length) post.media = [...post.media, ...mediaFromFiles(req.files)];
+
+  // keepMedia: JSON array of existing media URLs to retain; others are removed
+  if (keepMedia !== undefined) {
+    let keepUrls = [];
+    try { keepUrls = JSON.parse(keepMedia); } catch {}
+    post.media = post.media.filter((m) => keepUrls.includes(m.url));
+  }
+  // Append newly uploaded files
+  if (req.files?.length) {
+    const newMedia = mediaFromFiles(req.files);
+    post.media = [...post.media, ...newMedia].slice(0, 5);
+  }
+
 
   // Nếu bài đã approved được sửa đổi bởi người dùng thường, reset trạng thái về pending để duyệt lại
   if (post.status === 'approved' && req.user.role !== 'admin') {

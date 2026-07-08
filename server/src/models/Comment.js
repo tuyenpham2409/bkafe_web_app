@@ -1,5 +1,13 @@
 import mongoose from 'mongoose';
 
+const commentMediaSchema = new mongoose.Schema(
+  {
+    type: { type: String, enum: ['image', 'video'], required: true },
+    url: { type: String, required: true },
+  },
+  { _id: false }
+);
+
 const commentSchema = new mongoose.Schema(
   {
     post: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', required: true, index: true },
@@ -9,6 +17,7 @@ const commentSchema = new mongoose.Schema(
     authorName: { type: String, required: true },
     authorEmail: { type: String, default: '' },
     content: { type: String, required: true },
+    media: { type: [commentMediaSchema], default: [] },
     // one rating per user for this comment
     ratings: { type: Map, of: Number, default: {} },
     ratingAvg: { type: Number, default: 0 },

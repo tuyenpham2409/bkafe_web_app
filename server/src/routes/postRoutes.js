@@ -19,6 +19,7 @@ r.post('/:id/share', auth(false), p.sharePost);
 
 // comments nested under a post
 r.get('/:postId/comments', auth(false), cm.listComments);
-r.post('/:postId/comments', auth(), cm.createComment);
+r.post('/:postId/comments', auth(), upload.array('media', 5), cm.createComment);
+
 
 export default r;

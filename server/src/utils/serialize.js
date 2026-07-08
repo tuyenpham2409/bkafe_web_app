@@ -73,6 +73,7 @@ export function shapeComment(comment, user) {
     postId: String(comment.post),
     parentId: comment.parent ? String(comment.parent) : null,
     content: comment.content,
+    media: comment.media || [],
     authorId: a ? String(a._id) : null,
     authorName: comment.authorName || (a ? a.displayName : 'Người dùng'),
     authorEmail: comment.authorEmail || '',
@@ -81,6 +82,7 @@ export function shapeComment(comment, user) {
     ratingCount,
     myRating: ratingOf(comment.ratings, user?._id),
     createdAt: comment.createdAt,
+    updatedAt: comment.updatedAt,
   };
 }
 
