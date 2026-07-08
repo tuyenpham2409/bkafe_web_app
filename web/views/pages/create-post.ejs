@@ -1,0 +1,64 @@
+<%- include('../partials/header', { title: locals.post ? 'Chỉnh sửa bài viết' : 'Đăng câu hỏi mới' }) %>
+<div style="max-width: 672px; margin: 0 auto; padding: 20px 0;">
+  <div class="card" style="padding: 32px;">
+    <h2 style="font-size: 22px; font-weight: 900; color: var(--slate-900); margin-bottom: 24px;">
+      <%= locals.post ? 'Chỉnh sửa bài viết' : 'Đăng câu hỏi mới' %>
+    </h2>
+
+    <% if (locals.error) { %>
+      <div class="alert alert-danger" style="margin-bottom: 16px;"><%= error %></div>
+    <% } %>
+
+    <form method="POST" action="<%= locals.post ? '/post/' + post.id + '/edit' : '/create-post' %>" enctype="multipart/form-data">
+      <div class="form-group">
+        <label class="form-label" for="title">Tiêu đề (Không bắt buộc)</label>
+        <input type="text" id="title" name="title" value="<%= locals.post ? post.title : '' %>" class="form-input" placeholder="Tóm tắt câu hỏi của bạn...">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="topic">Chủ đề <span class="req">*</span></label>
+        <select id="topic" name="topic" required class="form-input">
+          <option value="" disabled <%= !locals.post ? 'selected' : '' %>>-- Chọn chủ đề --</option>
+          <% topics.forEach(topic => { %>
+            <option value="<%= topic.slug %>" <%= locals.post && post.topic === topic.slug ? 'selected' : '' %>>
+              <%= topic.name %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="content">Nội dung câu hỏi <span class="req">*</span></label>
+        <textarea id="content" name="content" required class="form-input" style="min-height: 180px;" placeholder="Hãy viết chi tiết thắc mắc của bạn tại đây..."><%= locals.post ? post.content : '' %></textarea>
+      </div>
+
+      <!-- Keep Media checkboxes (Only for Edit mode) -->
+      <% if (locals.post && post.media && post.media.length > 0) { %>
+        <div class="form-group">
+          <label class="form-label">Giữ lại hình ảnh/video hiện tại:</label>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
+            <% post.media.forEach((m, idx) => { %>
+              <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: var(--slate-700);">
+                <input type="checkbox" name="keepMedia" value="<%= m.url %>" checked style="width: 18px; height: 18px;">
+                <%= m.type === 'video' ? 'Video' : 'Hình ảnh' %> (<%= m.url.substring(m.url.lastIndexOf('/') + 1) %>)
+              </label>
+            <% }) %>
+          </div>
+        </div>
+      <% } %>
+
+      <div class="form-group">
+        <label class="form-label">Đính kèm ảnh/video (Tối đa 5 file, tối đa 25MB/file)</label>
+        <input type="file" name="media" multiple accept="image/*,video/*" class="form-input">
+      </div>
+
+      <div style="display: flex; gap: 12px; margin-top: 24px;">
+        <button type="submit" class="btn btn-primary" style="padding: 10px 24px; font-size: 14px;">
+          <%= locals.post ? 'Cập nhật' : 'Đăng câu hỏi' %>
+        </button>
+        <a href="<%= locals.post ? '/post/' + post.id : '/' %>" class="btn btn-secondary" style="padding: 10px 24px; font-size: 14px; text-decoration: none; text-align: center;">Hủy</a>
+      </div>
+    </form>
+  </div>
+</div>
+<%- include('../partials/footer') %>

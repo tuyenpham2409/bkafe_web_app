@@ -1,0 +1,35 @@
+<%- include('../partials/header', { title: 'Đăng nhập', hideSearch: true }) %>
+<div class="card auth-card">
+  <% if (locals.error) { %>
+    <div class="alert alert-danger"><%= error %></div>
+  <% } %>
+  <% if (locals.success) { %>
+    <div class="alert alert-success"><%= success %></div>
+  <% } %>
+
+  <h2 class="auth-title">Đăng nhập BKafe</h2>
+  <form method="POST" action="/login" style="display: flex; flex-direction: column; gap: 16px;">
+    <input type="hidden" name="next" value="<%= locals.next || '/' %>">
+
+    <div class="form-group" style="margin-bottom: 0;">
+      <label class="form-label">Tên đăng nhập (MSSV) hoặc Email <span class="req">*</span></label>
+      <input
+        type="text"
+        name="identifier"
+        required
+        class="form-input"
+        placeholder="20233885 hoặc sv@sis.hust.edu.vn"
+        autofocus
+      >
+    </div>
+    <div class="form-group" style="margin-bottom: 0;">
+      <label class="form-label">Mật khẩu <span class="req">*</span></label>
+      <%- include('../partials/password-input', { id: 'password', name: 'password', autocomplete: 'current-password' }) %>
+    </div>
+    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; margin-top: 8px;">Đăng nhập</button>
+  </form>
+  <div class="auth-footer">
+    Chưa có tài khoản? <a href="/register">Đăng ký ngay</a>
+  </div>
+</div>
+<%- include('../partials/footer') %>

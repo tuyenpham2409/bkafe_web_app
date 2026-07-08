@@ -1,0 +1,102 @@
+<%- include('../partials/header', { title: 'Tìm kiếm', searchQuery: q }) %>
+
+<div style="max-width: 768px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
+  <% if (!q) { %>
+    <div class="card text-center" style="padding: 48px 32px; color: var(--slate-400);">
+      <%- include('../partials/icons', { name: 'search', size: 48, style: 'color: var(--slate-300); margin: 0 auto 12px auto;' }) %>
+      <h2 style="font-weight: 900; color: var(--slate-700); margin-bottom: 4px;">Tìm kiếm BKafe</h2>
+      <p style="font-size: 12px; color: var(--slate-400); font-weight: 600;">Nhập từ khoá trên thanh tiêu đề để tìm câu hỏi hoặc người dùng.</p>
+    </div>
+  <% } else { %>
+    <div class="card" style="display: flex; flex-direction: column; gap: 16px;">
+      <h1 style="font-size: 20px; font-weight: 900; color: var(--slate-900);">Kết quả cho "<%= q %>"</h1>
+
+      <!-- Tabs -->
+      <div style="display: flex; gap: 4px; background-color: var(--slate-100); padding: 4px; border-radius: 12px; width: fit-content;">
+        <a href="/search?q=<%= encodeURIComponent(q) %>&tab=posts&sort=<%= sort %>&topic=<%= topic %>" style="padding: 6px 16px; border-radius: 8px; font-size: 14px; font-weight: 700; text-decoration: none; <%= tab === 'posts' ? 'background-color: var(--white); box-shadow: var(--shadow-sm); color: var(--slate-900);' : 'color: var(--slate-500);' %>">
+          Câu hỏi (<%= posts.length %>)
+        </a>
+        <a href="/search?q=<%= encodeURIComponent(q) %>&tab=users" style="padding: 6px 16px; border-radius: 8px; font-size: 14px; font-weight: 700; text-decoration: none; <%= tab === 'users' ? 'background-color: var(--white); box-shadow: var(--shadow-sm); color: var(--slate-900);' : 'color: var(--slate-500);' %>">
+          Người dùng (<%= users.length %>)
+        </a>
+      </div>
+
+      <!-- Sort + topic filter (posts tab only) -->
+      <% if (tab === 'posts') { %>
+        <div style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 16px; padding-top: 16px; border-top: 1px solid var(--slate-100); align-items: center;">
+          <form method="GET" action="/search" style="display: flex; align-items: center; gap: 8px;">
+            <input type="hidden" name="q" value="<%= q %>">
+            <input type="hidden" name="tab" value="posts">
+            <input type="hidden" name="topic" value="<%= topic %>">
+            <%- include('../partials/icons', { name: 'sliders-horizontal', size: 16, style: 'color: var(--slate-400)' }) %>
+            <select name="sort" class="form-select" style="padding: 6px 12px; font-size: 14px; font-weight: 700; width: auto;" onchange="this.form.requestSubmit()">
+              <% SORTS.forEach(s => { %>
+                <option value="<%= s.value %>" <%= sort === s.value ? 'selected' : '' %>><%= s.label %></option>
+              <% }) %>
+            </select>
+          </form>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <a href="/search?q=<%= encodeURIComponent(q) %>&tab=posts&sort=<%= sort %>&topic=all" class="btn <%= topic === 'all' ? 'btn-primary' : 'btn-secondary' %>" style="padding: 6px 12px; border-radius: 9999px; font-size: 12px; box-shadow: none; text-decoration: none;">Tất cả</a>
+            <% (locals.topics || []).forEach(t => { %>
+              <a href="/search?q=<%= encodeURIComponent(q) %>&tab=posts&sort=<%= sort %>&topic=<%= t.slug %>" class="btn <%= topic === t.slug ? 'btn-primary' : 'btn-secondary' %>" style="padding: 6px 12px; border-radius: 9999px; font-size: 12px; box-shadow: none; text-decoration: none;"><%= t.name %></a>
+            <% }) %>
+          </div>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- Post results -->
+    <% if (tab === 'posts') { %>
+      <% if (posts.length > 0) { %>
+        <div class="post-list">
+          <% posts.forEach(post => { %>
+            <% const title = post.title?.trim() || post.content?.substring(0, 50) + (post.content?.length > 50 ? '...' : ''); %>
+            <% const topicObj = (locals.topics || []).find(t => t.slug === post.topic); %>
+            <a href="/post/<%= post.id %>" class="card post-card" style="display: block; text-decoration: none;">
+              <div class="post-card-header" style="margin-bottom: 8px;">
+                <span class="badge badge-slate">#<%= topicObj ? topicObj.name : post.topic %></span>
+              </div>
+              <h3 class="post-card-title" style="font-size: 16px; margin-bottom: 8px;"><%= title %></h3>
+              <p class="post-card-body line-clamp-2" style="margin-bottom: 12px;"><%= post.content %></p>
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--slate-400);">
+                <span style="color: var(--slate-600); font-weight: 950;"><%= post.authorName %></span>
+                <span>&bull;</span>
+                <span><%= post.views || 0 %> lượt xem</span>
+                <span>&bull;</span>
+                <span><%= post.ratingCount > 0 ? `${post.ratingAvg.toFixed(1)}★ (${post.ratingCount})` : 'Chưa đánh giá' %></span>
+              </div>
+            </a>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="card text-center" style="padding: 40px 16px; color: var(--slate-500);">Không tìm thấy câu hỏi nào phù hợp.</div>
+      <% } %>
+    <% } %>
+
+    <!-- User results -->
+    <% if (tab === 'users') { %>
+      <% if (users.length > 0) { %>
+        <div class="post-list">
+          <% users.forEach(u => { %>
+            <a href="/profile/<%= u.id %>" class="card" style="display: flex; align-items: center; gap: 16px; text-decoration: none; padding: 16px;">
+              <% if (u.photoURL) { %>
+                <img src="<%= u.photoURL %>" alt="" class="post-card-avatar" style="width: 48px; height: 48px;">
+              <% } else { %>
+                <div class="post-card-avatar-placeholder" style="width: 48px; height: 48px; font-size: 18px;"><%= u.displayName?.charAt(0).toUpperCase() %></div>
+              <% } %>
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-weight: 900; color: var(--slate-900); font-size: 14px;"><%= u.displayName %></div>
+                <div style="text-transform: none; font-size: 12px; color: var(--slate-400); font-weight: 600;">@<%= u.username %></div>
+              </div>
+              <% if (u.role === 'admin') { %><span class="badge badge-red" style="text-transform: none;">Admin</span><% } %>
+            </a>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="card text-center" style="padding: 40px 16px; color: var(--slate-500);">Không tìm thấy người dùng nào.</div>
+      <% } %>
+    <% } %>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

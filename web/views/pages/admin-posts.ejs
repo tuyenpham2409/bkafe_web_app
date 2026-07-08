@@ -1,0 +1,102 @@
+<%- include('../partials/header', { title: 'Quản lý câu hỏi' }) %>
+
+<% const REJECT_REASONS = [
+  'Nội dung không phù hợp thuần phong mỹ tục',
+  'Spam hoặc quảng cáo',
+  'Sai chủ đề',
+  'Nội dung chưa rõ ràng, thiếu thông tin',
+  'Vi phạm quy định cộng đồng HUST',
+]; %>
+<% const returnTo = `/admin/posts?tab=${tab}${q ? '&q=' + encodeURIComponent(q) : ''}&sort=${sortBy}`; %>
+
+<div style="display: flex; flex-direction: column; gap: 16px;">
+  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+    <a href="/admin" class="btn-icon"><%- include('../partials/icons', { name: 'chevron-left', size: 20 }) %></a>
+    <h2 class="forum-title" style="display: flex; align-items: center; gap: 8px;">
+      <%- include('../partials/icons', { name: 'file-text', size: 24, style: 'color: var(--primary-blue)' }) %> Quản lý câu hỏi
+    </h2>
+  </div>
+
+  <% if (locals.error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <% if (locals.success) { %><div class="alert alert-success"><%= success %></div><% } %>
+
+  <!-- Tabs -->
+  <div style="display: flex; gap: 4px; background-color: var(--slate-100); padding: 4px; border-radius: 12px; width: fit-content;">
+    <% [['all', `Tất cả (${counts.all})`], ['pending', `Chờ duyệt (${counts.pending})`], ['approved', `Đã duyệt (${counts.approved})`]].forEach(([val, label]) => { %>
+      <a href="/admin/posts?tab=<%= val %>&q=<%= encodeURIComponent(q) %>&sort=<%= sortBy %>" style="padding: 6px 16px; border-radius: 8px; font-size: 14px; font-weight: 700; text-decoration: none; <%= tab === val ? 'background-color: var(--white); box-shadow: var(--shadow-sm); color: var(--slate-900);' : 'color: var(--slate-500);' %>"><%= label %></a>
+    <% }) %>
+  </div>
+
+  <!-- Search + sort -->
+  <form method="GET" action="/admin/posts" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 12px; align-items: center;">
+    <input type="hidden" name="tab" value="<%= tab %>">
+    <div class="search-container" style="flex: 1; min-width: 240px;">
+      <%- include('../partials/icons', { name: 'search', size: 16, class: 'search-icon' }) %>
+      <input type="text" name="q" value="<%= q %>" placeholder="Tìm theo tiêu đề, tác giả..." class="search-input">
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <%- include('../partials/icons', { name: 'sliders-horizontal', size: 16, style: 'color: var(--slate-400)' }) %>
+      <select name="sort" class="form-select" style="width: auto; font-weight: 700;" onchange="this.form.requestSubmit()">
+        <option value="newest" <%= sortBy === 'newest' ? 'selected' : '' %>>Mới nhất</option>
+        <option value="oldest" <%= sortBy === 'oldest' ? 'selected' : '' %>>Cũ nhất</option>
+        <option value="views" <%= sortBy === 'views' ? 'selected' : '' %>>Nhiều lượt xem</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-secondary" style="font-size: 13px;">Lọc</button>
+  </form>
+
+  <!-- Post list -->
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <% if (tabPosts.length === 0) { %>
+      <div style="color: var(--slate-400); font-weight: 700; font-size: 12px; padding: 32px; text-align: center;">Không có câu hỏi nào.</div>
+    <% } else { %>
+      <div style="display: flex; flex-direction: column;">
+        <% tabPosts.forEach(p => { %>
+          <% const title = p.title?.trim() || p.content?.substring(0, 50) + (p.content?.length > 50 ? '...' : ''); %>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border-bottom: 1px solid var(--slate-100); flex-wrap: wrap;">
+            <div style="min-width: 0; flex: 1;">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px;">
+                <span class="badge" style="font-size: 9px; padding: 2px 6px; border-radius: 6px; border: 1px solid; text-transform: none; <%= p.status === 'approved' ? 'background-color: var(--green-light); border-color: rgba(34,197,94,0.15); color: var(--green);' : p.status === 'pending' ? 'background-color: var(--amber-light); border-color: rgba(245,158,11,0.15); color: var(--amber-dark);' : 'background-color: var(--red-light); border-color: rgba(239,68,68,0.15); color: var(--red-dark);' %>">
+                  <%= p.status === 'approved' ? 'Đã duyệt' : p.status === 'pending' ? 'Chờ duyệt' : 'Bị từ chối' %>
+                </span>
+                <span style="font-size: 12px; color: var(--slate-400); font-weight: 600;"><%= p.authorName %> &middot; <%= p.views || 0 %> xem</span>
+              </div>
+              <a href="/post/<%= p.id %>" style="font-weight: 900; color: var(--slate-900); font-size: 14px; text-decoration: none;"><%= title %></a>
+              <p style="color: var(--slate-500); font-size: 12px; margin-top: 2px;" class="line-clamp-1"><%= p.content %></p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0; flex-wrap: wrap;">
+              <% if (p.status === 'pending') { %>
+                <form method="POST" action="/admin/posts/<%= p.id %>/approve" style="display: inline;">
+                  <input type="hidden" name="returnTo" value="<%= returnTo %>">
+                  <button type="submit" class="btn-icon" style="color: var(--green);" title="Duyệt"><%- include('../partials/icons', { name: 'check-circle', size: 16 }) %></button>
+                </form>
+                <details style="display: inline-block;">
+                  <summary class="btn-icon" style="color: var(--amber); cursor: pointer; display: inline-flex;" title="Từ chối"><%- include('../partials/icons', { name: 'x-circle', size: 16 }) %></summary>
+                  <form method="POST" action="/admin/posts/<%= p.id %>/reject" style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding: 12px; border: 1px solid var(--slate-200); border-radius: 12px; min-width: 240px;">
+                    <input type="hidden" name="returnTo" value="<%= returnTo %>">
+                    <select name="reason" class="form-select" style="font-size: 12px;">
+                      <% REJECT_REASONS.forEach(r => { %><option value="<%= r %>"><%= r %></option><% }) %>
+                    </select>
+                    <button type="submit" class="btn btn-danger" style="font-size: 12px; padding: 6px 12px; align-self: flex-start;">Xác nhận từ chối</button>
+                  </form>
+                </details>
+              <% } %>
+              <% if (p.status === 'rejected') { %>
+                <form method="POST" action="/admin/posts/<%= p.id %>/approve" style="display: inline;">
+                  <input type="hidden" name="returnTo" value="<%= returnTo %>">
+                  <button type="submit" class="btn-icon" style="color: var(--green);" title="Duyệt lại"><%- include('../partials/icons', { name: 'check-circle', size: 16 }) %></button>
+                </form>
+              <% } %>
+              <form method="POST" action="/admin/posts/<%= p.id %>/delete" onsubmit="return confirm('Xoá câu hỏi này?')" style="display: inline;">
+                <input type="hidden" name="returnTo" value="<%= returnTo %>">
+                <button type="submit" class="btn-icon btn-icon-danger" title="Xoá"><%- include('../partials/icons', { name: 'trash-2', size: 16 }) %></button>
+              </form>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

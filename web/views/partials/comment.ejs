@@ -1,0 +1,178 @@
+<%
+// Find replies to this comment
+const replies = comments.filter(c => c.parentId === comment.id);
+const user = locals.currentUser;
+const isCommentOwner = user && user.id === comment.authorId;
+const isAdmin = user && user.role === 'admin';
+%>
+<div class="comment-node" id="comment-<%= comment.id %>" style="margin-left: <%= comment.parentId ? '24px' : '0' %>; border-left: <%= comment.parentId ? '2px solid var(--slate-200)' : 'none' %>; padding-left: <%= comment.parentId ? '16px' : '0' %>; margin-top: 16px;">
+  <div class="card" style="padding: 16px; margin-bottom: 8px;">
+    <!-- Comment Header -->
+    <div class="post-card-header" style="margin-bottom: 12px;">
+      <div class="post-card-author">
+        <% if (comment.authorPhotoURL) { %>
+          <img src="<%= comment.authorPhotoURL %>" alt="" class="post-card-avatar" style="width: 32px; height: 32px;" />
+        <% } else { %>
+          <div class="post-card-avatar-placeholder" style="width: 32px; height: 32px; font-size: 12px;">
+            <%= comment.authorName?.charAt(0).toUpperCase() || 'U' %>
+          </div>
+        <% } %>
+        <div class="post-card-author-info">
+          <div class="post-card-author-name" style="font-size: 13px;">
+            <%= comment.authorName %>
+            <% if (comment.authorId === post.authorId) { %>
+              <span class="badge badge-slate" style="font-size: 10px; padding: 2px 6px; margin-left: 4px;">Tác giả</span>
+            <% } %>
+          </div>
+          <div class="post-card-date" style="font-size: 11px;"><%= new Date(comment.createdAt).toLocaleString('vi-VN') %></div>
+        </div>
+      </div>
+
+      <!-- Rating Display -->
+      <div style="font-size: 12px;">
+        <% if (comment.ratingCount > 0) { %>
+          <div style="display: flex; align-items: center; gap: 4px; color: var(--amber); font-weight: 700;">
+            <%- include('icons', { name: 'star', size: 14, fill: 'var(--amber)', stroke: 'var(--amber)' }) %>
+            <span><%= comment.ratingAvg.toFixed(1) %> (<%= comment.ratingCount %>)</span>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Comment Content / Edit Form -->
+    <div id="comment-content-display-<%= comment.id %>" class="post-card-body" style="font-size: 14px; white-space: pre-wrap;"><%= comment.content %></div>
+    
+    <% if (isCommentOwner) { %>
+      <form id="comment-edit-form-<%= comment.id %>" method="POST" action="/comments/<%= comment.id %>/edit" enctype="multipart/form-data" style="display: none; margin-top: 8px;">
+        <input type="hidden" name="postId" value="<%= post.id %>">
+        <textarea name="content" required class="form-input" style="min-height: 80px; font-size: 14px; margin-bottom: 8px;"><%= comment.content %></textarea>
+        
+        <!-- Media file list to keep -->
+        <% if (comment.media && comment.media.length > 0) { %>
+          <div style="margin-bottom: 8px;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--slate-600);">Giữ lại hình ảnh/video:</label>
+            <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+              <% comment.media.forEach((m, idx) => { %>
+                <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--slate-700);">
+                  <!-- We send keepMedia as a JSON array of urls to keep. Since Express urlencoded will collect multiple fields into an array if they share the same name, we can do that or handle it in BFF -->
+                  <input type="checkbox" name="keepMedia" value="<%= m.url %>" checked style="width: 16px; height: 16px;">
+                  <%= m.type === 'video' ? 'Video' : 'Ảnh' %> (<%= m.url.substring(m.url.lastIndexOf('/') + 1) %>)
+                </label>
+              <% }) %>
+            </div>
+          </div>
+        <% } %>
+
+        <div style="margin-bottom: 8px;">
+          <label style="font-size: 12px; font-weight: 600; color: var(--slate-600);">Thêm file mới (ảnh/video):</label>
+          <input type="file" name="media" multiple accept="image/*,video/*" class="form-input" style="font-size: 13px; margin-top: 4px;">
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <button type="submit" class="btn btn-primary" style="padding: 6px 12px; font-size: 13px;">Lưu</button>
+          <button type="button" onclick="toggleEditComment('<%= comment.id %>')" class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px;">Hủy</button>
+        </div>
+      </form>
+    <% } %>
+
+    <!-- Comment Media Attachments -->
+    <% if (comment.media && comment.media.length > 0) { %>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px;">
+        <% comment.media.forEach((m, i) => { %>
+          <% if (m.type === 'video') { %>
+            <div style="grid-column: span 3; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden; border: 1px solid var(--slate-200); background-color: #0f172a;">
+              <video src="<%= m.url %>" controls style="width: 100%; height: 100%; object-fit: contain;"></video>
+            </div>
+          <% } else { %>
+            <div style="border-radius: 8px; overflow: hidden; border: 1px solid var(--slate-200); aspect-ratio: 1/1; cursor: pointer;" onclick="openMediaLightbox('<%= m.url %>')">
+              <img src="<%= m.url %>" alt="" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy" />
+            </div>
+          <% } %>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <!-- Comment Footer / Actions -->
+    <div class="post-card-footer" style="margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--slate-100); font-size: 13px; gap: 12px;">
+      <!-- Rate Comment button -->
+      <div class="relative star-rating-popover" style="display: inline-block;">
+        <button type="button" class="btn-link text-slate" style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; color: <%= comment.myRating ? 'var(--amber)' : 'var(--slate-500)' %>; font-weight: <%= comment.myRating ? '900' : '700' %>;" onclick="toggleRatePopover('<%= comment.id %>')">
+          <%- include('icons', { name: 'star', size: 14, fill: comment.myRating ? 'var(--amber)' : 'none', stroke: comment.myRating ? 'var(--amber)' : 'currentColor' }) %>
+          <%= comment.myRating ? `Đã đánh giá ${comment.myRating}★` : 'Đánh giá' %>
+        </button>
+        <div id="rate-popover-<%= comment.id %>" class="dropdown-menu" style="display: none; position: absolute; bottom: 100%; left: 0; margin-bottom: 6px; border-radius: 9999px; padding: 6px 10px; align-items: center; gap: 4px; z-index: 20; flex-direction: row; width: auto; white-space: nowrap;">
+          <form method="POST" action="/comments/<%= comment.id %>/rate" style="display: flex; align-items: center; gap: 2px;">
+            <input type="hidden" name="postId" value="<%= post.id %>">
+            <button type="submit" name="value" value="0" style="font-size: 10px; font-weight: 900; color: var(--slate-400); padding: 0 4px; border: none; background: transparent; cursor: pointer; border-right: 1px solid var(--slate-100);">0</button>
+            <% [1,2,3,4,5].forEach(val => { %>
+              <button type="submit" name="value" value="<%= val %>" style="border: none; background: transparent; padding: 2px; cursor: pointer;">
+                <%- include('icons', { name: 'star', size: 16, fill: (comment.myRating || 0) >= val ? 'var(--amber)' : 'none', stroke: (comment.myRating || 0) >= val ? 'var(--amber)' : 'var(--slate-300)' }) %>
+              </button>
+            <% }) %>
+          </form>
+        </div>
+      </div>
+
+      <!-- Reply toggle -->
+      <% if (user) { %>
+        <button type="button" onclick="toggleReplyForm('<%= comment.id %>')" class="btn-link text-slate" style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-weight: 700; color: var(--slate-500);">
+          <%- include('icons', { name: 'message-circle', size: 14 }) %>
+          Phản hồi
+        </button>
+      <% } %>
+
+      <!-- Edit / Delete -->
+      <% if (isCommentOwner) { %>
+        <button type="button" onclick="toggleEditComment('<%= comment.id %>')" class="btn-link text-slate" style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-weight: 700; color: var(--slate-500); margin-left: auto;">
+          <%- include('icons', { name: 'edit', size: 14 }) %>
+          Sửa
+        </button>
+      <% } %>
+
+      <% if (isCommentOwner || isAdmin) { %>
+        <form method="POST" action="/comments/<%= comment.id %>/delete" style="display: inline; margin-left: <%= isCommentOwner ? '0' : 'auto' %>;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bình luận này và tất cả phản hồi của nó?')">
+          <input type="hidden" name="postId" value="<%= post.id %>">
+          <button type="submit" class="btn-link text-danger" style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-weight: 700; color: var(--red); border: none; background: transparent; cursor: pointer;">
+            <%- include('icons', { name: 'trash-2', size: 14 }) %>
+            Xóa
+          </button>
+        </form>
+      <% } %>
+    </div>
+
+    <!-- Reply Form -->
+    <% if (user) { %>
+      <div id="reply-form-<%= comment.id %>" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--slate-100);">
+        <form method="POST" action="/comments/<%= comment.id %>/reply" enctype="multipart/form-data">
+          <input type="hidden" name="postId" value="<%= post.id %>">
+          <div style="display: flex; gap: 8px;">
+            <textarea name="content" required placeholder="Viết phản hồi của bạn..." class="form-input" style="min-height: 60px; font-size: 14px; flex-grow: 1;"></textarea>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <label class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                <%- include('icons', { name: 'image-plus', size: 16 }) %>
+                <span>Đính kèm</span>
+                <input type="file" name="media" multiple accept="image/*,video/*" style="display: none;" onchange="handleCommentFileChange(this, '<%= comment.id %>')">
+              </label>
+              <span id="reply-file-info-<%= comment.id %>" style="font-size: 12px; color: var(--slate-500); font-weight: 600;"></span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="submit" class="btn btn-primary" style="padding: 6px 12px; font-size: 13px;">Gửi</button>
+              <button type="button" onclick="toggleReplyForm('<%= comment.id %>')" class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px;">Hủy</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Recursive Child Replies -->
+  <% if (replies && replies.length > 0) { %>
+    <div class="replies-container">
+      <% replies.forEach(reply => { %>
+        <%- include('comment', { comment: reply, comments: comments, post: post }) %>
+      <% }) %>
+    </div>
+  <% } %>
+</div>

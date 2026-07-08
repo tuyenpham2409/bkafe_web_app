@@ -1,0 +1,282 @@
+<%- include('../partials/header', { title: post.title || 'Chi tiết bài viết' }) %>
+
+<div class="post-detail-container" style="max-width: 672px; margin: 0 auto;">
+  <a href="/" class="btn-link" style="display: inline-flex; align-items: center; gap: 4px; font-weight: 700; margin-bottom: 16px; text-decoration: none; color: var(--primary-blue);">
+    <%- include('../partials/icons', { name: 'arrow-left', size: 16 }) %> 
+    Quay lại trang chủ
+  </a>
+
+  <% if (locals.error) { %>
+    <div class="alert alert-danger" style="margin-bottom: 20px;"><%= error %></div>
+  <% } %>
+  <% if (locals.success) { %>
+    <div class="alert alert-success" style="margin-bottom: 20px;"><%= success %></div>
+  <% } %>
+
+  <!-- Main Post Card -->
+  <div class="card" style="padding: 24px; margin-bottom: 24px;">
+    
+    <!-- Post Status Banner (if not approved) -->
+    <% if (post.status === 'pending') { %>
+      <div style="background-color: var(--amber-light); color: var(--amber); padding: 12px 16px; border-radius: var(--radius-lg); font-size: 14px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+        <span class="nav-dot" style="position: static; display: inline-block;"></span>
+        Bài viết đang chờ ban quản trị phê duyệt.
+      </div>
+    <% } else if (post.status === 'rejected') { %>
+      <div style="background-color: var(--red-light); color: var(--red); padding: 12px 16px; border-radius: var(--radius-lg); font-size: 14px; font-weight: 600; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <%- include('../partials/icons', { name: 'x-circle', size: 18 }) %>
+          <span>Bài viết đã bị từ chối phê duyệt.</span>
+        </div>
+        <% if (post.rejectReason) { %>
+          <div style="font-size: 13px; font-weight: 500; opacity: 0.9;">Lý do: <%= post.rejectReason %></div>
+        <% } %>
+      </div>
+    <% } %>
+
+    <div class="post-card-header" style="margin-bottom: 16px;">
+      <div class="post-card-author">
+        <% if (post.authorPhotoURL) { %>
+          <img src="<%= post.authorPhotoURL %>" alt="" class="post-card-avatar" />
+        <% } else { %>
+          <div class="post-card-avatar-placeholder">
+            <%= post.authorName?.charAt(0).toUpperCase() || 'U' %>
+          </div>
+        <% } %>
+        <div class="post-card-author-info">
+          <div class="post-card-author-name"><%= post.authorName %></div>
+          <div class="post-card-date"><%= new Date(post.createdAt).toLocaleDateString('vi-VN') %></div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <% const topicObj = locals.topics?.find(t => t.slug === post.topic); %>
+        <% if (topicObj) { %>
+          <span class="badge badge-slate" style="flex-shrink: 0;">
+            #<%= topicObj.name %>
+          </span>
+        <% } %>
+
+        <!-- Admin & Owner Controls -->
+        <% const user = locals.currentUser; %>
+        <% const isAdmin = user && user.role === 'admin'; %>
+        <% const isOwner = user && user.id === post.authorId; %>
+        
+        <% if (isAdmin || isOwner) { %>
+          <div class="relative" style="display: inline-block;">
+            <button id="post-options-btn" type="button" class="btn-icon" title="Tùy chọn" onclick="togglePostMenu()">
+              <%- include('../partials/icons', { name: 'more-vertical', size: 20 }) %>
+            </button>
+            <div id="post-options-dropdown" class="dropdown-menu" style="display: none; position: absolute; right: 0; top: 100%; z-index: 30; width: 180px;">
+              <% if (isOwner && post.status !== 'approved') { %>
+                <a href="/post/<%= post.id %>/edit" class="dropdown-item">
+                  <%- include('../partials/icons', { name: 'edit', size: 16 }) %> Sửa bài viết
+                </a>
+              <% } %>
+              
+              <% if (isAdmin) { %>
+                <% if (post.status === 'pending') { %>
+                  <form method="POST" action="/admin/posts/<%= post.id %>/approve" style="display: block;">
+                    <button type="submit" class="dropdown-item text-success" style="width: 100%; text-align: left; border: none; background: transparent; cursor: pointer; font-family: inherit; font-size: inherit;">
+                      <%- include('../partials/icons', { name: 'check-circle', size: 16 }) %> Duyệt bài
+                    </button>
+                  </form>
+                  <button type="button" class="dropdown-item text-danger" style="width: 100%; text-align: left; border: none; background: transparent; cursor: pointer; font-family: inherit; font-size: inherit;" onclick="openRejectModal()">
+                    <%- include('../partials/icons', { name: 'x-circle', size: 16 }) %> Từ chối duyệt
+                  </button>
+                <% } %>
+              <% } %>
+
+              <% if (isOwner || isAdmin) { %>
+                <button type="button" class="dropdown-item text-danger" style="width: 100%; text-align: left; border: none; background: transparent; cursor: pointer; font-family: inherit; font-size: inherit;" onclick="openDeleteModal()">
+                  <%- include('../partials/icons', { name: 'trash-2', size: 16 }) %> Xóa bài viết
+                </button>
+              <% } %>
+            </div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Post Title & Body -->
+    <h1 class="post-card-title" style="font-size: 22px; line-height: 1.4; margin-bottom: 12px; color: var(--slate-900);">
+      <%= post.title || post.content?.substring(0, 50) + (post.content?.length > 50 ? '...' : '') %>
+    </h1>
+    <div class="post-card-body" style="font-size: 15px; line-height: 1.6; color: var(--slate-700); white-space: pre-wrap; margin-bottom: 20px;"><%= post.content %></div>
+
+    <!-- Post Media Attachments -->
+    <% if (post.media && post.media.length > 0) { %>
+      <div style="display: grid; grid-template-columns: repeat(1, 1fr); gap: 12px; margin-bottom: 20px;">
+        <% post.media.forEach((m, idx) => { %>
+          <% if (m.type === 'video') { %>
+            <div style="aspect-ratio: 16/9; border-radius: var(--radius-xl); overflow: hidden; border: 1px solid var(--slate-200); background-color: #0f172a;">
+              <video src="<%= m.url %>" controls style="width: 100%; height: 100%; object-fit: contain;"></video>
+            </div>
+          <% } else { %>
+            <div style="border-radius: var(--radius-xl); overflow: hidden; border: 1px solid var(--slate-200); cursor: pointer;" onclick="openMediaLightbox('<%= m.url %>')">
+              <img src="<%= m.url %>" alt="" style="width: 100%; height: auto; display: block; max-height: 500px; margin: 0 auto; object-fit: contain;" />
+            </div>
+          <% } %>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <!-- Post Footer -->
+    <div class="post-card-footer" style="padding-top: 16px; border-top: 1px solid var(--slate-100);">
+      <div class="post-card-stats" style="gap: 16px;">
+        
+        <!-- Ratings popover -->
+        <div class="relative star-rating-popover" style="display: inline-block;">
+          <button type="button" class="btn-link" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-lg); background-color: var(--slate-50); color: <%= post.myRating ? 'var(--amber)' : 'var(--slate-500)' %>; font-weight: 700; font-size: 13px;" onclick="toggleRatePopover('post-<%= post.id %>')">
+            <%- include('../partials/icons', { name: 'star', size: 18, fill: post.myRating ? 'var(--amber)' : 'none', stroke: post.myRating ? 'var(--amber)' : 'var(--slate-300)' }) %>
+            <span><%= post.ratingCount > 0 ? `${post.ratingAvg.toFixed(1)}/5 (${post.ratingCount})` : 'Đánh giá' %></span>
+          </button>
+          <div id="rate-popover-post-<%= post.id %>" class="dropdown-menu" style="display: none; position: absolute; bottom: 100%; left: 0; margin-bottom: 6px; border-radius: 9999px; padding: 6px 10px; align-items: center; gap: 4px; z-index: 20; flex-direction: row; width: auto; white-space: nowrap;">
+            <form method="POST" action="/post/<%= post.id %>/rate" style="display: flex; align-items: center; gap: 2px;">
+              <button type="submit" name="value" value="0" style="font-size: 10px; font-weight: 900; color: var(--slate-400); padding: 0 4px; border: none; background: transparent; cursor: pointer; border-right: 1px solid var(--slate-100);">0</button>
+              <% [1,2,3,4,5].forEach(val => { %>
+                <button type="submit" name="value" value="<%= val %>" style="border: none; background: transparent; padding: 2px; cursor: pointer;">
+                  <%- include('../partials/icons', { name: 'star', size: 18, fill: (post.myRating || 0) >= val ? 'var(--amber)' : 'none', stroke: (post.myRating || 0) >= val ? 'var(--amber)' : 'var(--slate-300)' }) %>
+                </button>
+              <% }) %>
+            </form>
+          </div>
+        </div>
+
+        <!-- Share count & button -->
+        <form method="POST" action="/post/<%= post.id %>/share" style="display: inline;">
+          <button type="submit" class="btn-link" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-lg); background-color: var(--slate-50); color: var(--slate-500); font-weight: 700; font-size: 13px;" onclick="copyPageUrl(event)">
+            <%- include('../partials/icons', { name: 'share-2', size: 18 }) %>
+            <span><%= post.shares || 0 %> chia sẻ</span>
+          </button>
+        </form>
+
+        <div class="post-card-stat-item" style="font-size: 13px; font-weight: 600; color: var(--slate-500);">
+          <%- include('../partials/icons', { name: 'message-circle', size: 18 }) %>
+          <span style="margin-left: 4px;"><%= comments.length %> bình luận</span>
+        </div>
+      </div>
+
+      <div class="post-card-stat-item" style="margin-left: auto; font-size: 13px; font-weight: 600; color: var(--slate-500);">
+        <%- include('../partials/icons', { name: 'eye', size: 18 }) %>
+        <span style="margin-left: 4px;"><%= post.views || 0 %> lượt xem</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Write Comment Form -->
+  <div class="card" style="padding: 24px; margin-bottom: 24px;">
+    <h3 style="font-size: 16px; font-weight: 800; color: var(--slate-900); margin-bottom: 16px;">Ý kiến của bạn</h3>
+    <% if (user) { %>
+      <form method="POST" action="/post/<%= post.id %>/comments" enctype="multipart/form-data">
+        <div class="form-group">
+          <textarea name="content" required placeholder="Nhập bình luận của bạn..." class="form-input" style="min-height: 100px; font-size: 14px;"></textarea>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <label class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+              <%- include('../partials/icons', { name: 'image-plus', size: 18 }) %>
+              <span>Đính kèm hình ảnh/video</span>
+              <input type="file" name="media" multiple accept="image/*,video/*" style="display: none;" onchange="handleCommentFileChange(this, 'main')">
+            </label>
+            <span id="reply-file-info-main" style="font-size: 13px; color: var(--slate-500); font-weight: 600;"></span>
+          </div>
+          <button type="submit" class="btn btn-primary" style="padding: 8px 20px; font-size: 14px;">Bình luận</button>
+        </div>
+      </form>
+    <% } else { %>
+      <div style="text-align: center; padding: 12px; background-color: var(--slate-50); border: 1px dashed var(--slate-200); border-radius: var(--radius-lg); font-size: 14px; font-weight: 600; color: var(--slate-500);">
+        Vui lòng <a href="/login?next=<%= encodeURIComponent(path) %>" style="color: var(--primary-blue); text-decoration: none;">đăng nhập</a> để gửi bình luận.
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Comments Feed -->
+  <div id="comments-section">
+  <h3 style="font-size: 18px; font-weight: 800; color: var(--slate-900); margin-bottom: 16px;">Thảo luận</h3>
+
+  <% const topLevelComments = comments.filter(c => !c.parentId); %>
+  <div class="comments-list">
+    <% if (topLevelComments.length === 0) { %>
+      <div class="card text-center" style="padding: 40px 16px; color: var(--slate-500); font-weight: 600;">Chưa có bình luận nào. Hãy là người đầu tiên nêu ý kiến!</div>
+    <% } else { %>
+      <% topLevelComments.forEach(c => { %>
+        <%- include('../partials/comment', { comment: c, comments: comments, post: post }) %>
+      <% }) %>
+    <% } %>
+  </div>
+  </div>
+</div>
+
+<!-- Admin Rejection Reason Modal -->
+<% if (isAdmin) { %>
+  <div id="reject-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-container" style="max-width: 440px; width: 90%;">
+      <button type="button" class="modal-close-btn" onclick="closeRejectModal()">
+        <%- include('../partials/icons', { name: 'x', size: 20 }) %>
+      </button>
+      <div class="modal-content" style="padding: 24px;">
+        <h3 class="modal-title" style="font-size: 18px; font-weight: 800; margin-bottom: 12px; color: var(--slate-900);">Từ chối duyệt bài</h3>
+        <form method="POST" action="/admin/posts/<%= post.id %>/reject">
+          <div class="form-group">
+            <label class="form-label">Lý do từ chối:</label>
+            <select name="reason" class="form-input" style="margin-bottom: 12px;">
+              <option value="Nội dung không phù hợp thuần phong mỹ tục">Nội dung không phù hợp thuần phong mỹ tục</option>
+              <option value="Spam hoặc quảng cáo">Spam hoặc quảng cáo</option>
+              <option value="Sai chủ đề">Sai chủ đề</option>
+              <option value="Nội dung chưa rõ ràng, thiếu thông tin">Nội dung chưa rõ ràng, thiếu thông tin</option>
+              <option value="Vi phạm quy định cộng đồng HUST">Vi phạm quy định cộng đồng HUST</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="closeRejectModal()">Hủy</button>
+            <button type="submit" class="btn btn-danger">Từ chối duyệt</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+<% } %>
+
+<!-- Delete Reason Modal (Admin or Owner) -->
+<% if (isAdmin || isOwner) { %>
+  <div id="delete-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-container" style="max-width: 440px; width: 90%;">
+      <button type="button" class="modal-close-btn" onclick="closeDeleteModal()">
+        <%- include('../partials/icons', { name: 'x', size: 20 }) %>
+      </button>
+      <div class="modal-content" style="padding: 24px;">
+        <h3 class="modal-title" style="font-size: 18px; font-weight: 800; margin-bottom: 12px; color: var(--slate-900);">Xác nhận xóa bài viết</h3>
+        <form method="POST" action="/admin/posts/<%= post.id %>/delete">
+          <% if (isAdmin && !isOwner) { %>
+            <div class="form-group">
+              <label class="form-label">Lý do xóa bài (gửi thông báo cho tác giả):</label>
+              <input type="text" name="reason" placeholder="Ví dụ: Spam, vi phạm bản quyền..." class="form-input" required style="margin-bottom: 12px;">
+            </div>
+          <% } %>
+          <p style="font-size: 14px; color: var(--slate-500); margin-bottom: 20px; font-weight: 500;">
+            Hành động này không thể hoàn tác. Bài viết và tất cả bình luận liên quan sẽ bị xóa vĩnh viễn.
+          </p>
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Hủy</button>
+            <button type="submit" class="btn btn-danger">Xác nhận xóa</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+<% } %>
+
+<!-- Media Lightbox Modal -->
+<div id="media-lightbox" class="modal-overlay" style="display: none; background-color: rgba(15, 23, 42, 0.95);" onclick="closeMediaLightbox()">
+  <div style="position: absolute; top: 16px; right: 16px; z-index: 50;">
+    <button type="button" class="btn-icon" style="color: var(--white); background-color: rgba(255,255,255,0.1);" onclick="closeMediaLightbox()">
+      <%- include('../partials/icons', { name: 'x', size: 24 }) %>
+    </button>
+  </div>
+  <div style="max-width: 90%; max-height: 90%; display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation()">
+    <img id="lightbox-image" src="" alt="" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--radius-lg);" />
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

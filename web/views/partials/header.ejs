@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= locals.title ? title + ' - BKafe' : 'BKafe - Cộng đồng sinh viên HUST' %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="layout-wrapper">
+    <header class="header">
+      <div class="header-container">
+        <a href="/" class="brand-logo">
+          <%- include('icons', { name: 'coffee', size: 28, class: 'brand-logo-icon fill-blue-50' }) %>
+          <span class="brand-logo-text">BKafe</span>
+        </a>
+
+        <% if (locals.hideSearch !== true) { %>
+          <form action="/search" method="GET" class="search-form">
+            <div class="search-container">
+              <input type="text" name="q" placeholder="Tìm câu hỏi, người dùng..." class="search-input" value="<%= locals.searchQuery || '' %>">
+              <%- include('icons', { name: 'search', size: 18, class: 'search-icon' }) %>
+            </div>
+          </form>
+        <% } %>
+
+        <div class="header-actions">
+          <% if (locals.currentUser) { %>
+            <% if (currentUser.role === 'admin') { %>
+              <a href="/admin" class="btn btn-secondary" style="display: inline-flex; padding: 8px 12px; font-size: 13px; position: relative" title="Trang quản trị">
+                <%- include('icons', { name: 'shield-check', size: 16 }) %>
+                <span class="hidden-tablet" style="margin-left: 4px;">Trang quản trị</span>
+                <span id="header-admin-dot" class="nav-dot" style="position: absolute; top: 2px; right: 2px; display: none;"></span>
+              </a>
+            <% } %>
+            <a href="/create-post" class="btn-ask" title="Đăng câu hỏi">
+              <%- include('icons', { name: 'plus-circle', size: 20 }) %>
+              <span>Đăng câu hỏi</span>
+            </a>
+
+            <!-- Notification Bell -->
+            <%- include('notification-bell') %>
+
+            <a href="/profile/<%= currentUser.id %>" class="user-profile-btn">
+              <% if (currentUser.photoURL) { %>
+                <img src="<%= currentUser.photoURL %>" alt="">
+              <% } else { %>
+                <span class="avatar-placeholder"><%= currentUser.displayName.charAt(0).toUpperCase() %></span>
+              <% } %>
+              <span class="truncate" style="max-width: 120px;"><%= currentUser.displayName %></span>
+            </a>
+
+            <a href="/logout" class="btn-icon btn-icon-danger" title="Đăng xuất">
+              <%- include('icons', { name: 'logout', size: 20 }) %>
+            </a>
+          <% } else { %>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <a href="/login" class="btn-link">Đăng nhập</a>
+              <a href="/register" class="btn btn-primary btn-circle">Đăng ký</a>
+            </div>
+          <% } %>
+
+          <button id="mobile-menu-toggle-btn" class="btn-icon mobile-menu-toggle" style="display: none;">
+            <%- include('icons', { name: 'menu', size: 24 }) %>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Mobile menu -->
+    <div id="mobile-menu-overlay" class="mobile-menu-overlay" style="display: none;">
+      <div class="mobile-menu-container">
+        <form action="/search" method="GET" style="margin-bottom: 16px;">
+          <div class="search-container">
+            <input type="text" name="q" placeholder="Tìm kiếm..." class="search-input" value="<%= locals.searchQuery || '' %>">
+            <%- include('icons', { name: 'search', size: 18, class: 'search-icon' }) %>
+          </div>
+        </form>
+        <div id="mobile-menu-nav"></div>
+      </div>
+    </div>
+
+    <div class="main-layout <%= locals.isAdminPage ? '' : 'main-layout-three-cols' %>">
+      <% if (!locals.hideSidebar) { %>
+        <%- include('sidebar') %>
+      <% } %>
+      <main class="main-content">

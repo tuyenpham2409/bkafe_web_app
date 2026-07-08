@@ -1,0 +1,50 @@
+<%- include('../partials/header', { title: currentTopic ? currentTopic.name : 'Trang chủ' }) %>
+
+<div class="home-container" style="max-width: 672px; margin: 0 auto;">
+  <% if (locals.notice) { %>
+    <div class="alert alert-info" style="margin-bottom: 20px;"><%= notice %></div>
+  <% } %>
+  <% if (locals.success) { %>
+    <div class="alert alert-success" style="margin-bottom: 20px;"><%= success %></div>
+  <% } %>
+  <% if (locals.error) { %>
+    <div class="alert alert-danger" style="margin-bottom: 20px;"><%= error %></div>
+  <% } %>
+
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; flex-wrap: wrap; gap: 12px;">
+    <h1 class="forum-title" style="margin-bottom: 0;">
+      <%= currentTopic ? `Chủ đề: ${currentTopic.name}` : 'Dành cho bạn' %>
+    </h1>
+
+    <!-- Sort controls -->
+    <div style="display: flex; align-items: center; gap: 4px; background-color: var(--slate-100); padding: 4px; border-radius: var(--radius-lg);">
+      <% const base = currentTopic ? '/topic/' + currentTopic.slug : '/'; %>
+      <a href="<%= base %>?sort=newest"
+         class="btn"
+         style="padding: 6px 12px; font-size: 13px; font-weight: 700; border: none; border-radius: var(--radius-md); transition: all 0.2s; <%= sort === 'newest' ? 'box-shadow: var(--shadow-sm); background-color: var(--white); color: var(--slate-800);' : 'background-color: transparent; color: var(--slate-500);' %>">
+        Mới nhất
+      </a>
+      <a href="<%= base %>?sort=popular"
+         class="btn"
+         style="padding: 6px 12px; font-size: 13px; font-weight: 700; border: none; border-radius: var(--radius-md); transition: all 0.2s; <%= sort === 'popular' ? 'box-shadow: var(--shadow-sm); background-color: var(--white); color: var(--slate-800);' : 'background-color: transparent; color: var(--slate-500);' %>">
+        Đánh giá tốt
+      </a>
+    </div>
+  </div>
+
+  <p style="font-size: 14px; color: var(--slate-400); font-weight: 600; margin-bottom: 24px;">
+    <%= currentTopic ? 'Các câu hỏi thuộc chủ đề này.' : 'Tất cả câu hỏi mới nhất từ cộng đồng.' %>
+  </p>
+
+  <div class="post-list">
+    <% if (posts.length === 0) { %>
+      <div class="card text-center" style="padding: 40px 16px; color: var(--slate-500); font-weight: 600;">Chưa có câu hỏi nào.</div>
+    <% } else { %>
+      <% posts.forEach(post => { %>
+        <%- include('../partials/post-card', { post: post }) %>
+      <% }) %>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,53 @@
+      </main>
+
+      <% if (!locals.isAdminPage) { %>
+        <aside class="aside-right">
+          <div class="sticky-sidebar">
+            <div class="widget">
+              <h3 class="widget-title">
+                <%- include('icons', { name: 'book-open', size: 16, style: 'color: var(--primary-blue)' }) %> 
+                Tài nguyên HUST
+              </h3>
+              <ul class="widget-list">
+                <li>
+                  <a href="https://hust.edu.vn" target="_blank" rel="noreferrer" class="widget-link">
+                    <span>Trang chủ HUST</span>
+                    <%- include('icons', { name: 'external-link', size: 14, style: 'color: var(--slate-400)' }) %>
+                  </a>
+                </li>
+                <li>
+                  <a href="https://ctt.hust.edu.vn" target="_blank" rel="noreferrer" class="widget-link">
+                    <span>Cổng thông tin đào tạo (CTT)</span>
+                    <%- include('icons', { name: 'external-link', size: 14, style: 'color: var(--slate-400)' }) %>
+                  </a>
+                </li>
+                <li>
+                  <a href="http://library.hust.edu.vn" target="_blank" rel="noreferrer" class="widget-link">
+                    <span>Thư viện Tạ Quang Bửu</span>
+                    <%- include('icons', { name: 'external-link', size: 14, style: 'color: var(--slate-400)' }) %>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </aside>
+      <% } %>
+    </div> <!-- end .main-layout -->
+
+    <footer class="footer">
+      <div class="footer-container">&copy; <%= new Date().getFullYear() %> BKafe</div>
+    </footer>
+
+    <!-- Global Ad Popup Partial -->
+    <%- include('ad-popup') %>
+  </div> <!-- end .layout-wrapper -->
+
+  <!-- Client-side Scripts -->
+  <script src="/js/main.js"></script>
+  <% if (locals.currentUser) { %>
+    <script src="/js/notifications.js"></script>
+  <% } %>
+  <script src="/js/ad-popup.js"></script>
+  <script src="/js/media-preview.js"></script>
+</body>
+</html>

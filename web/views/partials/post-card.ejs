@@ -1,0 +1,75 @@
+<%
+const title = post.title?.trim() || (post.content?.substring(0, 50) + (post.content?.length > 50 ? '...' : ''));
+const topicObj = locals.topics?.find(t => t.slug === post.topic);
+const topicName = topicObj ? topicObj.name : null;
+%>
+<a href="/post/<%= post.id %>" class="card post-card" style="display: flex; text-decoration: none;">
+  <div class="post-card-header">
+    <div class="post-card-author">
+      <% if (post.authorPhotoURL) { %>
+        <img src="<%= post.authorPhotoURL %>" alt="" class="post-card-avatar" />
+      <% } else { %>
+        <div class="post-card-avatar-placeholder">
+          <%= post.authorName?.charAt(0).toUpperCase() || 'U' %>
+        </div>
+      <% } %>
+      <div class="post-card-author-info">
+        <div class="post-card-author-name"><%= post.authorName %></div>
+        <div class="post-card-date"><%= new Date(post.createdAt).toLocaleDateString('vi-VN') %></div>
+      </div>
+    </div>
+    <% if (topicName) { %>
+      <span class="badge badge-slate" style="flex-shrink: 0;">
+        #<%= topicName %>
+      </span>
+    <% } %>
+  </div>
+
+  <h2 class="post-card-title"><%= title %></h2>
+  <p class="post-card-body line-clamp-3"><%= post.content %></p>
+
+  <!-- Media preview -->
+  <% if (post.media && post.media.length > 0) { %>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px;">
+      <% post.media.slice(0, 3).forEach((m, i) => { %>
+        <% if (m.type === 'video') { %>
+          <div class="relative" style="grid-column: span 3; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; border: 1px solid var(--slate-200); background-color: #0f172a; display: flex; align-items: center; justify-content: center;">
+            <video src="<%= m.url %>" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;"></video>
+            <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+              <div style="width: 40px; height: 40px; background-color: rgba(255, 255, 255, 0.8); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--slate-800)" stroke="var(--slate-800)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              </div>
+            </div>
+          </div>
+        <% } else { %>
+          <div style="border-radius: 12px; overflow: hidden; border: 1px solid var(--slate-200); grid-column: <%= post.media.length === 1 ? 'span 3' : 'auto' %>; aspect-ratio: <%= post.media.length === 1 ? '16/9' : '1/1' %>;">
+            <img src="<%= m.url %>" alt="" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy" />
+          </div>
+        <% } %>
+      <% }) %>
+      <% if (post.media.length > 3) { %>
+        <div style="aspect-ratio: 1/1; border-radius: 12px; background-color: rgba(30, 41, 59, 0.8); display: flex; align-items: center; justify-content: center; color: var(--white); font-weight: 900; font-size: 14px;">
+          +<%= post.media.length - 3 %>
+        </div>
+      <% } %>
+    </div>
+  <% } %>
+
+  <div class="post-card-footer">
+    <div class="post-card-stats">
+      <div class="post-card-stat-item" style="color: var(--amber);">
+        <% const isRated = post.ratingCount > 0; %>
+        <%- include('icons', { name: 'star', size: 20, fill: isRated ? 'var(--amber)' : 'none', stroke: isRated ? 'var(--amber)' : 'var(--slate-300)' }) %>
+        <span><%= isRated ? `${post.ratingAvg.toFixed(1)}/5 (${post.ratingCount})` : 'Chưa đánh giá' %></span>
+      </div>
+      <div class="post-card-stat-item">
+        <%- include('icons', { name: 'message-circle', size: 20 }) %>
+        <span><%= post.commentCount ?? 0 %></span>
+      </div>
+    </div>
+    <div class="post-card-stat-item" style="margin-left: auto;">
+      <%- include('icons', { name: 'eye', size: 20 }) %>
+      <span><%= post.views || 0 %></span>
+    </div>
+  </div>
+</a>

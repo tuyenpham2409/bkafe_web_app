@@ -1,0 +1,58 @@
+<%- include('../partials/header', { title: 'Quản lý bình luận' }) %>
+
+<div style="display: flex; flex-direction: column; gap: 16px;">
+  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+    <a href="/admin" class="btn-icon"><%- include('../partials/icons', { name: 'chevron-left', size: 20 }) %></a>
+    <h2 class="forum-title" style="display: flex; align-items: center; gap: 8px;">
+      <%- include('../partials/icons', { name: 'message-square', size: 24, style: 'color: var(--primary-blue)' }) %> Quản lý bình luận (<%= comments.length %>)
+    </h2>
+  </div>
+
+  <% if (locals.error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <% if (locals.success) { %><div class="alert alert-success"><%= success %></div><% } %>
+
+  <!-- Search + sort -->
+  <form method="GET" action="/admin/comments" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 12px; align-items: center;">
+    <div class="search-container" style="flex: 1; min-width: 240px;">
+      <%- include('../partials/icons', { name: 'search', size: 16, class: 'search-icon' }) %>
+      <input type="text" name="q" value="<%= locals.q || '' %>" placeholder="Tìm theo nội dung, tác giả..." class="search-input">
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <%- include('../partials/icons', { name: 'sliders-horizontal', size: 16, style: 'color: var(--slate-400)' }) %>
+      <select name="sort" class="form-select" style="width: auto; font-weight: 700;" onchange="this.form.requestSubmit()">
+        <option value="newest" <%= locals.sortBy === 'newest' || !locals.sortBy ? 'selected' : '' %>>Mới nhất</option>
+        <option value="oldest" <%= locals.sortBy === 'oldest' ? 'selected' : '' %>>Cũ nhất</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-secondary" style="font-size: 13px;">Lọc</button>
+  </form>
+
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <% if (comments.length === 0) { %>
+      <div class="text-center" style="padding: 40px 16px; color: var(--slate-400); font-weight: 700; font-size: 14px;">Không có bình luận nào.</div>
+    <% } else { %>
+      <% comments.forEach(c => { %>
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 16px; border-bottom: 1px solid var(--slate-100);">
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 12px; font-weight: 600;">
+              <span style="font-weight: 900; color: var(--slate-900);"><%= c.authorName %></span>
+              <span style="color: var(--slate-400);">(<%= c.authorEmail %>)</span>
+            </div>
+            <p style="color: var(--slate-700); font-size: 13px; margin-top: 4px; white-space: pre-wrap;"><%= c.content %></p>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+              <span style="font-size: 11px; color: var(--slate-400); font-weight: 600;"><%= new Date(c.createdAt).toLocaleString('vi-VN') %></span>
+              <a href="/post/<%= c.postId %>?noview=1" style="font-size: 11px; font-weight: 700; color: var(--primary-blue); text-decoration: none;">Xem bài &rarr;</a>
+            </div>
+          </div>
+          <form method="POST" action="/admin/comments/<%= c.id %>/delete" onsubmit="return confirm('Xoá bình luận này (và các phản hồi của nó)?')">
+            <button type="submit" class="btn-icon btn-icon-danger" style="padding: 6px;" title="Xoá">
+              <%- include('../partials/icons', { name: 'trash-2', size: 16 }) %>
+            </button>
+          </form>
+        </div>
+      <% }) %>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

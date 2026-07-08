@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lỗi hệ thống</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background-color: var(--slate-50); font-family: var(--font-sans);">
+  <div style="text-align: center; padding: 40px; background-color: var(--white); border: 1px solid var(--slate-200); border-radius: var(--radius-xl); box-shadow: var(--shadow-md); max-width: 500px; width: 100%;">
+    <div style="width: 64px; height: 64px; background-color: var(--red-light); color: var(--red); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    </div>
+    <h2 style="font-size: 20px; font-weight: 700; color: var(--slate-800); margin-bottom: 12px;">Đã xảy ra lỗi hệ thống</h2>
+    <p style="font-size: 14px; color: var(--slate-500); margin-bottom: 16px; font-weight: 500;">
+      <%= typeof error !== 'undefined' ? error.message : 'Đã có lỗi không mong muốn xảy ra. Vui lòng thử lại sau.' %>
+    </p>
+    <% if (typeof error !== 'undefined' && error.stack) { %>
+      <pre style="text-align: left; font-size: 11px; color: var(--slate-600); background-color: var(--slate-50); padding: 12px; border-radius: var(--radius-lg); overflow-x: auto; max-height: 150px; margin-bottom: 24px; border: 1px solid var(--slate-200);"><%= error.stack %></pre>
+    <% } %>
+    <a href="/" class="btn btn-primary" style="display: inline-flex; width: 100%;">Quay lại trang chủ</a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<%- include('../partials/header', { title: 'Trang quản trị' }) %>
+
+<div style="display: flex; flex-direction: column; gap: 24px;">
+  <% if (locals.error) { %>
+    <div class="alert alert-danger"><%= error %></div>
+  <% } %>
+  <% if (locals.success) { %>
+    <div class="alert alert-success"><%= success %></div>
+  <% } %>
+
+  <!-- Header -->
+  <div class="card">
+    <h1 class="forum-title" style="display: flex; align-items: center; gap: 8px;">
+      <%- include('../partials/icons', { name: 'shield-check', size: 28, style: 'color: var(--red)' }) %> Trang quản trị
+    </h1>
+    <p style="font-size: 14px; color: var(--slate-400); font-weight: 600; margin-top: 4px;">
+      Chào mừng trở lại, <span style="color: var(--slate-700);"><%= currentUser.displayName %></span>! Click vào các mục bên dưới để quản lý.
+    </p>
+  </div>
+
+  <!-- KPI cards -->
+  <%
+    const colorStyles = {
+      blue: 'background-color: var(--primary-light); color: var(--primary-blue);',
+      rose: 'background-color: var(--red-light); color: var(--red);',
+      green: 'background-color: var(--green-light); color: var(--green);',
+      amber: 'background-color: var(--amber-light); color: var(--amber);',
+      indigo: 'background-color: var(--primary-light); color: var(--primary-dark);',
+    };
+    const kpis = [
+      { label: 'Lượt xem trang', value: stats.totalViews ?? 0, icon: 'eye', color: 'blue', desc: 'Tính theo số phiên trình duyệt truy cập.' },
+      { label: 'Đang truy cập', value: stats.activeUsers ?? 1, icon: 'users', color: 'rose', desc: 'Thành viên hoạt động 5 phút qua.' },
+      { label: 'Người dùng', value: stats.users ?? 0, icon: 'users', color: 'indigo', href: '/admin/users' },
+      { label: 'Chờ duyệt', value: stats.pendingPosts ?? 0, icon: 'clock', color: 'amber', href: '/admin/posts?tab=pending' },
+      { label: 'Bài đã duyệt', value: stats.approvedPosts ?? 0, icon: 'check-circle', color: 'green', href: '/admin/posts?tab=approved' },
+      { label: 'Bình luận', value: stats.comments ?? 0, icon: 'message-square', color: 'indigo', href: '/admin/comments' },
+    ];
+  %>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px;">
+    <% kpis.forEach(k => { %>
+      <% const Tag = k.href ? 'a' : 'div'; %>
+      <<%= Tag %> <% if (k.href) { %>href="<%= k.href %>"<% } %> class="card" style="display: flex; align-items: center; gap: 16px; text-decoration: none; border: 1px solid var(--slate-200); padding: 20px; box-shadow: var(--shadow-sm); <%= k.href ? 'cursor: pointer;' : '' %>">
+        <div style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; <%= colorStyles[k.color] %>">
+          <%- include('../partials/icons', { name: k.icon, size: 24 }) %>
+        </div>
+        <div>
+          <div style="font-size: 24px; font-weight: 900; color: var(--slate-900);"><%= k.value %></div>
+          <div style="font-size: 11px; font-weight: 700; color: var(--slate-500); text-transform: uppercase; letter-spacing: 0.05em;"><%= k.label %></div>
+          <% if (k.desc) { %><div style="font-size: 10px; color: var(--slate-400); margin-top: 4px; font-weight: 600; line-height: 1.2;"><%= k.desc %></div><% } %>
+        </div>
+      </<%= Tag %>>
+    <% }) %>
+  </div>
+
+  <!-- Section cards -->
+  <%
+    const sections = [
+      { href: '/admin/users', icon: 'users', label: 'Quản lý tài khoản', desc: 'Thêm, sửa, xoá và phân quyền tài khoản người dùng.', color: 'blue', badge: stats.users },
+      { href: '/admin/posts', icon: 'file-text', label: 'Quản lý câu hỏi', desc: 'Duyệt, từ chối và quản lý tất cả câu hỏi trên hệ thống.', color: 'indigo', badge: stats.pendingPosts, badgeLabel: 'chờ duyệt', badgeColor: 'amber' },
+      { href: '/admin/comments', icon: 'message-square', label: 'Quản lý bình luận', desc: 'Xem và xoá các bình luận vi phạm quy định.', color: 'indigo', badge: stats.comments },
+    ];
+  %>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+    <% sections.forEach(s => { %>
+      <a href="<%= s.href %>" class="card" style="text-align: left; text-decoration: none; display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--slate-200); box-shadow: var(--shadow-sm);">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; width: 100%;">
+          <div style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; <%= colorStyles[s.color] %>">
+            <%- include('../partials/icons', { name: s.icon, size: 24 }) %>
+          </div>
+          <% if (s.badge > 0) { %>
+            <span class="badge" style="font-size: 11px; padding: 2px 8px; border-radius: 9999px; border: 1px solid; text-transform: none; <%= s.badgeColor === 'amber' ? 'background-color: var(--amber-light); border-color: rgba(245,158,11,0.15); color: var(--amber-dark);' : 'background-color: var(--slate-100); border-color: var(--slate-200); color: var(--slate-600);' %>">
+              <%= s.badge %> <%= s.badgeLabel || '' %>
+            </span>
+          <% } %>
+        </div>
+        <h3 style="font-weight: 900; color: var(--slate-900); font-size: 16px;"><%= s.label %></h3>
+        <p style="font-size: 12px; color: var(--slate-400); font-weight: 500; line-height: 1.5;"><%= s.desc %></p>
+        <div style="margin-top: auto; font-size: 12px; font-weight: 700; color: var(--primary-blue); display: flex; align-items: center; gap: 4px; padding-top: 8px;">
+          Mở quản lý <%- include('../partials/icons', { name: 'external-link', size: 12 }) %>
+        </div>
+      </a>
+    <% }) %>
+  </div>
+
+  <!-- Pending posts alert -->
+  <% if (stats.pendingPosts > 0) { %>
+    <a href="/admin/posts?tab=pending" class="btn" style="width: 100%; background-color: var(--amber-light); border-color: rgba(245,158,11,0.15); border: 1px solid; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 12px; text-align: left; box-shadow: none; justify-content: flex-start; text-decoration: none;">
+      <%- include('../partials/icons', { name: 'alert-circle', size: 20, style: 'color: var(--amber); flex-shrink: 0;' }) %>
+      <div>
+        <div style="font-weight: 900; color: var(--amber-dark); font-size: 14px;">Có <%= stats.pendingPosts %> câu hỏi đang chờ duyệt</div>
+        <div style="font-size: 12px; color: var(--amber); font-weight: 700;">Click để xem và duyệt ngay</div>
+      </div>
+    </a>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

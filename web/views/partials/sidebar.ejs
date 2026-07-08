@@ -1,0 +1,70 @@
+<%
+const currentPath = locals.path || '/';
+const topicsList = locals.topics || [];
+const user = locals.currentUser || null;
+
+const linkClass = (isActive) => `nav-link ${isActive ? 'nav-link-active' : 'nav-link-inactive'}`;
+%>
+<aside class="aside-left">
+  <div class="sticky-sidebar">
+    <nav class="sidebar-nav">
+      <a href="/" class="<%= linkClass(currentPath === '/') %>">
+        <span class="nav-link-left-content">
+          <%- include('icons', { name: 'home', size: 20 }) %>
+          Trang chủ
+        </span>
+      </a>
+
+      <% topicsList.forEach(t => { %>
+        <a href="/topic/<%= t.slug %>" class="<%= linkClass(currentPath === '/topic/' + t.slug) %>">
+          <span class="nav-link-left-content">
+            <%- include('icons', { name: 'hash', size: 20 }) %>
+            <%= t.name %>
+          </span>
+        </a>
+      <% }) %>
+
+      <% if (user && user.role === 'admin') { %>
+        <a href="/about" class="<%= linkClass(currentPath === '/about') %>">
+          <span class="nav-link-left-content">
+            <%- include('icons', { name: 'inbox', size: 20 }) %>
+            Hộp thư góp ý
+          </span>
+          <span id="sidebar-feedback-badge" class="nav-badge" style="display: none;"></span>
+        </a>
+      <% } else { %>
+        <a href="/about" class="<%= linkClass(currentPath === '/about') %>">
+          <span class="nav-link-left-content">
+            <%- include('icons', { name: 'inbox', size: 20 }) %>
+            Giới thiệu &amp; Liên hệ
+          </span>
+        </a>
+      <% } %>
+
+      <% if (user && user.role === 'admin') { %>
+        <a href="/admin" class="nav-link <%= currentPath === '/admin' ? 'nav-link-admin-active' : 'nav-link-inactive' %>">
+          <span class="nav-link-left-content">
+            <%- include('icons', { name: 'shield-check', size: 20 }) %>
+            Trang quản trị
+          </span>
+          <span id="sidebar-admin-dot" class="nav-dot" style="display: none;" title="Có bài chờ duyệt"></span>
+        </a>
+      <% } %>
+
+      <% if (user) { %>
+        <a href="/profile/<%= user.id %>" class="<%= linkClass(currentPath.startsWith('/profile')) %>">
+          <span class="nav-link-left-content">
+            <%- include('icons', { name: 'user', size: 20 }) %>
+            Trang cá nhân
+          </span>
+        </a>
+      <% } %>
+    </nav>
+
+    <div class="sidebar-banner">
+      <h4 class="sidebar-banner-title">Hỏi đáp BKafe</h4>
+      <p class="sidebar-banner-desc">Nơi sinh viên HUST trao đổi học thuật, chia sẻ kinh nghiệm học tập và đời sống sinh viên.</p>
+      <a href="/create-post" class="sidebar-banner-btn">Đặt câu hỏi ngay</a>
+    </div>
+  </div>
+</aside>

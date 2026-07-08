@@ -1,0 +1,135 @@
+<%- include('../partials/header', { title: 'Quản lý tài khoản' }) %>
+
+<%
+// Same wording/thresholds as the original Admin.tsx userActiveTime() helper.
+function userActiveTime(date) {
+  if (!date) return 'Chưa có lịch sử';
+  const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (diff < 60) return 'Đang hoạt động';
+  if (diff < 3600) return `Hoạt động ${Math.floor(diff / 60)} phút trước`;
+  if (diff < 86400) return `Hoạt động ${Math.floor(diff / 3600)} giờ trước`;
+  return `Hoạt động ${Math.floor(diff / 86400)} ngày trước`;
+}
+function isOnline(date) {
+  return !!date && Math.floor((Date.now() - new Date(date).getTime()) / 1000) < 60;
+}
+%>
+
+<div style="display: flex; flex-direction: column; gap: 16px;">
+  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+    <a href="/admin" class="btn-icon"><%- include('../partials/icons', { name: 'chevron-left', size: 20 }) %></a>
+    <h2 class="forum-title" style="display: flex; align-items: center; gap: 8px;">
+      <%- include('../partials/icons', { name: 'users', size: 24, style: 'color: var(--primary-blue)' }) %> Quản lý tài khoản (<%= users.length %>)
+    </h2>
+  </div>
+
+  <% if (locals.error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <% if (locals.success) { %><div class="alert alert-success"><%= success %></div><% } %>
+
+  <!-- Add user form -->
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 12px 20px; border-bottom: 1px solid var(--slate-100); background-color: var(--slate-50); font-size: 12px; font-weight: 900; color: var(--slate-500); text-transform: uppercase; letter-spacing: 0.05em;">Thêm tài khoản mới</div>
+    <form method="POST" action="/admin/users" style="padding: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; align-items: end;">
+      <input required name="username" placeholder="Username *" class="form-input">
+      <input required name="displayName" placeholder="Tên hiển thị *" class="form-input">
+      <input required type="email" name="email" placeholder="Email *" class="form-input">
+      <input required name="password" placeholder="Mật khẩu *" class="form-input">
+      <select name="role" class="form-select"><option value="user">User</option><option value="admin">Admin</option></select>
+      <button class="btn btn-primary" style="padding: 8px 16px; height: 38px;"><%- include('../partials/icons', { name: 'user-plus', size: 16 }) %> Thêm</button>
+    </form>
+  </div>
+
+  <!-- Search + filter (GET form, no JS required) -->
+  <form method="GET" action="/admin/users" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 12px; align-items: center;">
+    <div class="search-container" style="flex: 1; min-width: 240px;">
+      <%- include('../partials/icons', { name: 'search', size: 16, class: 'search-icon' }) %>
+      <input type="text" name="q" value="<%= q %>" placeholder="Tìm tên, username, email..." class="search-input">
+    </div>
+    <select name="role" class="form-select" style="width: auto; font-weight: 700;" onchange="this.form.requestSubmit()">
+      <option value="all" <%= roleFilter === 'all' ? 'selected' : '' %>>Tất cả vai trò</option>
+      <option value="user" <%= roleFilter === 'user' ? 'selected' : '' %>>User</option>
+      <option value="admin" <%= roleFilter === 'admin' ? 'selected' : '' %>>Admin</option>
+    </select>
+    <select name="sort" class="form-select" style="width: auto; font-weight: 700;" onchange="this.form.requestSubmit()">
+      <option value="newest" <%= sortBy === 'newest' ? 'selected' : '' %>>Mới tham gia</option>
+      <option value="oldest" <%= sortBy === 'oldest' ? 'selected' : '' %>>Cũ nhất</option>
+      <option value="active" <%= sortBy === 'active' ? 'selected' : '' %>>Hoạt động gần đây</option>
+    </select>
+    <button type="submit" class="btn btn-secondary" style="font-size: 13px;">Lọc</button>
+  </form>
+
+  <!-- User list -->
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <% if (users.length === 0) { %>
+      <div style="color: var(--slate-400); font-weight: 700; font-size: 14px; padding: 32px; text-align: center;">Không tìm thấy tài khoản nào.</div>
+    <% } else { %>
+      <div style="display: flex; flex-direction: column;">
+        <% users.forEach(u => { %>
+          <div style="display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--slate-100); flex-wrap: wrap;">
+            <% if (u.photoURL) { %>
+              <img src="<%= u.photoURL %>" alt="" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid var(--slate-200); flex-shrink: 0;">
+            <% } else { %>
+              <div style="width: 40px; height: 40px; border-radius: 50%; background-color: var(--primary-light); color: var(--primary-blue); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; flex-shrink: 0;"><%= u.displayName?.charAt(0).toUpperCase() %></div>
+            <% } %>
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-size: 14px; font-weight: 900; color: var(--slate-900); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <%= u.displayName %> <span style="font-size: 12px; color: var(--slate-400); font-weight: 600;">@<%= u.username %></span>
+                <% if (u.bannedPosting) { %><span class="badge badge-red" style="font-size: 9px; padding: 2px 6px; text-transform: none;">Khóa đăng bài</span><% } %>
+                <% if (u.bannedCommenting) { %><span class="badge badge-amber" style="font-size: 9px; padding: 2px 6px; text-transform: none;">Khóa bình luận</span><% } %>
+              </div>
+              <div style="font-size: 12px; color: var(--slate-400); display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+                <span><%= u.email %></span>
+                <span>&middot;</span>
+                <span style="color: <%= isOnline(u.lastActiveAt) ? 'var(--green)' : 'var(--slate-400)' %>; font-weight: <%= isOnline(u.lastActiveAt) ? '900' : '600' %>;">
+                  <%= userActiveTime(u.lastActiveAt) %>
+                </span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <% if (u.id === currentUser.id) { %>
+                <span class="badge" style="background-color: var(--red); color: var(--white); font-weight: 700; font-size: 10px; padding: 2px 6px;">Bạn</span>
+              <% } else { %>
+                <form method="POST" action="/admin/users/<%= u.id %>/role" style="margin: 0;">
+                  <select name="role" onchange="this.form.requestSubmit()" class="form-select" style="width: auto; padding: 4px 8px; font-size: 12px; font-weight: 700;">
+                    <option value="user" <%= u.role === 'user' ? 'selected' : '' %>>Thành viên</option>
+                    <option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>Quản trị viên</option>
+                  </select>
+                </form>
+
+                <details style="display: inline-block;">
+                  <summary class="btn-link" style="font-size: 12px; padding: 4px 8px; cursor: pointer; display: inline;">Đặt lại MK</summary>
+                  <form method="POST" action="/admin/users/<%= u.id %>/reset-password" style="display: flex; gap: 4px; margin-top: 6px;">
+                    <input type="text" name="password" required placeholder="Mật khẩu mới" class="form-input" style="font-size: 12px; padding: 4px 8px; width: 140px;">
+                    <button class="btn btn-secondary" style="font-size: 11px; padding: 4px 8px;">Lưu</button>
+                  </form>
+                </details>
+
+                <details style="display: inline-block;">
+                  <summary class="btn" style="font-size: 12px; padding: 6px 12px; border-radius: 8px; border: 1px solid; cursor: pointer; display: inline-block; <%= (u.bannedPosting || u.bannedCommenting) ? 'background-color: var(--green-light); border-color: rgba(34,197,94,0.15); color: var(--green);' : 'background-color: var(--amber-light); border-color: rgba(245,158,11,0.15); color: var(--amber);' %>">
+                    <%= (u.bannedPosting || u.bannedCommenting) ? 'Mở khóa' : 'Hạn chế' %>
+                  </summary>
+                  <form method="POST" action="/admin/users/<%= u.id %>/ban" style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding: 12px; border: 1px solid var(--slate-200); border-radius: 12px; min-width: 220px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600;">
+                      <input type="checkbox" name="bannedPosting" value="true" <%= u.bannedPosting ? 'checked' : '' %>> Chặn đăng bài
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600;">
+                      <input type="checkbox" name="bannedCommenting" value="true" <%= u.bannedCommenting ? 'checked' : '' %>> Chặn bình luận
+                    </label>
+                    <input type="text" name="reason" value="<%= u.banReason || '' %>" placeholder="Lý do hạn chế (sẽ gửi thông báo)" class="form-input" style="font-size: 12px;">
+                    <button type="submit" class="btn btn-primary" style="font-size: 12px; padding: 6px 12px; align-self: flex-start;">Xác nhận</button>
+                  </form>
+                </details>
+
+                <form method="POST" action="/admin/users/<%= u.id %>/delete" onsubmit="return confirm('Xoá tài khoản này?')" style="display: inline;">
+                  <button type="submit" class="btn-icon btn-icon-danger" style="padding: 6px;"><%- include('../partials/icons', { name: 'trash-2', size: 16 }) %></button>
+                </form>
+              <% } %>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

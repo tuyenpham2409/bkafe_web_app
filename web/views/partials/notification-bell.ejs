@@ -1,0 +1,15 @@
+<div class="relative" id="notification-bell-wrapper">
+  <button id="notification-bell-btn" type="button" class="btn-icon" title="Thông báo">
+    <%- include('icons', { name: 'bell', size: 20 }) %>
+    <span id="notification-badge" class="bell-badge" style="display: none;"></span>
+  </button>
+  <div id="notification-dropdown" class="dropdown-menu" style="display: none; width: 320px;">
+    <div class="dropdown-header">
+      <span class="dropdown-title">Thông báo</span>
+      <button id="notification-mark-all" class="dropdown-action" style="display: none;">Đánh dấu đã đọc</button>
+    </div>
+    <div id="notification-list" class="dropdown-content">
+      <div class="text-center font-bold" style="padding: 24px; font-size: 12px; color: var(--slate-400);">Chưa có thông báo nào.</div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,65 @@
+<%- include('../partials/header', { title: 'Giới thiệu & Liên hệ' }) %>
+
+<div class="about-container" style="max-width: 672px; margin: 0 auto; padding: 20px 0;">
+  
+  <% if (locals.error) { %>
+    <div class="alert alert-danger" style="margin-bottom: 20px;"><%= error %></div>
+  <% } %>
+  <% if (locals.success) { %>
+    <div class="alert alert-success" style="margin-bottom: 20px;"><%= success %></div>
+  <% } %>
+
+  <!-- About Card -->
+  <div class="card" style="padding: 32px; margin-bottom: 24px;">
+    <h2 style="font-size: 24px; font-weight: 900; color: var(--slate-900); margin-bottom: 16px;">Về chúng tôi - BKafe</h2>
+    <p style="font-size: 15px; line-height: 1.6; color: var(--slate-600); margin-bottom: 16px;">
+      <strong>BKafe</strong> là diễn đàn học tập, trao đổi tài liệu và chia sẻ kinh nghiệm học tập dành riêng cho sinh viên Đại học Bách khoa Hà Nội (HUST). 
+      Sứ mệnh của chúng tôi là kết nối các thế hệ sinh viên Bách khoa, cùng nhau xây dựng môi trường học thuật năng động, lành mạnh và hiệu quả.
+    </p>
+    <p style="font-size: 15px; line-height: 1.6; color: var(--slate-600);">
+      Tại BKafe, các bạn có thể đặt câu hỏi về các môn học đại cương, chuyên ngành, thảo luận bài tập lớn, chia sẻ tài liệu ôn tập kì thi giữa kì, cuối kì, cũng như cùng đóng góp và xây dựng kho tàng tài liệu học tập đa dạng.
+    </p>
+  </div>
+
+  <!-- Contact/Feedback Form Card -->
+  <div class="card" style="padding: 32px;">
+    <h2 style="font-size: 20px; font-weight: 900; color: var(--slate-900); margin-bottom: 8px;">Góp ý &amp; Báo lỗi</h2>
+    <p style="font-size: 14px; color: var(--slate-500); margin-bottom: 24px; font-weight: 500;">
+      Ý kiến đóng góp của bạn giúp chúng tôi phát triển diễn đàn tốt hơn. Vui lòng gửi phản hồi tại đây.
+    </p>
+
+    <% const user = locals.currentUser; %>
+    <form method="POST" action="/about" enctype="multipart/form-data">
+      <div class="form-group">
+        <label class="form-label" for="name">Họ và tên <span class="req">*</span></label>
+        <input type="text" id="name" name="name" required class="form-input" 
+               value="<%= user ? user.displayName : '' %>" 
+               placeholder="Nhập họ tên của bạn" <%= user ? 'readonly' : '' %>>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">Địa chỉ Email <span class="req">*</span></label>
+        <input type="email" id="email" name="email" required class="form-input" 
+               value="<%= user ? user.email : '' %>" 
+               placeholder="Nhập email để chúng tôi phản hồi" <%= user ? 'readonly' : '' %>>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="message">Nội dung góp ý <span class="req">*</span></label>
+        <textarea id="message" name="message" required class="form-input" style="min-height: 120px;" 
+                  placeholder="Hãy viết thắc mắc, đề xuất hoặc phản hồi lỗi của bạn tại đây..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Đính kèm ảnh/video chứng minh (nếu có - tối đa 5 file)</label>
+        <input type="file" name="media" multiple accept="image/*,video/*" class="form-input">
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="padding: 10px 24px; font-size: 14px; margin-top: 8px;">
+        Gửi góp ý
+      </button>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

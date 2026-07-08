@@ -1,0 +1,146 @@
+<%- include('../partials/header', { title: 'Trang cá nhân của ' + profile.displayName }) %>
+
+<% const isOwn = locals.currentUser && String(currentUser.id) === String(profile.id); %>
+<% const isEditing = isOwn && locals.query?.edit === '1'; %>
+<% const showSettings = isOwn && locals.query?.settings === '1'; %>
+
+<div style="display: flex; flex-direction: column; gap: 24px;">
+  <% if (locals.error) { %>
+    <div class="alert alert-danger"><%= error %></div>
+  <% } %>
+  <% if (locals.success) { %>
+    <div class="alert alert-success"><%= success %></div>
+  <% } %>
+
+  <div class="card">
+    <div style="display: flex; flex-direction: row; gap: 24px; flex-wrap: wrap; align-items: flex-start;">
+      <!-- Avatar -->
+      <div class="relative" style="flex-shrink: 0; margin: 0 auto;">
+        <% if (profile.photoURL) { %>
+          <img src="<%= profile.photoURL %>" alt="" class="profile-large-avatar" />
+        <% } else { %>
+          <div class="profile-large-avatar-placeholder"><%= profile.displayName?.charAt(0).toUpperCase() || 'U' %></div>
+        <% } %>
+        <% if (isOwn) { %>
+          <form method="POST" action="/profile/avatar" enctype="multipart/form-data" style="position: absolute; bottom: -4px; right: -4px;">
+            <label
+              class="btn btn-primary btn-circle"
+              style="width: 32px; height: 32px; border: 2px solid var(--white); padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-md);"
+              title="Đổi ảnh đại diện"
+            >
+              <%- include('../partials/icons', { name: 'camera', size: 16 }) %>
+              <input type="file" name="avatar" accept="image/*" style="display: none;" onchange="this.form.requestSubmit()">
+            </label>
+          </form>
+        <% } %>
+      </div>
+
+      <!-- Info -->
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; width: 100%;">
+        <% if (isEditing) { %>
+          <form method="POST" action="/profile/edit" style="display: flex; flex-direction: column; gap: 12px;">
+            <input type="text" name="displayName" value="<%= profile.displayName %>" required class="form-input" placeholder="Tên hiển thị">
+            <textarea name="bio" rows="2" class="form-textarea" placeholder="Giới thiệu ngắn về bạn..."><%= profile.bio || '' %></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+              <a href="/profile/<%= profile.id %>" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; box-shadow: none;">
+                <%- include('../partials/icons', { name: 'x', size: 14 }) %> Hủy
+              </a>
+              <button type="submit" class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;">
+                <%- include('../partials/icons', { name: 'check-circle', size: 14 }) %> Lưu
+              </button>
+            </div>
+          </form>
+        <% } else { %>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;">
+            <div>
+              <h1 style="font-size: 24px; font-weight: 900; color: var(--slate-900);"><%= profile.displayName %></h1>
+              <div style="font-size: 14px; font-weight: 600; color: var(--slate-400); margin-top: 2px;">@<%= profile.username %></div>
+            </div>
+            <% if (isOwn) { %>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <a href="/profile/<%= profile.id %>?edit=1" class="btn btn-secondary" style="padding: 8px 14px; font-size: 12px; display: inline-flex; gap: 6px; box-shadow: none;">
+                  <%- include('../partials/icons', { name: 'edit', size: 14 }) %> Sửa hồ sơ
+                </a>
+                <a href="/profile/<%= profile.id %><%= showSettings ? '' : '?settings=1' %>" class="btn btn-secondary" style="padding: 8px 14px; font-size: 12px; display: inline-flex; gap: 6px; box-shadow: none;">
+                  <%- include('../partials/icons', { name: 'settings', size: 14 }) %> Cài đặt
+                </a>
+              </div>
+            <% } %>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12px; color: var(--slate-500); font-weight: 600; padding-top: 4px;">
+            <span class="badge badge-slate" style="padding: 4px 10px; display: inline-flex; gap: 6px; text-transform: none;">
+              <%- include('../partials/icons', { name: 'user', size: 14, style: 'color: var(--slate-400)' }) %>
+              <%= profile.role === 'admin' ? 'Quản trị viên' : 'Sinh viên HUST' %>
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+              <%- include('../partials/icons', { name: 'calendar', size: 14, style: 'color: var(--slate-400)' }) %>
+              Tham gia: <%= profile.joinedAt ? new Date(profile.joinedAt).toLocaleDateString('vi-VN') : '—' %>
+            </span>
+            <% if (isOwn) { %><span style="color: var(--slate-400);">(<%= profile.email %>)</span><% } %>
+          </div>
+          <p style="font-size: 14px; color: var(--slate-600); font-style: italic; font-weight: 500; padding-top: 8px;"><%= profile.bio || 'Chưa có lời tự giới thiệu.' %></p>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Account settings (own profile) -->
+    <% if (isOwn && showSettings && !isEditing) { %>
+      <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--slate-100); display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+        <form method="POST" action="/profile/username" style="display: flex; flex-direction: column; gap: 8px;">
+          <h3 style="font-size: 14px; font-weight: 900; color: var(--slate-800); display: flex; align-items: center; gap: 6px;">
+            <%- include('../partials/icons', { name: 'at-sign', size: 16, style: 'color: var(--primary-blue)' }) %> Đổi tên đăng nhập
+          </h3>
+          <% if (profile.usernameChanged) { %>
+            <p class="alert alert-danger" style="font-size: 12px; padding: 8px 12px;">Bạn đã đổi tên đăng nhập một lần và không thể đổi lại.</p>
+          <% } else { %>
+            <p style="font-size: 11px; color: var(--slate-400); font-weight: 600;">Chỉ được đổi <b>duy nhất một lần</b>.</p>
+            <input name="username" placeholder="Tên đăng nhập mới" required class="form-input">
+            <button class="btn btn-primary" style="padding: 8px 16px; font-size: 12px; align-self: flex-start;">Đổi username</button>
+          <% } %>
+        </form>
+        <form method="POST" action="/profile/password" style="display: flex; flex-direction: column; gap: 8px;">
+          <h3 style="font-size: 14px; font-weight: 900; color: var(--slate-800); display: flex; align-items: center; gap: 6px;">
+            <%- include('../partials/icons', { name: 'key-round', size: 16, style: 'color: var(--primary-blue)' }) %> Đổi mật khẩu
+          </h3>
+          <%- include('../partials/password-input', { id: 'currentPassword', name: 'currentPassword', placeholder: 'Mật khẩu hiện tại', autocomplete: 'current-password' }) %>
+          <%- include('../partials/password-input', { id: 'newPassword', name: 'newPassword', placeholder: 'Mật khẩu mới', autocomplete: 'new-password' }) %>
+          <button class="btn btn-primary" style="padding: 8px 16px; font-size: 12px; align-self: flex-start;">Đổi mật khẩu</button>
+        </form>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- Posts -->
+  <div class="card">
+    <h2 class="forum-title" style="font-size: 20px; margin-bottom: 16px;">Câu hỏi đã đăng (<%= posts.length %>)</h2>
+    <div class="post-list">
+      <% posts.forEach(post => { %>
+        <a href="/post/<%= post.id %>" class="card post-card" style="display: block; text-decoration: none; padding: 16px; border: 1px solid var(--slate-100); box-shadow: none;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 8px;">
+            <h3 class="post-card-title" style="font-size: 16px;">
+              <%= post.title?.trim() || post.content?.substring(0, 50) + (post.content?.length > 50 ? '...' : '') %>
+            </h3>
+            <% if (post.status !== 'approved') { %>
+              <span class="badge" style="font-size: 10px; text-transform: none; padding: 2px 6px; border-radius: 6px; border: 1px solid; background-color: <%= post.status === 'pending' ? 'var(--amber-light)' : 'var(--red-light)' %>; border-color: <%= post.status === 'pending' ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)' %>; color: <%= post.status === 'pending' ? 'var(--amber-dark)' : 'var(--red-dark)' %>;">
+                <%= post.status === 'pending' ? 'Chờ duyệt' : 'Bị từ chối' %>
+              </span>
+            <% } %>
+          </div>
+          <p class="post-card-body line-clamp-2" style="margin-bottom: 12px;"><%= post.content %></p>
+          <div style="display: flex; align-items: center; gap: 16px; font-size: 12px; font-weight: 700; color: var(--slate-400);">
+            <span><%= new Date(post.createdAt).toLocaleDateString('vi-VN') %></span>
+            <span>&bull;</span>
+            <span><%= post.views || 0 %> lượt xem</span>
+            <span>&bull;</span>
+            <span><%= post.ratingCount > 0 ? `${post.ratingAvg.toFixed(1)}★` : 'Chưa đánh giá' %></span>
+          </div>
+        </a>
+      <% }) %>
+      <% if (posts.length === 0) { %>
+        <div class="text-center" style="padding: 32px 0; color: var(--slate-400); font-weight: 700; font-size: 14px;">Chưa đăng câu hỏi nào.</div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>
