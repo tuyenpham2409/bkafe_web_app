@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../lib/api';
@@ -8,7 +8,6 @@ import {
   FileText, AlertCircle,
 } from 'lucide-react';
 
-// ─── Helpers ─────────────────────────────────────────────
 const REJECT_REASONS = [
   'Nội dung không phù hợp thuần phong mỹ tục',
   'Spam hoặc quảng cáo',
@@ -35,7 +34,6 @@ function userActiveTime(date: string | Date | undefined): string {
   return `Hoạt động ${Math.floor(diff / 86400)} ngày trước`;
 }
 
-
 function displayTitle(post: any) {
   return post.title?.trim() || post.content?.substring(0, 50) + (post.content?.length > 50 ? '...' : '');
 }
@@ -46,22 +44,39 @@ function RejectModal({ onConfirm, onClose, title = 'Từ chối duyệt câu h�
   const [custom, setCustom] = useState('');
   const finalReason = custom.trim() || reason;
   return (
-    <div className="fixed inset-0 z-[200] bg-slate-900/50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-        <h3 className="font-black text-slate-900 mb-1 flex items-center gap-2"><XCircle className="w-5 h-5 text-red-500" /> {title}</h3>
-        <p className="text-xs text-slate-500 font-semibold mb-3">Chọn lý do (sẽ gửi thông báo cho người đăng):</p>
-        <div className="space-y-2 mb-3">
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-container" style={{ maxWidth: '448px' }} onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ fontWeight: '900', color: 'var(--slate-900)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <XCircle size={20} style={{ color: 'var(--red)' }} /> {title}
+        </h3>
+        <p style={{ fontSize: '12px', color: 'var(--slate-500)', fontWeight: '600', marginBottom: '12px' }}>Chọn lý do (sẽ gửi thông báo cho người đăng):</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
           {REJECT_REASONS.map((r) => (
-            <label key={r} className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer text-sm font-semibold ${reason === r && !custom ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 hover:bg-slate-50'}`}>
+            <label
+              key={r}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 12px',
+                borderRadius: '12px',
+                border: reason === r && !custom ? '2px solid var(--primary-blue)' : '1px solid var(--slate-200)',
+                backgroundColor: reason === r && !custom ? 'var(--primary-light)' : 'var(--white)',
+                color: reason === r && !custom ? 'var(--primary-dark)' : 'var(--slate-700)',
+                fontSize: '14px',
+                fontWeight: '700',
+                cursor: 'pointer',
+              }}
+            >
               <input type="radio" name="reason" checked={reason === r && !custom} onChange={() => { setReason(r); setCustom(''); }} />
               {r}
             </label>
           ))}
-          <input type="text" value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Hoặc nhập lý do khác..." className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500" />
+          <input type="text" value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Hoặc nhập lý do khác..." className="form-input" />
         </div>
-        <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-bold">Hủy</button>
-          <button onClick={() => onConfirm(finalReason)} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700">Xác nhận từ chối</button>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          <button onClick={onClose} className="btn btn-secondary" style={{ boxShadow: 'none' }}>Hủy</button>
+          <button onClick={() => onConfirm(finalReason)} className="btn btn-danger">Xác nhận từ chối</button>
         </div>
       </div>
     </div>
@@ -72,14 +87,16 @@ function RejectModal({ onConfirm, onClose, title = 'Từ chối duyệt câu h�
 function DeleteModal({ onConfirm, onClose, label = 'câu hỏi' }: { onConfirm: (r: string) => void; onClose: () => void; label?: string }) {
   const [reason, setReason] = useState('');
   return (
-    <div className="fixed inset-0 z-[200] bg-slate-900/50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-        <h3 className="font-black text-slate-900 mb-1 flex items-center gap-2"><Trash2 className="w-5 h-5 text-red-600" /> Xoá {label}</h3>
-        <p className="text-xs text-slate-500 font-semibold mb-3">Lý do xoá (tùy chọn):</p>
-        <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Nhập lý do xoá..." className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-400 mb-4" />
-        <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-bold">Hủy</button>
-          <button onClick={() => onConfirm(reason)} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700">Xác nhận xoá</button>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-container" style={{ maxWidth: '448px' }} onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ fontWeight: '900', color: 'var(--slate-900)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Trash2 size={20} style={{ color: 'var(--red)' }} /> Xoá {label}
+        </h3>
+        <p style={{ fontSize: '12px', color: 'var(--slate-500)', fontWeight: '600', marginBottom: '12px' }}>Lý do xoá (tùy chọn):</p>
+        <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Nhập lý do xoá..." className="form-input" style={{ marginBottom: '16px' }} />
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          <button onClick={onClose} className="btn btn-secondary" style={{ boxShadow: 'none' }}>Hủy</button>
+          <button onClick={() => onConfirm(reason)} className="btn btn-danger">Xác nhận xoá</button>
         </div>
       </div>
     </div>
@@ -93,32 +110,32 @@ function BanModal({ user, onConfirm, onClose }: { user: any; onConfirm: (bannedP
   const [reason, setReason] = useState('');
   const isUnlocking = !bannedPosting && !bannedCommenting;
   return (
-    <div className="fixed inset-0 z-[200] bg-slate-900/50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-        <h3 className="font-black text-slate-900 mb-1">Hạn chế hoạt động: {user.displayName}</h3>
-        <p className="text-xs text-slate-500 font-semibold mb-4">Chọn quyền cần hạn chế. Bỏ chọn để mở khóa.</p>
-        <div className="space-y-2 mb-4">
-          <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
-            <input type="checkbox" checked={bannedPosting} onChange={(e) => setBannedPosting(e.target.checked)} className="w-4 h-4 accent-red-600" />
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-container" style={{ maxWidth: '448px' }} onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ fontWeight: '900', color: 'var(--slate-900)', marginBottom: '4px' }}>Hạn chế hoạt động: {user.displayName}</h3>
+        <p style={{ fontSize: '12px', color: 'var(--slate-500)', fontWeight: '600', marginBottom: '16px' }}>Chọn quyền cần hạn chế. Bỏ chọn để mở khóa.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', borderRadius: '12px', border: '1px solid var(--slate-200)', cursor: 'pointer', backgroundColor: 'var(--white)', transition: 'var(--transition-base)' }}>
+            <input type="checkbox" checked={bannedPosting} onChange={(e) => setBannedPosting(e.target.checked)} style={{ width: '16px', height: '16px', accentColor: 'var(--red)' }} />
             <div>
-              <div className="text-sm font-bold text-slate-900">Đăng bài</div>
-              <div className="text-xs text-slate-500">Không được đăng câu hỏi mới</div>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--slate-900)' }}>Đăng bài</div>
+              <div style={{ fontSize: '12px', color: 'var(--slate-500)' }}>Không được đăng câu hỏi mới</div>
             </div>
           </label>
-          <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50">
-            <input type="checkbox" checked={bannedCommenting} onChange={(e) => setBannedCommenting(e.target.checked)} className="w-4 h-4 accent-red-600" />
+          <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', borderRadius: '12px', border: '1px solid var(--slate-200)', cursor: 'pointer', backgroundColor: 'var(--white)', transition: 'var(--transition-base)' }}>
+            <input type="checkbox" checked={bannedCommenting} onChange={(e) => setBannedCommenting(e.target.checked)} style={{ width: '16px', height: '16px', accentColor: 'var(--red)' }} />
             <div>
-              <div className="text-sm font-bold text-slate-900">Bình luận</div>
-              <div className="text-xs text-slate-500">Không được bình luận và trả lời</div>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--slate-900)' }}>Bình luận</div>
+              <div style={{ fontSize: '12px', color: 'var(--slate-500)' }}>Không được bình luận và trả lời</div>
             </div>
           </label>
         </div>
         {!isUnlocking && (
-          <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Lý do hạn chế (sẽ gửi thông báo)" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-red-400 mb-4" />
+          <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Lý do hạn chế (sẽ gửi thông báo)" className="form-input" style={{ marginBottom: '16px' }} />
         )}
-        <div className="flex justify-end gap-2 mt-4">
-          <button onClick={onClose} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-bold">Hủy</button>
-          <button onClick={() => onConfirm(bannedPosting, bannedCommenting, reason)} className={`px-4 py-2 text-white rounded-lg text-sm font-bold ${isUnlocking ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          <button onClick={onClose} className="btn btn-secondary" style={{ boxShadow: 'none' }}>Hủy</button>
+          <button onClick={() => onConfirm(bannedPosting, bannedCommenting, reason)} className={`btn ${isUnlocking ? 'btn-primary' : 'btn-danger'}`} style={{ backgroundColor: isUnlocking ? 'var(--green)' : 'var(--red)' }}>
             {isUnlocking ? 'Mở khóa' : 'Xác nhận hạn chế'}
           </button>
         </div>
@@ -171,38 +188,40 @@ function UsersSection({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg"><ChevronLeft className="w-5 h-5" /></button>
-        <h2 className="text-xl font-black text-slate-900 flex items-center gap-2"><Users className="w-6 h-6 text-blue-600" /> Quản lý tài khoản ({filtered.length})</h2>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+        <button onClick={onBack} className="btn-icon"><ChevronLeft size={20} /></button>
+        <h2 className="forum-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Users size={24} style={{ color: 'var(--primary-blue)' }} /> Quản lý tài khoản ({filtered.length})
+        </h2>
       </div>
 
       {/* Add user form */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 text-xs font-extrabold text-slate-500 uppercase tracking-wider">Thêm tài khoản mới</div>
-        <form onSubmit={addUser} className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 items-end">
-          <input required placeholder="Username *" value={nu.username} onChange={(e) => setNu({ ...nu, username: e.target.value })} className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
-          <input required placeholder="Tên hiển thị *" value={nu.displayName} onChange={(e) => setNu({ ...nu, displayName: e.target.value })} className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
-          <input required type="email" placeholder="Email *" value={nu.email} onChange={(e) => setNu({ ...nu, email: e.target.value })} className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
-          <input required placeholder="Mật khẩu *" value={nu.password} onChange={(e) => setNu({ ...nu, password: e.target.value })} className="px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-500" />
-          <select value={nu.role} onChange={(e) => setNu({ ...nu, role: e.target.value })} className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white outline-none"><option value="user">User</option><option value="admin">Admin</option></select>
-          <button className="flex items-center justify-center gap-1.5 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-blue-700"><UserPlus className="w-4 h-4" /> Thêm</button>
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--slate-100)', backgroundColor: 'var(--slate-50)', fontSize: '12px', fontWeight: '900', color: 'var(--slate-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Thêm tài khoản mới</div>
+        <form onSubmit={addUser} style={{ padding: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px', alignItems: 'end' }}>
+          <input required placeholder="Username *" value={nu.username} onChange={(e) => setNu({ ...nu, username: e.target.value })} className="form-input" />
+          <input required placeholder="Tên hiển thị *" value={nu.displayName} onChange={(e) => setNu({ ...nu, displayName: e.target.value })} className="form-input" />
+          <input required type="email" placeholder="Email *" value={nu.email} onChange={(e) => setNu({ ...nu, email: e.target.value })} className="form-input" />
+          <input required placeholder="Mật khẩu *" value={nu.password} onChange={(e) => setNu({ ...nu, password: e.target.value })} className="form-input" />
+          <select value={nu.role} onChange={(e) => setNu({ ...nu, role: e.target.value })} className="form-select"><option value="user">User</option><option value="admin">Admin</option></select>
+          <button className="btn btn-primary" style={{ padding: '8px 16px', height: '38px' }}><UserPlus size={16} /> Thêm</button>
         </form>
       </div>
 
       {/* Search + filter */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm tên, username, email..." className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 bg-white" />
+      <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+        <div className="search-container" style={{ flex: 1, minWidth: '240px' }}>
+          <Search size={16} className="search-icon" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm tên, username, email..." className="search-input" />
         </div>
-        <div className="flex gap-2">
-          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white outline-none font-bold">
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="form-select" style={{ width: 'auto', fontWeight: '700' }}>
             <option value="all">Tất cả vai trò</option>
             <option value="user">User</option>
             <option value="admin">Admin</option>
           </select>
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white outline-none font-bold">
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="form-select" style={{ width: 'auto', fontWeight: '700' }}>
             <option value="newest">Mới tham gia</option>
             <option value="oldest">Cũ nhất</option>
             <option value="active">Hoạt động gần đây</option>
@@ -211,51 +230,57 @@ function UsersSection({ onBack }: { onBack: () => void }) {
       </div>
 
       {/* User list */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        {loading ? <div className="p-8 text-center text-slate-400 font-bold text-sm">Đang tải...</div> : (
-          <div className="divide-y divide-slate-100">
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        {loading ? <div style={{ color: 'var(--slate-400)', fontWeight: '700', fontSize: '14px', padding: '32px', textAlign: 'center' }}>Đang tải...</div> : (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {filtered.map((u) => (
-              <div key={u.id} className="px-5 py-3.5 flex items-center gap-3 hover:bg-slate-50/50">
-                {u.photoURL ? <img src={u.photoURL} className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0" /> : <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-sm shrink-0">{u.displayName?.charAt(0).toUpperCase()}</div>}
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-extrabold text-slate-900 truncate flex items-center gap-2 flex-wrap">
-                    {u.displayName} <span className="text-slate-400 font-semibold">@{u.username}</span>
-                    {u.bannedPosting && <span className="text-[9px] font-extrabold px-1.5 py-0.5 bg-red-100 text-red-700 rounded border border-red-200">Khóa đăng bài</span>}
-                    {u.bannedCommenting && <span className="text-[9px] font-extrabold px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded border border-orange-200">Khóa bình luận</span>}
+              <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 20px', borderBottom: '1px solid var(--slate-100)', flexWrap: 'wrap' }}>
+                {u.photoURL ? <img src={u.photoURL} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--slate-200)', flexShrink: 0 }} /> : <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '14px', flexShrink: 0 }}>{u.displayName?.charAt(0).toUpperCase()}</div>}
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '14px', fontWeight: '900', color: 'var(--slate-900)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    {u.displayName} <span style={{ fontSize: '12px', color: 'var(--slate-400)', fontWeight: '600' }}>@{u.username}</span>
+                    {u.bannedPosting && <span className="badge badge-red" style={{ fontSize: '9px', padding: '2px 6px', textTransform: 'none' }}>Khóa đăng bài</span>}
+                    {u.bannedCommenting && <span className="badge badge-amber" style={{ fontSize: '9px', padding: '2px 6px', textTransform: 'none' }}>Khóa bình luận</span>}
                   </div>
-                  <div className="text-xs text-slate-400 truncate flex items-center gap-2">
+                  <div style={{ fontSize: '12px', color: 'var(--slate-400)', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
                     <span>{u.email}</span>
-                    <span className="text-slate-300">·</span>
-                    <span className={u.lastActiveAt && (Math.floor((Date.now() - new Date(u.lastActiveAt).getTime()) / 1000) < 60) ? 'text-green-600 font-extrabold' : 'text-slate-400'}>
+                    <span>·</span>
+                    <span style={{ color: u.lastActiveAt && (Math.floor((Date.now() - new Date(u.lastActiveAt).getTime()) / 1000) < 60) ? 'var(--green)' : 'var(--slate-400)', fontWeight: u.lastActiveAt && (Math.floor((Date.now() - new Date(u.lastActiveAt).getTime()) / 1000) < 60) ? '900' : '600' }}>
                       {userActiveTime(u.lastActiveAt)}
                     </span>
                   </div>
-
                 </div>
-                <select value={u.role} onChange={(e) => setRole(u.id, e.target.value)} className="text-xs font-bold border border-slate-200 rounded-lg px-2 py-1 bg-white shrink-0">
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <button onClick={() => resetPw(u.id)} className="text-xs font-bold text-slate-500 hover:text-blue-600 px-2 shrink-0">Đặt lại MK</button>
-                {u.id !== me?.id && u.role !== 'admin' && (
-                  <button
-                    onClick={() => setBanTarget(u)}
-                    className={`text-xs font-bold px-2 py-1 rounded-lg shrink-0 border ${
-                      u.bannedPosting || u.bannedCommenting
-                        ? 'text-green-700 border-green-200 hover:bg-green-50'
-                        : 'text-amber-700 border-amber-200 hover:bg-amber-50'
-                    }`}
-                    title={u.bannedPosting || u.bannedCommenting ? 'Mở khóa' : 'Hạn chế'}
-                  >
-                    {u.bannedPosting || u.bannedCommenting ? 'Mở khóa' : 'Hạn chế'}
-                  </button>
-                )}
-                {u.id !== me?.id && (
-                  <button onClick={() => delUser(u.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg shrink-0"><Trash2 className="w-4 h-4" /></button>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <select value={u.role} onChange={(e) => setRole(u.id, e.target.value)} className="form-select" style={{ width: 'auto', padding: '4px 8px', fontSize: '12px', fontWeight: '700' }}>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <button onClick={() => resetPw(u.id)} className="btn-link" style={{ fontSize: '12px', padding: '4px 8px' }}>Đặt lại MK</button>
+                  {u.id !== me?.id && u.role !== 'admin' && (
+                    <button
+                      onClick={() => setBanTarget(u)}
+                      className="btn"
+                      style={{
+                        fontSize: '12px',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid',
+                        backgroundColor: u.bannedPosting || u.bannedCommenting ? 'var(--green-light)' : 'var(--amber-light)',
+                        borderColor: u.bannedPosting || u.bannedCommenting ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.15)',
+                        color: u.bannedPosting || u.bannedCommenting ? 'var(--green)' : 'var(--amber)',
+                        boxShadow: 'none',
+                      }}
+                    >
+                      {u.bannedPosting || u.bannedCommenting ? 'Mở khóa' : 'Hạn chế'}
+                    </button>
+                  )}
+                  {u.id !== me?.id && (
+                    <button onClick={() => delUser(u.id)} className="btn-icon btn-icon-danger" style={{ padding: '6px' }}><Trash2 size={16} /></button>
+                  )}
+                </div>
               </div>
             ))}
-            {filtered.length === 0 && <div className="p-8 text-center text-slate-400 font-bold text-sm">Không tìm thấy tài khoản nào.</div>}
+            {filtered.length === 0 && <div style={{ color: 'var(--slate-400)', fontWeight: '700', fontSize: '14px', padding: '32px', textAlign: 'center' }}>Không tìm thấy tài khoản nào.</div>}
           </div>
         )}
       </div>
@@ -263,7 +288,6 @@ function UsersSection({ onBack }: { onBack: () => void }) {
     </div>
   );
 }
-
 
 // ─── Section: Post Management ─────────────────────────────
 function PostsSection({ onBack }: { onBack: () => void }) {
@@ -302,36 +326,50 @@ function PostsSection({ onBack }: { onBack: () => void }) {
       return 0;
     });
 
-  const approve = async (id: string) => { const p = await api.patch(`/posts/${id}/approve`); setAllPosts((ps) => ps.map((x) => x.id === id ? { ...x, ...p } : x)); };
-  const reject = async (id: string, reason: string) => { const p = await api.patch(`/posts/${id}/reject`, { reason }); setAllPosts((ps) => ps.map((x) => x.id === id ? { ...x, ...p } : x)); setRejectTarget(null); };
-  const delPost = async (id: string, reason?: string) => { await api.del(`/posts/${id}`, reason ? { reason } : undefined); setAllPosts((ps) => ps.filter((x) => x.id !== id)); setDeleteTarget(null); };
+  const approve = async (id: string) => { const p = await api.patch(`/posts/${id}/approve`); setAllPosts((ps) => ps.map((x) => x.id === id ? { ...x, ...p } : x)); window.dispatchEvent(new Event('bkafe-posts-changed')); };
+  const reject = async (id: string, reason: string) => { const p = await api.patch(`/posts/${id}/reject`, { reason }); setAllPosts((ps) => ps.map((x) => x.id === id ? { ...x, ...p } : x)); setRejectTarget(null); window.dispatchEvent(new Event('bkafe-posts-changed')); };
+  const delPost = async (id: string, reason?: string) => { await api.del(`/posts/${id}`, reason ? { reason } : undefined); setAllPosts((ps) => ps.filter((x) => x.id !== id)); setDeleteTarget(null); window.dispatchEvent(new Event('bkafe-posts-changed')); };
 
   const pending = allPosts.filter((p) => p.status === 'pending').length;
   const approved = allPosts.filter((p) => p.status === 'approved').length;
 
+  const btnTabStyle = (active: boolean) => ({
+    padding: '6px 16px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '700',
+    transition: 'var(--transition-base)',
+    backgroundColor: active ? 'var(--white)' : 'transparent',
+    boxShadow: active ? 'var(--shadow-sm)' : 'none',
+    color: active ? 'var(--slate-900)' : 'var(--slate-500)',
+    cursor: 'pointer',
+  } as React.CSSProperties);
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg"><ChevronLeft className="w-5 h-5" /></button>
-        <h2 className="text-xl font-black text-slate-900 flex items-center gap-2"><FileText className="w-6 h-6 text-indigo-600" /> Quản lý câu hỏi</h2>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+        <button onClick={onBack} className="btn-icon"><ChevronLeft size={20} /></button>
+        <h2 className="forum-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FileText size={24} style={{ color: 'var(--primary-blue)' }} /> Quản lý câu hỏi
+        </h2>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+      <div style={{ display: 'flex', gap: '4px', backgroundColor: 'var(--slate-100)', padding: '4px', borderRadius: '12px', width: 'fit-content' }}>
         {([['all', `Tất cả (${allPosts.length})`], ['pending', `Chờ duyệt (${pending})`], ['approved', `Đã duyệt (${approved})`]] as const).map(([val, label]) => (
-          <button key={val} onClick={() => setActiveTab(val)} className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === val ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}>{label}</button>
+          <button key={val} onClick={() => setActiveTab(val)} style={btnTabStyle(activeTab === val)}>{label}</button>
         ))}
       </div>
 
       {/* Search + sort */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm theo tiêu đề, tác giả..." className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 bg-white" />
+      <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+        <div className="search-container" style={{ flex: 1, minWidth: '240px' }}>
+          <Search size={16} className="search-icon" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm theo tiêu đề, tác giả..." className="search-input" />
         </div>
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal className="w-4 h-4 text-slate-400" />
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white outline-none font-bold">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <SlidersHorizontal size={16} style={{ color: 'var(--slate-400)' }} />
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="form-select" style={{ width: 'auto', fontWeight: '700' }}>
             <option value="newest">Mới nhất</option>
             <option value="oldest">Cũ nhất</option>
             <option value="views">Nhiều lượt xem</option>
@@ -340,36 +378,41 @@ function PostsSection({ onBack }: { onBack: () => void }) {
       </div>
 
       {/* Post list */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        {loading ? <div className="p-8 text-center text-slate-400 font-bold text-sm">Đang tải...</div> : (
-          <div className="divide-y divide-slate-100">
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        {loading ? <div style={{ color: 'var(--slate-400)', fontWeight: '700', fontSize: '14px', padding: '32px', textAlign: 'center' }}>Đang tải...</div> : (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {tabPosts.map((p) => (
-              <div key={p.id} className="p-4 flex items-start justify-between gap-4 hover:bg-slate-50/50">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className={`px-2 py-0.5 rounded-md text-[9px] font-extrabold border ${p.status === 'approved' ? 'bg-green-50 border-green-100 text-green-700' : p.status === 'pending' ? 'bg-amber-50 border-amber-100 text-amber-700' : 'bg-red-50 border-red-100 text-red-700'}`}>
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '16px', borderBottom: '1px solid var(--slate-100)' }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                    <span className="badge" style={{
+                      fontSize: '9px',
+                      padding: '2px 6px',
+                      borderRadius: '6px',
+                      border: '1px solid',
+                      textTransform: 'none',
+                      backgroundColor: p.status === 'approved' ? 'var(--green-light)' : p.status === 'pending' ? 'var(--amber-light)' : 'var(--red-light)',
+                      borderColor: p.status === 'approved' ? 'rgba(34,197,94,0.15)' : p.status === 'pending' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                      color: p.status === 'approved' ? 'var(--green)' : p.status === 'pending' ? 'var(--amber-dark)' : 'var(--red-dark)'
+                    }}>
                       {p.status === 'approved' ? 'Đã duyệt' : p.status === 'pending' ? 'Chờ duyệt' : 'Bị từ chối'}
                     </span>
-                    <span className="text-xs text-slate-400 font-semibold">{p.authorName} · {p.views || 0} xem · {relativeTime(p.createdAt)}</span>
+                    <span style={{ fontSize: '12px', color: 'var(--slate-400)', fontWeight: '600' }}>{p.authorName} · {p.views || 0} xem · {relativeTime(p.createdAt)}</span>
                   </div>
-                  <Link to={`/post/${p.id}`} className="font-extrabold text-slate-900 text-sm hover:text-blue-600 flex items-center gap-1">
-                    {displayTitle(p)} <ExternalLink className="w-3 h-3 text-slate-300" />
+                  <Link to={`/post/${p.id}`} style={{ fontWeight: '900', color: 'var(--slate-900)', fontSize: '14px', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }} className="hover-underline">
+                    {displayTitle(p)} <ExternalLink size={12} style={{ color: 'var(--slate-300)' }} />
                   </Link>
-                  <p className="text-slate-500 text-xs line-clamp-1 mt-0.5">{p.content}</p>
+                  <p style={{ color: 'var(--slate-500)', fontSize: '12px', marginTop: '2px' }} className="line-clamp-1">{p.content}</p>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {/* Pending: [Duyệt] [Từ chối] [Xóa] */}
-                  {p.status === 'pending' && <button onClick={() => approve(p.id)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg" title="Duyệt"><CheckCircle className="w-4 h-4" /></button>}
-                  {p.status === 'pending' && <button onClick={() => setRejectTarget(p.id)} className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg" title="Từ chối"><XCircle className="w-4 h-4" /></button>}
-                  {/* Rejected: [Duyệt lại] [Xóa] */}
-                  {p.status === 'rejected' && <button onClick={() => approve(p.id)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg" title="Duyệt lại"><CheckCircle className="w-4 h-4" /></button>}
-                  {/* Approved: [Xóa only] */}
-                  {/* Delete: always */}
-                  <button onClick={() => setDeleteTarget(p.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg" title="Xoá"><Trash2 className="w-4 h-4" /></button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  {p.status === 'pending' && <button onClick={() => approve(p.id)} className="btn-icon" style={{ color: 'var(--green)' }} title="Duyệt"><CheckCircle size={16} /></button>}
+                  {p.status === 'pending' && <button onClick={() => setRejectTarget(p.id)} className="btn-icon" style={{ color: 'var(--amber)' }} title="Từ chối"><XCircle size={16} /></button>}
+                  {p.status === 'rejected' && <button onClick={() => approve(p.id)} className="btn-icon" style={{ color: 'var(--green)' }} title="Duyệt lại"><CheckCircle size={16} /></button>}
+                  <button onClick={() => setDeleteTarget(p.id)} className="btn-icon btn-icon-danger" title="Xoá"><Trash2 size={16} /></button>
                 </div>
               </div>
             ))}
-            {tabPosts.length === 0 && <div className="p-8 text-center text-slate-400 font-bold text-xs">Không có câu hỏi nào.</div>}
+            {tabPosts.length === 0 && <div style={{ color: 'var(--slate-400)', fontWeight: '700', fontSize: '12px', padding: '32px', textAlign: 'center' }}>Không có câu hỏi nào.</div>}
           </div>
         )}
       </div>
@@ -403,44 +446,46 @@ function CommentsSection({ onBack }: { onBack: () => void }) {
   const delComment = async (id: string) => { if (!confirm('Xoá bình luận này?')) return; await api.del(`/comments/${id}`); setComments((cs) => cs.filter((c) => c.id !== id)); };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <button onClick={onBack} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg"><ChevronLeft className="w-5 h-5" /></button>
-        <h2 className="text-xl font-black text-slate-900 flex items-center gap-2"><MessageSquare className="w-6 h-6 text-indigo-600" /> Quản lý bình luận ({filtered.length})</h2>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+        <button onClick={onBack} className="btn-icon"><ChevronLeft size={20} /></button>
+        <h2 className="forum-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <MessageSquare size={24} style={{ color: 'var(--primary-blue)' }} /> Quản lý bình luận ({filtered.length})
+        </h2>
       </div>
 
       {/* Search + sort */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm theo nội dung, tác giả..." className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 bg-white" />
+      <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+        <div className="search-container" style={{ flex: 1, minWidth: '240px' }}>
+          <Search size={16} className="search-icon" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm theo nội dung, tác giả..." className="search-input" />
         </div>
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal className="w-4 h-4 text-slate-400" />
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white outline-none font-bold">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <SlidersHorizontal size={16} style={{ color: 'var(--slate-400)' }} />
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="form-select" style={{ width: 'auto', fontWeight: '700' }}>
             <option value="newest">Mới nhất</option>
             <option value="oldest">Cũ nhất</option>
           </select>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        {loading ? <div className="p-8 text-center text-slate-400 font-bold text-sm">Đang tải...</div> : (
-          <div className="divide-y divide-slate-100">
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        {loading ? <div style={{ color: 'var(--slate-400)', fontWeight: '700', fontSize: '14px', padding: '32px', textAlign: 'center' }}>Đang tải...</div> : (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             {filtered.map((c) => (
-              <div key={c.id} className="p-4 flex items-start justify-between gap-4 hover:bg-slate-50/50">
-                <div className="min-w-0">
-                  <div className="text-xs font-semibold"><span className="font-extrabold text-slate-900">{c.authorName}</span> <span className="text-slate-400">({c.authorEmail})</span></div>
-                  <p className="text-slate-700 text-xs mt-0.5 whitespace-pre-wrap line-clamp-3">{c.content}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] text-slate-400 font-semibold">{relativeTime(c.createdAt)}</span>
-                    <Link to={`/post/${c.postId}`} className="text-[10px] font-bold text-blue-500 hover:underline">Xem bài →</Link>
+              <div key={c.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', padding: '16px', borderBottom: '1px solid var(--slate-100)' }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '12px', fontWeight: '600' }}><span style={{ fontWeight: '900', color: 'var(--slate-900)' }}>{c.authorName}</span> <span style={{ color: 'var(--slate-400)' }}>({c.authorEmail})</span></div>
+                  <p style={{ color: 'var(--slate-700)', fontSize: '12px', marginTop: '2px', whiteSpace: 'pre-wrap' }} className="line-clamp-3">{c.content}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                    <span style={{ fontSize: '10px', color: 'var(--slate-400)', fontWeight: '600' }}>{relativeTime(c.createdAt)}</span>
+                    <Link to={`/post/${c.postId}`} style={{ fontSize: '10px', fontWeight: '700', color: 'var(--primary-blue)', textDecoration: 'none' }} className="hover-underline">Xem bài →</Link>
                   </div>
                 </div>
-                <button onClick={() => delComment(c.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg shrink-0"><Trash2 className="w-4 h-4" /></button>
+                <button onClick={() => delComment(c.id)} className="btn-icon btn-icon-danger" style={{ padding: '6px' }} title="Xoá"><Trash2 size={16} /></button>
               </div>
             ))}
-            {filtered.length === 0 && <div className="p-8 text-center text-slate-400 font-bold text-xs">Không có bình luận nào.</div>}
+            {filtered.length === 0 && <div style={{ color: 'var(--slate-400)', fontWeight: '700', fontSize: '12px', padding: '32px', textAlign: 'center' }}>Không có bình luận nào.</div>}
           </div>
         )}
       </div>
@@ -464,13 +509,12 @@ export default function Admin() {
     api.get('/stats').then(setStats).catch(() => {}).finally(() => setLoading(false));
   }, [user, authLoading, navigate]);
 
-  if (loading || authLoading) return <div className="text-center py-12 text-slate-500 font-bold">Đang tải trang quản trị...</div>;
+  if (loading || authLoading) return <div className="text-center" style={{ padding: '48px 0', color: 'var(--slate-500)', fontWeight: '700' }}>Đang tải trang quản trị...</div>;
 
   if (view === 'users') return <UsersSection onBack={() => setView('dashboard')} />;
   if (view === 'posts') return <PostsSection onBack={() => setView('dashboard')} />;
   if (view === 'comments') return <CommentsSection onBack={() => setView('dashboard')} />;
 
-  // Dashboard view
   const kpis = [
     { label: 'Lượt xem trang', value: stats?.totalViews ?? 0, icon: Eye, color: 'blue', desc: 'Tính theo số phiên trình duyệt truy cập.' },
     { label: 'Đang truy cập', value: stats?.activeUsers ?? 1, icon: Users, color: 'rose', desc: 'Thành viên hoạt động 5 phút qua.' },
@@ -479,7 +523,14 @@ export default function Admin() {
     { label: 'Bài đã duyệt', value: stats?.approvedPosts ?? 0, icon: CheckCircle, color: 'green', onClick: () => setView('posts') },
     { label: 'Bình luận', value: stats?.comments ?? 0, icon: MessageSquare, color: 'indigo', onClick: () => setView('comments') },
   ];
-  const colorCls: any = { blue: 'bg-blue-50 text-blue-600', rose: 'bg-rose-50 text-rose-600', green: 'bg-green-50 text-green-600', amber: 'bg-amber-50 text-amber-600', indigo: 'bg-indigo-50 text-indigo-600' };
+
+  const colorStyles: any = {
+    blue: { backgroundColor: 'var(--primary-light)', color: 'var(--primary-blue)' },
+    rose: { backgroundColor: 'var(--red-light)', color: 'var(--red)' },
+    green: { backgroundColor: 'var(--green-light)', color: 'var(--green)' },
+    amber: { backgroundColor: 'var(--amber-light)', color: 'var(--amber)' },
+    indigo: { backgroundColor: 'var(--primary-light)', color: 'var(--primary-dark)' }
+  };
 
   const sections = [
     { key: 'users' as AdminView, icon: Users, label: 'Quản lý tài khoản', desc: 'Thêm, sửa, xoá và phân quyền tài khoản người dùng.', color: 'blue', badge: stats?.users },
@@ -488,46 +539,111 @@ export default function Admin() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-        <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2"><ShieldCheck className="w-7 h-7 text-red-600" /> Trang quản trị</h1>
-        <p className="text-sm font-semibold text-slate-400 mt-1">Chào mừng trở lại, <span className="text-slate-700">{user?.displayName}</span>! Click vào các mục bên dưới để quản lý.</p>
+      <div className="card">
+        <h1 className="forum-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ShieldCheck size={28} style={{ color: 'var(--red)' }} /> Trang quản trị
+        </h1>
+        <p style={{ fontSize: '14px', color: 'var(--slate-400)', fontWeight: '600', marginTop: '4px' }}>
+          Chào mừng trở lại, <span style={{ color: 'var(--slate-700)' }}>{user?.displayName}</span>! Click vào các mục bên dưới để quản lý.
+        </p>
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px' }}>
         {kpis.map((k) => (
-          <button key={k.label} onClick={k.onClick} className={`bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 transition-all text-left ${k.onClick ? 'hover:shadow-md hover:border-slate-300 cursor-pointer' : 'cursor-default'}`}>
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${colorCls[k.color] || 'bg-slate-50 text-slate-600'}`}><k.icon className="w-6 h-6" /></div>
+          <button
+            key={k.label}
+            onClick={k.onClick}
+            className="card"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              textDecoration: 'none',
+              border: '1px solid var(--slate-200)',
+              transition: 'var(--transition-base)',
+              textAlign: 'left',
+              cursor: k.onClick ? 'pointer' : 'default',
+              padding: '20px',
+              boxShadow: 'var(--shadow-sm)'
+            }}
+          >
+            <div
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                ...(colorStyles[k.color] || { backgroundColor: 'var(--slate-50)', color: 'var(--slate-600)' })
+              }}
+            >
+              <k.icon size={24} />
+            </div>
             <div>
-              <div className="text-2xl font-black text-slate-900">{k.value}</div>
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{k.label}</div>
-              {k.desc && <div className="text-[10px] text-slate-400 mt-1 font-semibold normal-case leading-tight">{k.desc}</div>}
+              <div style={{ fontSize: '24px', fontWeight: '900', color: 'var(--slate-900)' }}>{k.value}</div>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--slate-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{k.label}</div>
+              {k.desc && <div style={{ fontSize: '10px', color: 'var(--slate-400)', marginTop: '4px', fontWeight: '600', textTransform: 'none', lineHeight: 1.2 }}>{k.desc}</div>}
             </div>
           </button>
         ))}
       </div>
 
-
       {/* Section cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
         {sections.map((s) => (
-          <button key={s.key} onClick={() => setView(s.key)} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md hover:border-slate-300 transition-all text-left group">
-            <div className="flex items-start justify-between mb-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorCls[s.color] || 'bg-slate-50 text-slate-600'}`}>
-                <s.icon className="w-6 h-6" />
+          <button
+            key={s.key}
+            onClick={() => setView(s.key)}
+            className="card"
+            style={{
+              textAlign: 'left',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              transition: 'var(--transition-base)',
+              border: '1px solid var(--slate-200)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', width: '100%' }}>
+              <div
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  ...(colorStyles[s.color] || { backgroundColor: 'var(--slate-50)', color: 'var(--slate-600)' })
+                }}
+              >
+                <s.icon size={24} />
               </div>
               {s.badge !== undefined && s.badge > 0 && (
-                <span className={`text-xs font-extrabold px-2 py-0.5 rounded-full border ${s.badgeColor === 'amber' ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
+                <span className="badge" style={{
+                  fontSize: '11px',
+                  padding: '2px 8px',
+                  borderRadius: '9999px',
+                  border: '1px solid',
+                  textTransform: 'none',
+                  backgroundColor: s.badgeColor === 'amber' ? 'var(--amber-light)' : 'var(--slate-100)',
+                  borderColor: s.badgeColor === 'amber' ? 'rgba(245,158,11,0.15)' : 'var(--slate-200)',
+                  color: s.badgeColor === 'amber' ? 'var(--amber-dark)' : 'var(--slate-600)'
+                }}>
                   {s.badge} {s.badgeLabel || ''}
                 </span>
               )}
             </div>
-            <h3 className="font-extrabold text-slate-900 text-base mb-1 group-hover:text-blue-600 transition-colors">{s.label}</h3>
-            <p className="text-xs text-slate-400 font-medium leading-relaxed">{s.desc}</p>
-            <div className="mt-4 text-xs font-bold text-blue-600 flex items-center gap-1">
-              Mở quản lý <ExternalLink className="w-3 h-3" />
+            <h3 style={{ fontWeight: '900', color: 'var(--slate-900)', fontSize: '16px' }}>{s.label}</h3>
+            <p style={{ fontSize: '12px', color: 'var(--slate-400)', fontWeight: '500', lineHeight: 1.5 }}>{s.desc}</p>
+            <div style={{ marginTop: 'auto', fontSize: '12px', fontWeight: '700', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', gap: '4px', paddingTop: '8px' }}>
+              Mở quản lý <ExternalLink size={12} />
             </div>
           </button>
         ))}
@@ -535,11 +651,29 @@ export default function Admin() {
 
       {/* Pending posts alert */}
       {stats?.pendingPosts > 0 && (
-        <button onClick={() => setView('posts')} className="w-full bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3 hover:bg-amber-100 transition-colors text-left">
-          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+        <button
+          onClick={() => setView('posts')}
+          className="btn"
+          style={{
+            width: '100%',
+            backgroundColor: 'var(--amber-light)',
+            borderColor: 'rgba(245,158,11,0.15)',
+            border: '1px solid',
+            borderRadius: '16px',
+            padding: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            textAlign: 'left',
+            cursor: 'pointer',
+            boxShadow: 'none',
+            justifyContent: 'flex-start',
+          }}
+        >
+          <AlertCircle size={20} style={{ color: 'var(--amber)', flexShrink: 0 }} />
           <div>
-            <div className="font-extrabold text-amber-800 text-sm">Có {stats.pendingPosts} câu hỏi đang chờ duyệt</div>
-            <div className="text-xs text-amber-600 font-semibold">Click để xem và duyệt ngay</div>
+            <div style={{ fontWeight: '900', color: 'var(--amber-dark)', fontSize: '14px' }}>Có {stats.pendingPosts} câu hỏi đang chờ duyệt</div>
+            <div style={{ fontSize: '12px', color: 'var(--amber)', fontWeight: '700' }}>Click để xem và duyệt ngay</div>
           </div>
         </button>
       )}

@@ -114,8 +114,11 @@ export const updatePost = asyncHandler(async (req, res) => {
   const post = await Post.findById(req.params.id);
   if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
   const isOwner = String(post.author) === String(req.user._id);
-  if (!isOwner && req.user.role !== 'admin') {
+  if (!isOwner) {
     return res.status(403).json({ message: 'Bạn không có quyền sửa bài viết này.' });
+  }
+  if (post.status === 'rejected' && req.user.role !== 'admin') {
+    return res.status(400).json({ message: 'Không thể sửa bài viết đã bị từ chối duyệt.' });
   }
   const { title, content, topic, keepMedia } = req.body;
   if (title !== undefined) post.title = title.trim();

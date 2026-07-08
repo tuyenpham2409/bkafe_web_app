@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+web-knowledge/
+mobile-knowledge/
+Yeu cau BTL.pdf

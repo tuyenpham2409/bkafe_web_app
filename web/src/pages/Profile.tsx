@@ -58,7 +58,7 @@ export default function Profile() {
       setEditName(p.displayName); setEditBio(p.bio || '');
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
+  useEffect(() => { load(); }, [id]);
 
   const handleAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; e.target.value = '';
@@ -99,57 +99,84 @@ export default function Profile() {
     } catch (err: any) { setMsg('❌ ' + err.message); }
   };
 
-  if (loading) return <div className="text-center py-12 text-slate-500 font-bold">Đang tải hồ sơ...</div>;
-  if (!profile) return <div className="text-center py-12 text-slate-500 font-bold">Không tìm thấy người dùng này.</div>;
+  if (loading) return <div className="text-center" style={{ padding: '48px 0', color: 'var(--slate-500)', fontWeight: '700' }}>Đang tải hồ sơ...</div>;
+  if (!profile) return <div className="text-center" style={{ padding: '48px 0', color: 'var(--slate-500)', fontWeight: '700' }}>Không tìm thấy người dùng này.</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-          <div className="relative shrink-0">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div className="card">
+        <div style={{ display: 'flex', flexDirection: 'row', gap: '24px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <div className="relative" style={{ flexShrink: 0, margin: '0 auto' }}>
             {profile.photoURL ? (
-              <img src={profile.photoURL} alt="" className="w-24 h-24 rounded-full object-cover border-2 border-white shadow-md shadow-blue-100" />
+              <img src={profile.photoURL} alt="" className="profile-large-avatar" />
             ) : (
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-4xl shadow-md shadow-blue-100">{profile.displayName?.charAt(0).toUpperCase() || 'U'}</div>
+              <div className="profile-large-avatar-placeholder">{profile.displayName?.charAt(0).toUpperCase() || 'U'}</div>
             )}
             {isOwn && (
-              <label className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center cursor-pointer shadow-md border-2 border-white" title="Đổi ảnh đại diện">
-                {avatarUploading ? <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Camera className="w-4 h-4" />}
-                <input type="file" accept="image/*" className="hidden" onChange={handleAvatar} disabled={avatarUploading} />
+              <label
+                className="btn btn-primary btn-circle"
+                style={{
+                  position: 'absolute',
+                  bottom: '-4px',
+                  right: '-4px',
+                  width: '32px',
+                  height: '32px',
+                  border: '2px solid var(--white)',
+                  padding: 0,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: 'var(--shadow-md)',
+                }}
+                title="Đổi ảnh đại diện"
+              >
+                {avatarUploading ? (
+                  <span className="animate-spin" style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'var(--white)', borderRadius: '50%' }} />
+                ) : (
+                  <Camera size={16} />
+                )}
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatar} disabled={avatarUploading} />
               </label>
             )}
           </div>
 
-          <div className="flex-1 text-center md:text-left space-y-2.5 w-full">
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
             {isEditing ? (
-              <form onSubmit={saveProfile} className="space-y-3">
-                <input value={editName} onChange={(e) => setEditName(e.target.value)} required placeholder="Tên hiển thị" className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500" />
-                <textarea value={editBio} onChange={(e) => setEditBio(e.target.value)} rows={2} placeholder="Giới thiệu ngắn về bạn..." className="w-full px-4 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500 resize-none" />
-                <div className="flex justify-end gap-2">
-                  <button type="button" onClick={() => setIsEditing(false)} className="flex items-center gap-1 text-slate-500 hover:bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-bold"><X className="w-4 h-4" /> Hủy</button>
-                  <button type="submit" className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700"><Check className="w-4 h-4" /> Lưu</button>
+              <form onSubmit={saveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <input value={editName} onChange={(e) => setEditName(e.target.value)} required placeholder="Tên hiển thị" className="form-input" />
+                <textarea value={editBio} onChange={(e) => setEditBio(e.target.value)} rows={2} placeholder="Giới thiệu ngắn về bạn..." className="form-textarea" />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                  <button type="button" onClick={() => setIsEditing(false)} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', boxShadow: 'none' }}><X size={14} /> Hủy</button>
+                  <button type="submit" className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '12px' }}><Check size={14} /> Lưu</button>
                 </div>
               </form>
             ) : (
               <>
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
                   <div>
-                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">{profile.displayName}</h1>
-                    <div className="text-sm font-semibold text-slate-400 mt-0.5">@{profile.username}</div>
+                    <h1 style={{ fontSize: '24px', fontWeight: '900', color: 'var(--slate-900)' }}>{profile.displayName}</h1>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--slate-400)', marginTop: '2px' }}>@{profile.username}</div>
                   </div>
                   {isOwn && (
-                    <div className="flex items-center gap-2 justify-center">
-                      <button onClick={() => setIsEditing(true)} className="flex items-center gap-1.5 border border-slate-200 text-slate-600 bg-slate-50 hover:bg-slate-100 px-3.5 py-2 rounded-xl text-xs font-extrabold"><Edit2 className="w-3.5 h-3.5" /> Sửa hồ sơ</button>
-                      <button onClick={() => setShowSettings((s) => !s)} className="flex items-center gap-1.5 border border-slate-200 text-slate-600 bg-slate-50 hover:bg-slate-100 px-3.5 py-2 rounded-xl text-xs font-extrabold"><Settings className="w-3.5 h-3.5" /> Cài đặt</button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button onClick={() => setIsEditing(true)} className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: '12px', display: 'inline-flex', gap: '6px', boxShadow: 'none' }}><Edit2 size={14} /> Sửa hồ sơ</button>
+                      <button onClick={() => setShowSettings((s) => !s)} className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: '12px', display: 'inline-flex', gap: '6px', boxShadow: 'none' }}><Settings size={14} /> Cài đặt</button>
                     </div>
                   )}
                 </div>
-                <div className="flex flex-wrap justify-center md:justify-start items-center gap-x-4 gap-y-1.5 text-xs text-slate-500 font-semibold pt-1">
-                  <span className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-full text-slate-600"><UserIcon className="w-4 h-4 text-slate-400" />{profile.role === 'admin' ? 'Quản trị viên' : 'Sinh viên HUST'}</span>
-                  <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4 text-slate-400" />Tham gia: {profile.joinedAt ? new Date(profile.joinedAt).toLocaleDateString('vi-VN') : '—'}</span>
-                  {isOwn && <span className="text-slate-400">({profile.email})</span>}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', fontSize: '12px', color: 'var(--slate-500)', fontWeight: '600', paddingTop: '4px' }}>
+                  <span className="badge badge-slate" style={{ padding: '4px 10px', display: 'inline-flex', gap: '6px', textTransform: 'none' }}>
+                    <UserIcon size={14} style={{ color: 'var(--slate-400)' }} />
+                    {profile.role === 'admin' ? 'Quản trị viên' : 'Sinh viên HUST'}
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <Calendar size={14} style={{ color: 'var(--slate-400)' }} />
+                    Tham gia: {profile.joinedAt ? new Date(profile.joinedAt).toLocaleDateString('vi-VN') : '—'}
+                  </span>
+                  {isOwn && <span style={{ color: 'var(--slate-400)' }}>({profile.email})</span>}
                 </div>
-                <p className="text-sm text-slate-600 leading-relaxed font-medium italic pt-2">{profile.bio || 'Chưa có lời tự giới thiệu.'}</p>
+                <p style={{ fontSize: '14px', color: 'var(--slate-600)', fontStyle: 'italic', fontWeight: '500', paddingTop: '8px' }}>{profile.bio || 'Chưa có lời tự giới thiệu.'}</p>
               </>
             )}
           </div>
@@ -157,47 +184,66 @@ export default function Profile() {
 
         {/* Account settings (own profile) */}
         {isOwn && showSettings && !isEditing && (
-          <div className="mt-6 pt-6 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {msg && <div className="md:col-span-2 text-sm font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">{msg}</div>}
-            <form onSubmit={changeUsername} className="space-y-2">
-              <h3 className="font-extrabold text-sm text-slate-800 flex items-center gap-1.5"><AtSign className="w-4 h-4 text-blue-500" /> Đổi tên đăng nhập</h3>
+          <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--slate-100)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+            {msg && <div className="alert alert-success" style={{ gridColumn: 'span 2' }}>{msg}</div>}
+            <form onSubmit={changeUsername} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: '900', color: 'var(--slate-800)', display: 'flex', alignItems: 'center', gap: '6px' }}><AtSign size={16} style={{ color: 'var(--primary-blue)' }} /> Đổi tên đăng nhập</h3>
               {profile.usernameChanged ? (
-                <p className="text-xs text-amber-600 font-semibold bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">Bạn đã đổi tên đăng nhập một lần và không thể đổi lại.</p>
+                <p className="alert alert-danger" style={{ fontSize: '12px', padding: '8px 12px' }}>Bạn đã đổi tên đăng nhập một lần và không thể đổi lại.</p>
               ) : (
                 <>
-                  <p className="text-[11px] text-slate-400 font-semibold">Chỉ được đổi <b>duy nhất một lần</b>.</p>
-                  <input value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="Tên đăng nhập mới" required className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500" />
-                  <button className="bg-slate-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-900">Đổi username</button>
+                  <p style={{ fontSize: '11px', color: 'var(--slate-400)', fontWeight: '600' }}>Chỉ được đổi <b>duy nhất một lần</b>.</p>
+                  <input value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="Tên đăng nhập mới" required className="form-input" />
+                  <button className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '12px', alignSelf: 'flex-start' }}>Đổi username</button>
                 </>
               )}
             </form>
-            <form onSubmit={changePassword} className="space-y-2">
-              <h3 className="font-extrabold text-sm text-slate-800 flex items-center gap-1.5"><KeyRound className="w-4 h-4 text-blue-500" /> Đổi mật khẩu</h3>
+            <form onSubmit={changePassword} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: '900', color: 'var(--slate-800)', display: 'flex', alignItems: 'center', gap: '6px' }}><KeyRound size={16} style={{ color: 'var(--primary-blue)' }} /> Đổi mật khẩu</h3>
               <PasswordInput value={curPw} onChange={setCurPw} placeholder="Mật khẩu hiện tại" autoComplete="current-password" />
               <PasswordInput value={newPw} onChange={setNewPw} placeholder="Mật khẩu mới" autoComplete="new-password" />
-              <button className="bg-slate-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-900">Đổi mật khẩu</button>
+              <button className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '12px', alignSelf: 'flex-start' }}>Đổi mật khẩu</button>
             </form>
           </div>
         )}
       </div>
 
       {/* Posts */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <h2 className="font-black text-slate-900 mb-4">Câu hỏi đã đăng ({posts.length})</h2>
-        <div className="space-y-4">
+      <div className="card">
+        <h2 className="forum-title" style={{ fontSize: '20px', marginBottom: '16px' }}>Câu hỏi đã đăng ({posts.length})</h2>
+        <div className="post-list">
           {posts.map((post) => (
-            <Link key={post.id} to={`/post/${post.id}`} className="block hover:bg-slate-50 p-4 rounded-xl border border-slate-100 transition-colors">
-              <div className="flex justify-between items-start gap-4 mb-2">
-                <h3 className="text-base font-black text-slate-900 hover:text-blue-600">{post.title?.trim() || post.content?.substring(0, 50) + (post.content?.length > 50 ? '...' : '')}</h3>
-                {post.status !== 'approved' && <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-md border shrink-0 ${post.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-red-50 text-red-600 border-red-100'}`}>{post.status === 'pending' ? 'Chờ duyệt' : 'Bị từ chối'}</span>}
+            <Link key={post.id} to={`/post/${post.id}`} className="card post-card" style={{ display: 'block', textDecoration: 'none', padding: '16px', border: '1px solid var(--slate-100)', boxShadow: 'none' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', marginBottom: '8px' }}>
+                <h3 className="post-card-title" style={{ fontSize: '16px' }}>
+                  {post.title?.trim() || post.content?.substring(0, 50) + (post.content?.length > 50 ? '...' : '')}
+                </h3>
+                {post.status !== 'approved' && (
+                  <span className="badge" style={{
+                    fontSize: '10px',
+                    textTransform: 'none',
+                    padding: '2px 6px',
+                    borderRadius: '6px',
+                    border: '1px solid',
+                    backgroundColor: post.status === 'pending' ? 'var(--amber-light)' : 'var(--red-light)',
+                    borderColor: post.status === 'pending' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                    color: post.status === 'pending' ? 'var(--amber-dark)' : 'var(--red-dark)'
+                  }}>
+                    {post.status === 'pending' ? 'Chờ duyệt' : 'Bị từ chối'}
+                  </span>
+                )}
               </div>
-              <p className="text-slate-500 text-sm line-clamp-2 mb-3">{post.content}</p>
-              <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
-                <span>{new Date(post.createdAt).toLocaleDateString('vi-VN')}</span><span>·</span><span>{post.views || 0} lượt xem</span><span>·</span><span>{post.ratingCount > 0 ? `${post.ratingAvg.toFixed(1)}★` : 'Chưa đánh giá'}</span>
+              <p className="post-card-body line-clamp-2" style={{ marginBottom: '12px' }}>{post.content}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12px', fontWeight: '700', color: 'var(--slate-400)' }}>
+                <span>{new Date(post.createdAt).toLocaleDateString('vi-VN')}</span>
+                <span>·</span>
+                <span>{post.views || 0} lượt xem</span>
+                <span>·</span>
+                <span>{post.ratingCount > 0 ? `${post.ratingAvg.toFixed(1)}★` : 'Chưa đánh giá'}</span>
               </div>
             </Link>
           ))}
-          {posts.length === 0 && <div className="text-center py-10 text-slate-400 font-bold text-sm">Chưa đăng câu hỏi nào.</div>}
+          {posts.length === 0 && <div className="text-center" style={{ padding: '32px 0', color: 'var(--slate-400)', fontWeight: '700', fontSize: '14px' }}>Chưa đăng câu hỏi nào.</div>}
         </div>
       </div>
     </div>

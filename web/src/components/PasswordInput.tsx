@@ -24,17 +24,28 @@ export default function PasswordInput({
         autoComplete={autoComplete}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-4 py-2.5 pr-11 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all text-sm"
+        className="form-input"
+        style={{ paddingRight: '44px' }}
         placeholder={placeholder}
       />
       <button
         type="button"
         onClick={() => setShow((s) => !s)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors"
+        className="btn-icon"
+        style={{
+          position: 'absolute',
+          right: '12px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          padding: '4px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        } as React.CSSProperties}
         title={show ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
         tabIndex={-1}
       >
-        {show ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+        {show ? <EyeOff size={18} /> : <Eye size={18} />}
       </button>
     </div>
   );

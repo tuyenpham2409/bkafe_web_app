@@ -1,17 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import Cookies from 'js-cookie';
 import { api } from '../lib/api';
-import { MessageCircle, Eye, X, Coffee, Star, Play } from 'lucide-react';
-
+import { MessageCircle, Eye, Star, Play } from 'lucide-react';
 
 export default function Home() {
   const { slug } = useParams<{ slug: string }>();
   const [posts, setPosts] = useState<any[]>([]);
   const [topics, setTopics] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
     api.get('/topics').then(setTopics).catch(() => {});
@@ -26,54 +22,6 @@ export default function Home() {
       .finally(() => setLoading(false));
   }, [slug]);
 
-  // Disable browser automatic scroll restoration to avoid interference
-  useEffect(() => {
-    if ('scrollRestoration' in window.history) {
-      window.history.scrollRestoration = 'manual';
-    }
-  }, []);
-
-  // Save scroll position
-  useEffect(() => {
-    const handleScroll = () => {
-      sessionStorage.setItem('homepage-scroll', String(window.scrollY));
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Restore scroll position when posts finish loading (stepped to handle dynamic rendering)
-  useEffect(() => {
-    if (!loading && posts.length > 0) {
-      const saved = sessionStorage.getItem('homepage-scroll');
-      if (saved) {
-        const scrollVal = parseInt(saved, 10);
-        const delays = [50, 150, 300, 500];
-        const timers = delays.map((d) =>
-          setTimeout(() => {
-            window.scrollTo(0, scrollVal);
-          }, d)
-        );
-        return () => timers.forEach(clearTimeout);
-      }
-    }
-  }, [loading, posts]);
-
-  // Ad popup after 1 minute, suppressed forever once closed (cookie)
-  useEffect(() => {
-    if (!Cookies.get('hasSeenPopup')) {
-      const t = setTimeout(() => setShowPopup(true), 60000);
-      return () => clearTimeout(t);
-    }
-  }, []);
-
-  const closePopup = () => {
-    setShowPopup(false);
-    Cookies.set('hasSeenPopup', 'true', { expires: 365 });
-  };
-
-
-
   const topicName = slug ? topics.find((t) => t.slug === slug)?.name : null;
 
   // Helper: hiển thị thời gian ngắn gọn
@@ -81,99 +29,132 @@ export default function Home() {
     post.title?.trim() || post.content?.substring(0, 50) + (post.content?.length > 50 ? '...' : '');
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-black mb-1 text-slate-900">{topicName ? `Chủ đề: ${topicName}` : 'Dành cho bạn'}</h1>
-      <p className="text-sm text-slate-400 font-semibold mb-6">{topicName ? 'Các câu hỏi thuộc chủ đề này.' : 'Tất cả câu hỏi mới nhất từ cộng đồng.'}</p>
+    <div className="home-container" style={{ maxWidth: '672px', margin: '0 auto' }}>
+      <h1 className="forum-title" style={{ marginBottom: '4px' }}>
+        {topicName ? `Chủ đề: ${topicName}` : 'Dành cho bạn'}
+      </h1>
+      <p style={{ fontSize: '14px', color: 'var(--slate-400)', fontWeight: '600', marginBottom: '24px' }}>
+        {topicName ? 'Các câu hỏi thuộc chủ đề này.' : 'Tất cả câu hỏi mới nhất từ cộng đồng.'}
+      </p>
 
       {loading ? (
-        <div className="text-center py-10 text-slate-500">Đang tải...</div>
+        <div className="text-center" style={{ padding: '40px 0', color: 'var(--slate-500)' }}>Đang tải...</div>
       ) : posts.length === 0 ? (
-        <div className="text-center py-10 text-slate-500 bg-white rounded-2xl shadow-sm border border-slate-200">Chưa có câu hỏi nào.</div>
+        <div className="card text-center" style={{ padding: '40px 16px', color: 'var(--slate-500)' }}>Chưa có câu hỏi nào.</div>
       ) : (
-        <div className="space-y-6">
+        <div className="post-list">
           {posts.map((post) => (
-            <Link key={post.id} to={`/post/${post.id}`} className="block bg-white rounded-2xl shadow-sm border border-slate-200 p-5 hover:border-slate-300 transition-colors">
-              <div className="flex items-center gap-3 mb-3">
-                {post.authorPhotoURL ? (
-                  <img src={post.authorPhotoURL} alt="" className="w-10 h-10 rounded-full object-cover border border-slate-200" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-black text-blue-600">{post.authorName?.charAt(0).toUpperCase() || 'U'}</div>
-                )}
-                <div className="min-w-0">
-                  <div className="font-semibold text-slate-900">{post.authorName}</div>
-                  <div className="text-xs text-slate-500">{new Date(post.createdAt).toLocaleDateString('vi-VN')}</div>
+            <Link key={post.id} to={`/post/${post.id}`} className="card post-card" style={{ display: 'flex', textDecoration: 'none' }}>
+              <div className="post-card-header">
+                <div className="post-card-author">
+                  {post.authorPhotoURL ? (
+                    <img src={post.authorPhotoURL} alt="" className="post-card-avatar" />
+                  ) : (
+                    <div className="post-card-avatar-placeholder">
+                      {post.authorName?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                  )}
+                  <div className="post-card-author-info">
+                    <div className="post-card-author-name">{post.authorName}</div>
+                    <div className="post-card-date">{new Date(post.createdAt).toLocaleDateString('vi-VN')}</div>
+                  </div>
                 </div>
                 {topics.find((t) => t.slug === post.topic) && (
-                  <span className="ml-auto shrink-0 text-[11px] font-extrabold px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full">#{topics.find((t) => t.slug === post.topic)?.name}</span>
+                  <span className="badge badge-slate" style={{ flexShrink: 0 }}>
+                    #{topics.find((t) => t.slug === post.topic)?.name}
+                  </span>
                 )}
               </div>
 
-              <h2 className="text-lg font-bold text-slate-900 mb-2">{displayTitle(post)}</h2>
-              <p className="text-slate-700 mb-4 line-clamp-3">{post.content}</p>
+              <h2 className="post-card-title">{displayTitle(post)}</h2>
+              <p className="post-card-body line-clamp-3">{post.content}</p>
 
               {/* Media preview */}
               {post.media?.length > 0 && (
-                <div className="mb-4 grid grid-cols-3 gap-2">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '16px' }}>
                   {post.media.slice(0, 3).map((m: any, i: number) => (
                     m.type === 'video' ? (
-                      <div key={i} className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-900 flex items-center justify-center col-span-3">
-                        <video src={m.url} className="w-full h-full object-cover opacity-80" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-10 h-10 bg-white/80 rounded-full flex items-center justify-center">
-                            <Play className="w-5 h-5 text-slate-800 fill-slate-800" />
+                      <div
+                        key={i}
+                        className="relative"
+                        style={{
+                          gridColumn: 'span 3',
+                          aspectRatio: '16/9',
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          border: '1px solid var(--slate-200)',
+                          backgroundColor: '#0f172a',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <video src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }} />
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div style={{ width: '40px', height: '40px', backgroundColor: 'rgba(255, 255, 255, 0.8)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Play size={20} style={{ color: 'var(--slate-800)', fill: 'var(--slate-800)' }} />
                           </div>
                         </div>
                       </div>
                     ) : (
                       <div
                         key={i}
-                        className={`rounded-xl overflow-hidden border border-slate-200 ${post.media.length === 1 ? 'col-span-3 aspect-video' : 'aspect-square'}`}
+                        style={{
+                          borderRadius: '12px',
+                          overflow: 'hidden',
+                          border: '1px solid var(--slate-200)',
+                          gridColumn: post.media.length === 1 ? 'span 3' : 'auto',
+                          aspectRatio: post.media.length === 1 ? '16/9' : '1/1',
+                        }}
                       >
-                        <img src={m.url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                        <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                       </div>
                     )
                   ))}
                   {post.media.length > 3 && (
-                    <div className="aspect-square rounded-xl bg-slate-800/80 flex items-center justify-center text-white font-black text-sm">
+                    <div style={{
+                      aspectRatio: '1/1',
+                      borderRadius: '12px',
+                      backgroundColor: 'rgba(30, 41, 59, 0.8)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--white)',
+                      fontWeight: '900',
+                      fontSize: '14px',
+                    }}>
                       +{post.media.length - 3}
                     </div>
                   )}
                 </div>
               )}
 
-              <div className="flex items-center gap-6 text-slate-500">
-                <div className="flex items-center gap-1.5 text-amber-500">
-                  <Star className={`w-5 h-5 ${post.ratingCount > 0 ? 'fill-amber-400' : 'fill-slate-200 text-slate-300'}`} />
-                  <span className="text-sm font-medium">{post.ratingCount > 0 ? `${post.ratingAvg.toFixed(1)}/5 (${post.ratingCount})` : 'Chưa đánh giá'}</span>
+              <div className="post-card-footer">
+                <div className="post-card-stats">
+                  <div className="post-card-stat-item" style={{ color: 'var(--amber)' }}>
+                    <Star
+                      size={20}
+                      style={{
+                        fill: post.ratingCount > 0 ? 'var(--amber)' : 'var(--slate-200)',
+                        stroke: post.ratingCount > 0 ? 'var(--amber)' : 'var(--slate-300)',
+                      }}
+                    />
+                    <span>{post.ratingCount > 0 ? `${post.ratingAvg.toFixed(1)}/5 (${post.ratingCount})` : 'Chưa đánh giá'}</span>
+                  </div>
+                  <div className="post-card-stat-item">
+                    <MessageCircle size={20} />
+                    <span>{post.commentCount ?? 0}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <MessageCircle className="w-5 h-5" />
-                  <span className="text-sm font-medium">{post.commentCount ?? 0}</span>
-                </div>
-                <div className="flex items-center gap-1.5 ml-auto">
-                  <Eye className="w-5 h-5" />
-                  <span className="text-sm font-medium">{post.views || 0}</span>
+                <div className="post-card-stat-item" style={{ marginLeft: 'auto' }}>
+                  <Eye size={20} />
+                  <span>{post.views || 0}</span>
                 </div>
               </div>
             </Link>
           ))}
         </div>
       )}
-
-      {showPopup && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 relative animate-in fade-in zoom-in duration-200">
-            <button onClick={closePopup} className="absolute top-4 right-4 text-slate-400 hover:text-slate-900"><X className="w-5 h-5" /></button>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><Coffee className="w-8 h-8" /></div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Ưu đãi BKafe!</h3>
-              <p className="text-slate-600 mb-6">Tham gia ngay cộng đồng sinh viên HUST để nhận tài liệu ôn thi độc quyền hoàn toàn miễn phí.</p>
-              <button onClick={closePopup} className="w-full bg-blue-600 text-white font-medium py-2.5 rounded-lg hover:bg-blue-700 transition-colors">Khám phá ngay</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
-

@@ -103,6 +103,13 @@ export default function ProfileScreen({ navigation }) {
         </View>
         <Text style={styles.email}>{user.email}</Text>
 
+        {user.role === 'admin' && (
+          <TouchableOpacity style={styles.adminBtn} onPress={() => navigation.navigate('AdminDashboard')}>
+            <Ionicons name="shield-checkmark" size={15} color={colors.white} />
+            <Text style={styles.adminBtnText}>Trang quản trị (Admin)</Text>
+          </TouchableOpacity>
+        )}
+
         <View style={styles.rowBtns}>
           <TouchableOpacity style={styles.settingsBtn} onPress={() => setShowSettings((s) => !s)}>
             <Ionicons name="settings-outline" size={15} color={colors.slate600} />
@@ -169,6 +176,8 @@ const styles = StyleSheet.create({
   roleBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.slate100, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, marginTop: 10 },
   roleText: { fontSize: 11.5, fontWeight: '700', color: colors.slate600 },
   email: { fontSize: 12, color: colors.slate400, marginTop: 8 },
+  adminBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 10, marginTop: 16, width: '100%' },
+  adminBtnText: { fontSize: 12.5, fontWeight: '800', color: colors.white },
   rowBtns: { flexDirection: 'row', gap: 10, marginTop: 16, width: '100%' },
   settingsBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: colors.slate200, backgroundColor: colors.slate50, borderRadius: 10, paddingVertical: 10 },
   settingsBtnText: { fontSize: 12.5, fontWeight: '800', color: colors.slate600 },

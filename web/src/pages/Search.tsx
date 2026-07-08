@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Search as SearchIcon, SlidersHorizontal, User as UserIcon } from 'lucide-react';
@@ -46,30 +46,42 @@ export default function Search() {
 
   if (!q) {
     return (
-      <div className="text-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
-        <SearchIcon className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-        <h2 className="font-extrabold text-slate-700 mb-1">Tìm kiếm BKafe</h2>
-        <p className="text-xs text-slate-400 font-semibold">Nhập từ khoá trên thanh tiêu đề để tìm câu hỏi hoặc người dùng.</p>
+      <div className="card text-center" style={{ padding: '48px 32px', color: 'var(--slate-400)', maxWidth: '768px', margin: '0 auto' }}>
+        <SearchIcon size={48} style={{ color: 'var(--slate-300)', margin: '0 auto 12px auto' }} />
+        <h2 style={{ fontWeight: '900', color: 'var(--slate-700)', marginBottom: '4px' }}>Tìm kiếm BKafe</h2>
+        <p style={{ fontSize: '12px', color: 'var(--slate-400)', fontWeight: '600' }}>Nhập từ khoá trên thanh tiêu đề để tìm câu hỏi hoặc người dùng.</p>
       </div>
     );
   }
 
+  const btnTabStyle = (active: boolean) => ({
+    padding: '6px 16px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '700',
+    transition: 'var(--transition-base)',
+    backgroundColor: active ? 'var(--white)' : 'transparent',
+    boxShadow: active ? 'var(--shadow-sm)' : 'none',
+    color: active ? 'var(--slate-900)' : 'var(--slate-500)',
+    cursor: 'pointer',
+  } as React.CSSProperties);
+
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-        <h1 className="text-xl font-black text-slate-900">Kết quả cho "{q}"</h1>
+    <div style={{ maxWidth: '768px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <h1 style={{ fontSize: '20px', fontWeight: '900', color: 'var(--slate-900)' }}>Kết quả cho "{q}"</h1>
 
         {/* Tabs */}
-        <div className="flex gap-1 mt-4 bg-slate-100 p-1 rounded-xl w-fit">
+        <div style={{ display: 'flex', gap: '4px', backgroundColor: 'var(--slate-100)', padding: '4px', borderRadius: '12px', width: 'fit-content' }}>
           <button
             onClick={() => setTab('posts')}
-            className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${tab === 'posts' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+            style={btnTabStyle(tab === 'posts')}
           >
             Câu hỏi ({posts.length})
           </button>
           <button
             onClick={() => setTab('users')}
-            className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${tab === 'users' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+            style={btnTabStyle(tab === 'users')}
           >
             Người dùng ({users.length})
           </button>
@@ -77,17 +89,30 @@ export default function Search() {
 
         {/* Sort + filter (only for posts) */}
         {tab === 'posts' && (
-          <div className="flex flex-col sm:flex-row gap-3 mt-4 pt-4 border-t border-slate-100">
-            <div className="flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-slate-400" />
-              <select value={sort} onChange={(e) => setSort(e.target.value)} className="text-sm font-bold border border-slate-200 rounded-lg px-3 py-1.5 bg-white outline-none focus:border-blue-500">
+          <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '16px', paddingTop: '16px', borderTop: '1px solid var(--slate-100)', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <SlidersHorizontal size={16} style={{ color: 'var(--slate-400)' }} />
+              <select value={sort} onChange={(e) => setSort(e.target.value)} className="form-select" style={{ padding: '6px 12px', fontSize: '14px', fontWeight: '700', width: 'auto' }}>
                 {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              <button onClick={() => setTopic('all')} className={`text-xs font-bold px-3 py-1.5 rounded-full ${topic === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Tất cả</button>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              <button
+                onClick={() => setTopic('all')}
+                className={`btn ${topic === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ padding: '6px 12px', borderRadius: '9999px', fontSize: '12px', boxShadow: 'none' }}
+              >
+                Tất cả
+              </button>
               {topics.map((t) => (
-                <button key={t.slug} onClick={() => setTopic(t.slug)} className={`text-xs font-bold px-3 py-1.5 rounded-full ${topic === t.slug ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{t.name}</button>
+                <button
+                  key={t.slug}
+                  onClick={() => setTopic(t.slug)}
+                  className={`btn ${topic === t.slug ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ padding: '6px 12px', borderRadius: '9999px', fontSize: '12px', boxShadow: 'none' }}
+                >
+                  {t.name}
+                </button>
               ))}
             </div>
           </div>
@@ -97,54 +122,58 @@ export default function Search() {
       {/* Post results */}
       {tab === 'posts' && (
         loading ? (
-          <div className="text-slate-400 font-bold text-sm py-4 text-center">Đang tìm...</div>
+          <div style={{ color: 'var(--slate-400)', fontWeight: '700', fontSize: '14px', padding: '16px 0', textAlign: 'center' }}>Đang tìm...</div>
         ) : posts.length > 0 ? (
-          <div className="space-y-4">
+          <div className="post-list">
             {posts.map((post) => (
-              <Link key={post.id} to={`/post/${post.id}`} className="block bg-white p-5 rounded-2xl border border-slate-200 hover:border-blue-400/60 shadow-sm hover:shadow-md transition-all group">
-                <div className="flex items-center gap-2 text-[11px] font-extrabold text-slate-400 mb-1">
-                  <span className="px-2 py-0.5 bg-slate-100 rounded-full text-slate-600">#{topics.find((t) => t.slug === post.topic)?.name || post.topic}</span>
+              <Link key={post.id} to={`/post/${post.id}`} className="card post-card" style={{ display: 'block', textDecoration: 'none' }}>
+                <div className="post-card-header" style={{ marginBottom: '8px' }}>
+                  <span className="badge badge-slate">
+                    #{topics.find((t) => t.slug === post.topic)?.name || post.topic}
+                  </span>
                 </div>
-                <h3 className="text-base font-extrabold text-slate-900 group-hover:text-blue-600 mb-2">{displayTitle(post)}</h3>
-                <p className="text-slate-500 text-sm line-clamp-2 mb-3">{post.content}</p>
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
-                  <span className="text-slate-600 font-extrabold">{post.authorName}</span><span>·</span>
-                  <span>{post.views || 0} lượt xem</span><span>·</span>
+                <h3 className="post-card-title" style={{ fontSize: '16px', marginBottom: '8px' }}>{displayTitle(post)}</h3>
+                <p className="post-card-body line-clamp-2" style={{ marginBottom: '12px' }}>{post.content}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '700', color: 'var(--slate-400)' }}>
+                  <span style={{ color: 'var(--slate-600)', fontWeight: '950' }}>{post.authorName}</span>
+                  <span>·</span>
+                  <span>{post.views || 0} lượt xem</span>
+                  <span>·</span>
                   <span>{post.ratingCount > 0 ? `${post.ratingAvg.toFixed(1)}★ (${post.ratingCount})` : 'Chưa đánh giá'}</span>
                 </div>
               </Link>
             ))}
           </div>
         ) : (
-          <div className="text-center py-10 bg-white rounded-2xl border border-slate-100 text-slate-400 font-bold text-sm">Không tìm thấy câu hỏi nào phù hợp.</div>
+          <div className="card text-center" style={{ padding: '40px 16px', color: 'var(--slate-500)' }}>Không tìm thấy câu hỏi nào phù hợp.</div>
         )
       )}
 
       {/* User results */}
       {tab === 'users' && (
         users.length > 0 ? (
-          <div className="space-y-3">
+          <div className="post-list">
             {users.map((u) => (
-              <Link key={u.id} to={`/profile/${u.id}`} className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200 hover:border-blue-400/60 shadow-sm hover:shadow-md transition-all group">
+              <Link key={u.id} to={`/profile/${u.id}`} className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px', textDecoration: 'none', padding: '16px' }}>
                 {u.photoURL ? (
-                  <img src={u.photoURL} alt="" className="w-12 h-12 rounded-full object-cover border border-slate-200 shrink-0" />
+                  <img src={u.photoURL} alt="" className="post-card-avatar" style={{ width: '48px', height: '48px' }} />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-black text-blue-600 text-lg shrink-0">
-                    {u.displayName?.charAt(0).toUpperCase() || <UserIcon className="w-6 h-6" />}
+                  <div className="post-card-avatar-placeholder" style={{ width: '48px', height: '48px', fontSize: '18px' }}>
+                    {u.displayName?.charAt(0).toUpperCase() || <UserIcon size={24} />}
                   </div>
                 )}
-                <div className="min-w-0 flex-1">
-                  <div className="font-extrabold text-slate-900 group-hover:text-blue-600 text-sm">{u.displayName}</div>
-                  <div className="text-xs text-slate-400 font-semibold">@{u.username}</div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: '900', color: 'var(--slate-900)', fontSize: '14px' }}>{u.displayName}</div>
+                  <div style={{ textTransform: 'none', fontSize: '12px', color: 'var(--slate-400)', fontWeight: '600' }}>@{u.username}</div>
                 </div>
                 {u.role === 'admin' && (
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 bg-red-50 text-red-600 border border-red-100 rounded-full shrink-0">Admin</span>
+                  <span className="badge badge-red" style={{ textTransform: 'none' }}>Admin</span>
                 )}
               </Link>
             ))}
           </div>
         ) : (
-          <div className="text-center py-10 bg-white rounded-2xl border border-slate-100 text-slate-400 font-bold text-sm">Không tìm thấy người dùng nào.</div>
+          <div className="card text-center" style={{ padding: '40px 16px', color: 'var(--slate-500)' }}>Không tìm thấy người dùng nào.</div>
         )
       )}
     </div>

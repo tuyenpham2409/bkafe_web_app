@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import PasswordInput from '../components/PasswordInput';
 
-const Req = () => <span className="text-red-500">*</span>;
+const Req = () => <span className="req">*</span>;
 
 export default function Login() {
   const { login } = useAuth();
@@ -29,13 +29,13 @@ export default function Login() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-12 p-8 bg-white rounded-2xl shadow-sm border border-slate-200">
-      {error && <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm border border-red-100 font-semibold">{error}</div>}
+    <div className="card auth-card">
+      {error && <div className="alert alert-danger">{error}</div>}
 
-      <h2 className="text-2xl font-black text-center text-slate-900 mb-6 tracking-tight">Đăng nhập BKafe</h2>
-      <form onSubmit={handleLogin} className="space-y-4">
-        <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+      <h2 className="auth-title">Đăng nhập BKafe</h2>
+      <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">
             Tên đăng nhập (MSSV) hoặc Email <Req />
           </label>
           <input
@@ -43,12 +43,12 @@ export default function Login() {
             required
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all text-sm"
+            className="form-input"
             placeholder="20233885 hoặc sv@sis.hust.edu.vn"
           />
         </div>
-        <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label">
             Mật khẩu <Req />
           </label>
           <PasswordInput value={password} onChange={setPassword} autoComplete="current-password" />
@@ -56,13 +56,14 @@ export default function Login() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors shadow-sm shadow-blue-100 disabled:opacity-50 mt-2 text-sm cursor-pointer"
+          className={`btn btn-primary ${loading ? 'btn-disabled' : ''}`}
+          style={{ width: '100%', padding: '12px', marginTop: '8px' }}
         >
           {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
         </button>
       </form>
-      <div className="mt-6 text-center text-sm text-slate-600 font-medium">
-        Chưa có tài khoản? <Link to="/register" className="text-blue-600 font-bold hover:underline">Đăng ký ngay</Link>
+      <div className="auth-footer">
+        Chưa có tài khoản? <Link to="/register">Đăng ký ngay</Link>
       </div>
     </div>
   );

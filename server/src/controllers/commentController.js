@@ -45,6 +45,18 @@ export const createComment = asyncHandler(async (req, res) => {
     media,
   });
   await comment.populate('author', AUTHOR_FIELDS);
+
+  // Notify the post's author (unless commenting on own post)
+  if (String(post.author) !== String(req.user._id)) {
+    await Notification.create({
+      user: post.author,
+      type: 'comment',
+      title: 'Có bình luận mới về bài viết của bạn',
+      message: `${req.user.displayName} đã bình luận: "${content.slice(0, 60)}"`,
+      link: `/post/${post._id}`,
+    });
+  }
+
   res.status(201).json(shapeComment(comment, req.user));
 });
 
