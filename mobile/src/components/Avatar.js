@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
+import { resolveMediaUrl } from '../api/client';
 import { colors } from '../theme/colors';
 
 export default function Avatar({ url, name, size = 40 }) {
   const dim = { width: size, height: size, borderRadius: size / 2 };
-  if (url) return <Image source={{ uri: url }} style={[styles.img, dim]} />;
+  if (url) return <Image source={{ uri: resolveMediaUrl(url) }} style={[styles.img, dim]} />;
   return (
     <View style={[styles.fallback, dim]}>
       <Text style={[styles.letter, { fontSize: size * 0.42 }]}>{(name || 'U').charAt(0).toUpperCase()}</Text>

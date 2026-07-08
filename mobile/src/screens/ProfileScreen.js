@@ -150,7 +150,7 @@ export default function ProfileScreen({ navigation }) {
         {posts.map((p) => (
           <TouchableOpacity key={p.id} style={styles.postItem} onPress={() => navigation.navigate('PostDetail', { id: p.id })}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.postTitle} numberOfLines={1}>{p.title}</Text>
+              <Text style={styles.postTitle} numberOfLines={1}>{p.title?.trim() || (p.content?.length > 50 ? p.content.substring(0, 50) + '...' : p.content)}</Text>
               <Text style={styles.postMeta}>{p.views || 0} lượt xem · {p.ratingCount > 0 ? `${p.ratingAvg.toFixed(1)}★` : 'Chưa đánh giá'}</Text>
             </View>
             {p.status !== 'approved' && (

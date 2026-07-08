@@ -58,3 +58,12 @@ export const api = {
   postForm: (p, form) => request(p, { method: 'POST', body: form, isForm: true }),
   putForm: (p, form) => request(p, { method: 'PUT', body: form, isForm: true }),
 };
+
+export function resolveMediaUrl(url) {
+  if (!url) return '';
+  if (typeof url === 'string' && url.includes('localhost:5000')) {
+    const serverBase = API_URL.replace('/api', '');
+    return url.replace('http://localhost:5000', serverBase);
+  }
+  return url;
+}

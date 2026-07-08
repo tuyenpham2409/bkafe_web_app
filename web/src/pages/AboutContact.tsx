@@ -10,6 +10,7 @@ function AdminInbox() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [unhandledCount, setUnhandledCount] = useState(0);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const load = () => api.get('/contacts').then((cs) => {
     setContacts(cs);
@@ -69,9 +70,9 @@ function AdminInbox() {
                     {c.media.map((m: any, i: number) => m.type === 'video' ? (
                       <video key={i} src={m.url} controls style={{ width: '192px', borderRadius: '12px', border: '1px solid var(--slate-200)' }} />
                     ) : (
-                      <a key={i} href={m.url} target="_blank" rel="noreferrer">
+                      <button type="button" key={i} onClick={() => setPreviewImage(m.url)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
                         <img src={m.url} alt="" style={{ width: '96px', height: '96px', objectFit: 'cover', borderRadius: '12px', border: '1px solid var(--slate-200)' }} className="hover-opacity" />
-                      </a>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -88,6 +89,48 @@ function AdminInbox() {
             </div>
           </div>
         ))
+      )}
+      {previewImage && (
+        <div 
+          onClick={() => setPreviewImage(null)} 
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            backgroundColor: 'rgba(0,0,0,0.85)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            zIndex: 9999, 
+            cursor: 'zoom-out',
+            padding: '24px'
+          }}
+        >
+          <div style={{ position: 'relative', maxWidth: '100%', maxHeight: '100%' }} onClick={(e) => e.stopPropagation()}>
+            <img src={previewImage} alt="Preview" style={{ maxWidth: '90vw', maxHeight: '85vh', borderRadius: '12px', objectFit: 'contain', border: '2px solid rgba(255,255,255,0.1)' }} />
+            <button 
+              onClick={() => setPreviewImage(null)} 
+              style={{ 
+                position: 'absolute', 
+                top: '-44px', 
+                right: 0, 
+                background: 'rgba(255,255,255,0.1)', 
+                border: 'none', 
+                color: '#ffffff', 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                gap: '6px', 
+                fontSize: '13px',
+                fontWeight: '800', 
+                padding: '6px 12px',
+                borderRadius: '999px'
+              }}
+            >
+              <X size={16} /> Đóng
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

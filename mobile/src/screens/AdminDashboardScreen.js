@@ -10,6 +10,16 @@ import { useAuth } from '../context/AuthContext';
 import Avatar from '../components/Avatar';
 import { colors } from '../theme/colors';
 
+// Helper for relative active time
+function userActiveTime(date) {
+  if (!date) return 'Chưa có lịch sử';
+  const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000); // seconds
+  if (diff < 60) return 'Đang hoạt động';
+  if (diff < 3600) return `Hoạt động ${Math.floor(diff / 60)} phút trước`;
+  if (diff < 86400) return `Hoạt động ${Math.floor(diff / 3600)} giờ trước`;
+  return `Hoạt động ${Math.floor(diff / 86400)} ngày trước`;
+}
+
 export default function AdminDashboardScreen({ navigation }) {
   const { user } = useAuth();
   
@@ -18,17 +28,21 @@ export default function AdminDashboardScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Sub-tab for Duyệt bài: 'pending' or 'approved'
+  const [postStatusFilter, setPostStatusFilter] = useState('pending');
+
   // States
   const [stats, setStats] = useState(null);
-  const [pendingPosts, setPendingPosts] = useState([]);
+  const [postsList, setPostsList] = useState([]);
   const [users, setUsers] = useState([]);
   const [userQuery, setUserQuery] = useState('');
 
-  // Ban User Modal
+  // User Settings Modal
   const [selectedUser, setSelectedUser] = useState(null);
   const [banPosting, setBanPosting] = useState(false);
   const [banCommenting, setBanCommenting] = useState(false);
   const [banReason, setBanReason] = useState('');
+  const [isAdminRole, setIsAdminRole] = useState(false);
   const [savingUser, setSavingUser] = useState(false);
 
   // Check auth
@@ -45,8 +59,8 @@ export default function AdminDashboardScreen({ navigation }) {
         const data = await api.get('/stats');
         setStats(data);
       } else if (activeTab === 'posts') {
-        const data = await api.get('/posts?status=pending');
-        setPendingPosts(data);
+        const data = await api.get(`/posts?status=${postStatusFilter}`);
+        setPostsList(data);
       } else if (activeTab === 'users') {
         const data = await api.get('/users');
         setUsers(data);
@@ -57,13 +71,19 @@ export default function AdminDashboardScreen({ navigation }) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [activeTab]);
+  }, [activeTab, postStatusFilter]);
 
   useFocusEffect(
     useCallback(() => {
       loadData();
     }, [loadData])
   );
+
+  // Poll admin data every 4 seconds to keep dashboard updated without sockets
+  useEffect(() => {
+    const interval = setInterval(loadData, 4000);
+    return () => clearInterval(interval);
+  }, [loadData]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -75,21 +95,41 @@ export default function AdminDashboardScreen({ navigation }) {
     setBanPosting(u.bannedPosting || false);
     setBanCommenting(u.bannedCommenting || false);
     setBanReason(u.banReason || '');
+    setIsAdminRole(u.role === 'admin');
   };
 
   const handleSaveBan = async () => {
     if (!selectedUser) return;
     setSavingUser(true);
     try {
-      const res = await api.patch(`/users/${selectedUser.id}/ban`, {
+      // 1. Update ban settings
+      const banRes = await api.patch(`/users/${selectedUser.id}/ban`, {
         bannedPosting: banPosting,
         bannedCommenting: banCommenting,
         reason: banReason.trim(),
       });
-      // Update locally
-      setUsers((prev) => prev.map((u) => u.id === selectedUser.id ? res : u));
+
+      // 2. Update role if role was toggled
+      const originalIsAdmin = selectedUser.role === 'admin';
+      let finalRole = selectedUser.role;
+      if (isAdminRole !== originalIsAdmin) {
+        await api.put(`/users/${selectedUser.id}`, {
+          role: isAdminRole ? 'admin' : 'user'
+        });
+        finalRole = isAdminRole ? 'admin' : 'user';
+      }
+      
+      // Update local state
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === selectedUser.id
+            ? { ...u, ...banRes, role: finalRole }
+            : u
+        )
+      );
+
       setSelectedUser(null);
-      Alert.alert('Thành công', 'Đã cập nhật trạng thái hoạt động của tài khoản.');
+      Alert.alert('Thành công', 'Đã cập nhật cấu hình tài khoản.');
     } catch (e) {
       Alert.alert('Lỗi', e.message);
     } finally {
@@ -187,8 +227,26 @@ export default function AdminDashboardScreen({ navigation }) {
           {/* DUYỆT BÀI TAB */}
           {activeTab === 'posts' && (
             <View>
-              <Text style={styles.sectionTitle}>Bài viết đang chờ duyệt ({pendingPosts.length})</Text>
-              {pendingPosts.map((p) => (
+              {/* Sub tabs for posts list */}
+              <View style={styles.subTabBar}>
+                <TouchableOpacity
+                  style={[styles.subTabItem, postStatusFilter === 'pending' && styles.subTabItemActive]}
+                  onPress={() => { setLoading(true); setPostStatusFilter('pending'); }}
+                >
+                  <Text style={[styles.subTabText, postStatusFilter === 'pending' && styles.subTabTextActive]}>Chờ duyệt</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.subTabItem, postStatusFilter === 'approved' && styles.subTabItemActive]}
+                  onPress={() => { setLoading(true); setPostStatusFilter('approved'); }}
+                >
+                  <Text style={[styles.subTabText, postStatusFilter === 'approved' && styles.subTabTextActive]}>Đã duyệt</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.sectionTitle}>
+                {postStatusFilter === 'pending' ? `Bài viết chờ duyệt (${postsList.length})` : `Bài viết đã duyệt (${postsList.length})`}
+              </Text>
+              {postsList.map((p) => (
                 <TouchableOpacity
                   key={p.id}
                   style={styles.postCard}
@@ -200,14 +258,20 @@ export default function AdminDashboardScreen({ navigation }) {
                       <Text style={styles.postAuthor}>{p.authorName}</Text>
                       <Text style={styles.postTime}>{new Date(p.createdAt).toLocaleString('vi-VN')}</Text>
                     </View>
-                    <View style={styles.badgePending}><Text style={styles.badgeTextPending}>Chờ duyệt</Text></View>
+                    <View style={p.status === 'approved' ? styles.badgeApproved : styles.badgePending}>
+                      <Text style={p.status === 'approved' ? styles.badgeTextApproved : styles.badgeTextPending}>
+                        {p.status === 'approved' ? 'Đã duyệt' : 'Chờ duyệt'}
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={styles.postTitle} numberOfLines={1}>{p.title}</Text>
+                  <Text style={styles.postTitle} numberOfLines={1}>
+                    {p.title?.trim() || (p.content?.length > 40 ? p.content.substring(0, 40) + '...' : p.content)}
+                  </Text>
                   <Text style={styles.postSnippet} numberOfLines={2}>{p.content}</Text>
                 </TouchableOpacity>
               ))}
-              {pendingPosts.length === 0 && (
-                <Text style={styles.emptyText}>Không có bài đăng nào cần duyệt.</Text>
+              {postsList.length === 0 && (
+                <Text style={styles.emptyText}>Không có bài đăng nào.</Text>
               )}
             </View>
           )}
@@ -220,7 +284,7 @@ export default function AdminDashboardScreen({ navigation }) {
                 <TextInput
                   value={userQuery}
                   onChangeText={setUserQuery}
-                  placeholder="Tìm kiếm thành viên (Tên, MSSV, Email)..."
+                  placeholder="Tìm kiếm thành viên..."
                   placeholderTextColor={colors.slate400}
                   style={styles.searchInput}
                 />
@@ -238,6 +302,12 @@ export default function AdminDashboardScreen({ navigation }) {
                     <View style={{ marginLeft: 10, flex: 1 }}>
                       <Text style={styles.userName}>{u.displayName}</Text>
                       <Text style={styles.userUsername}>@{u.username} · {u.role === 'admin' ? 'Quản trị viên' : 'Sinh viên'}</Text>
+                      
+                      {/* Detailed last active and join date */}
+                      <Text style={styles.userActive}>
+                        {userActiveTime(u.lastActiveAt)} · Nhập học {new Date(u.joinedAt || u.createdAt).toLocaleDateString('vi-VN')}
+                      </Text>
+
                       {isBanned && (
                         <View style={styles.banRowBadge}>
                           <Ionicons name="ban" size={11} color={colors.red} />
@@ -259,7 +329,7 @@ export default function AdminDashboardScreen({ navigation }) {
         </ScrollView>
       )}
 
-      {/* Ban User Modal */}
+      {/* Settings / Ban User Modal */}
       {selectedUser && (
         <Modal visible={true} transparent animationType="slide">
           <View style={styles.modalOverlay}>
@@ -268,14 +338,22 @@ export default function AdminDashboardScreen({ navigation }) {
                 <Avatar url={selectedUser.photoURL} name={selectedUser.displayName} size={36} />
                 <View style={{ marginLeft: 8, flex: 1 }}>
                   <Text style={styles.modalUserName}>{selectedUser.displayName}</Text>
-                  <Text style={styles.modalUserSub}>@{selectedUser.username}</Text>
+                  <Text style={styles.modalUserSub}>@{selectedUser.username} · {selectedUser.role === 'admin' ? 'QTV' : 'Sinh viên'}</Text>
                 </View>
                 <TouchableOpacity onPress={() => setSelectedUser(null)}>
                   <Ionicons name="close" size={24} color={colors.slate600} />
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.modalLabel}>Hạn chế quyền hoạt động</Text>
+              <Text style={styles.modalLabel}>Cấp quyền & Thiết lập</Text>
+
+              {/* Admin Role Toggle */}
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Quyền quản trị viên (Admin)</Text>
+                <Switch value={isAdminRole} onValueChange={setIsAdminRole} />
+              </View>
+
+              <Text style={[styles.modalLabel, { marginTop: 16 }]}>Hạn chế quyền hoạt động</Text>
               
               <View style={styles.switchRow}>
                 <Text style={styles.switchLabel}>Khóa quyền đăng câu hỏi</Text>
@@ -301,7 +379,7 @@ export default function AdminDashboardScreen({ navigation }) {
               )}
 
               <View style={styles.modalActionsRow}>
-                {selectedUser.role !== 'admin' && (
+                {selectedUser.id !== user.id && (
                   <TouchableOpacity
                     style={styles.deleteUserBtn}
                     onPress={() => handleDeleteUser(selectedUser.id)}
@@ -343,6 +421,13 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 20, fontWeight: '900', color: colors.slate900, marginTop: 8 },
   statLabel: { fontSize: 11, fontWeight: '700', color: colors.slate500, marginTop: 2 },
   
+  // Duyệt bài Sub-tab
+  subTabBar: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  subTabItem: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.slate100, borderWidth: 1, borderColor: colors.slate200 },
+  subTabItemActive: { backgroundColor: colors.primaryLight, borderColor: '#bfdbfe' },
+  subTabText: { fontSize: 11.5, fontWeight: '700', color: colors.slate600 },
+  subTabTextActive: { color: colors.primary },
+
   // Pending posts
   sectionTitle: { fontSize: 15, fontWeight: '900', color: colors.slate900, marginBottom: 12 },
   postCard: { backgroundColor: colors.white, borderRadius: 14, borderWidth: 1, borderColor: colors.slate200, padding: 12, marginBottom: 12 },
@@ -351,6 +436,8 @@ const styles = StyleSheet.create({
   postTime: { fontSize: 10, color: colors.slate400, fontWeight: '600', marginTop: 1 },
   badgePending: { backgroundColor: colors.amberLight, borderWidth: 1, borderColor: '#fde68a', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   badgeTextPending: { fontSize: 9, fontWeight: '800', color: colors.slate700 },
+  badgeApproved: { backgroundColor: colors.greenLight, borderWidth: 1, borderColor: '#bbf7d0', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  badgeTextApproved: { fontSize: 9, fontWeight: '800', color: colors.green },
   postTitle: { fontSize: 14, fontWeight: '800', color: colors.slate900, marginBottom: 4 },
   postSnippet: { fontSize: 12, color: colors.slate600, lineHeight: 18 },
   emptyText: { fontSize: 13, fontWeight: '700', color: colors.slate400, textAlign: 'center', paddingVertical: 32 },
@@ -362,6 +449,7 @@ const styles = StyleSheet.create({
   userCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate200, borderRadius: 12, padding: 12, marginBottom: 10 },
   userName: { fontSize: 13.5, fontWeight: '800', color: colors.slate900 },
   userUsername: { fontSize: 11, fontWeight: '600', color: colors.slate400, marginTop: 1 },
+  userActive: { fontSize: 10, fontWeight: '700', color: colors.slate400, marginTop: 3 },
   banRowBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.redLight, alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 },
   banTextBadge: { fontSize: 9.5, fontWeight: '800', color: colors.red },
 

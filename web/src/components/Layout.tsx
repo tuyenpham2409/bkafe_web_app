@@ -20,7 +20,7 @@ function NotificationBell() {
   };
   useEffect(() => {
     load();
-    const t = setInterval(load, 10000);
+    const t = setInterval(load, 4000);
     return () => clearInterval(t);
   }, []);
 
@@ -172,8 +172,7 @@ export default function Layout() {
     window.addEventListener('bkafe-contacts-changed', updateBadges);
     window.addEventListener('bkafe-posts-changed', updateBadges);
     
-    // Poll every 10s as a fallback
-    const interval = setInterval(updateBadges, 10000);
+    const interval = setInterval(updateBadges, 4000);
 
     return () => {
       window.removeEventListener('bkafe-contacts-changed', updateBadges);

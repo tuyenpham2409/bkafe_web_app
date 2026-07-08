@@ -48,6 +48,12 @@ export default function HomeScreen({ navigation }) {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  // Poll posts list every 10 seconds to keep timeline updated without sockets
+  useEffect(() => {
+    const interval = setInterval(load, 10000);
+    return () => clearInterval(interval);
+  }, [load]);
+
   const onRefresh = () => { setRefreshing(true); load(); };
 
   // Count one website view per app session (mirrors the web sessionStorage counter)
@@ -109,7 +115,7 @@ export default function HomeScreen({ navigation }) {
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.chipsRow}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, alignItems: 'center' }}
         data={[{ slug: 'all', name: 'Tất cả' }, ...topics]}
         keyExtractor={(t) => t.slug}
         renderItem={({ item }) => (
@@ -126,6 +132,7 @@ export default function HomeScreen({ navigation }) {
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
       ) : (
         <FlatList
+          style={{ flex: 1 }}
           data={posts}
           keyExtractor={(p) => p.id}
           contentContainerStyle={styles.list}
@@ -168,7 +175,7 @@ const styles = StyleSheet.create({
   addBtn: { backgroundColor: colors.primary, width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   searchWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, marginHorizontal: 16, borderRadius: 999, borderWidth: 1, borderColor: colors.slate200, marginBottom: 10 },
   searchInput: { flex: 1, paddingVertical: 10, paddingHorizontal: 8, fontSize: 14, color: colors.slate900 },
-  chipsRow: { flexGrow: 0, marginBottom: 8 },
+  chipsRow: { flexGrow: 0, flexShrink: 0, height: 42, marginBottom: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: colors.slate100 },
   chipActive: { backgroundColor: colors.primary },
   chipText: { fontSize: 12.5, fontWeight: '700', color: colors.slate600 },

@@ -137,6 +137,7 @@ export default function PostDetail() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [replyFiles, setReplyFiles] = useState<File[]>([]);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // comment editing
   const [editingComment, setEditingComment] = useState<string | null>(null);
@@ -181,6 +182,24 @@ export default function PostDetail() {
   useEffect(() => {
     load();
     window.scrollTo(0, 0);
+  }, [id]);
+
+  // Poll comments and post data every 3 seconds to keep comments updated without sockets
+  useEffect(() => {
+    if (!id) return;
+    const interval = setInterval(async () => {
+      try {
+        const [p, cs] = await Promise.all([
+          api.get(`/posts/${id}?noview=1`),
+          api.get(`/posts/${id}/comments`),
+        ]);
+        setPost(p);
+        setComments(cs);
+      } catch (e) {
+        console.error(e);
+      }
+    }, 3000);
+    return () => clearInterval(interval);
   }, [id]);
   useEffect(() => { api.get('/topics').then(setTopics).catch(() => {}); }, []);
 
@@ -380,7 +399,7 @@ export default function PostDetail() {
     const isEditingThis = editingComment === c.id;
 
     return (
-      <div key={c.id} style={{ display: 'flex', gap: '12px', marginTop: depth > 0 ? '12px' : '0' }}>
+      <div key={c.id} style={{ display: 'flex', gap: '12px', marginTop: depth > 0 ? '12px' : '0', marginLeft: depth >= 3 ? '-44px' : '0' }}>
         <Link to={isRealUser ? `/profile/${c.authorId}` : '#'} style={{ flexShrink: 0 }}>
           <AvatarCircle url={c.authorPhotoURL} name={c.authorName} size={depth === 0 ? 'w-10 h-10' : 'w-8 h-8'} />
         </Link>
@@ -451,7 +470,7 @@ export default function PostDetail() {
                   <div style={{ display: 'grid', gap: '6px', gridTemplateColumns: c.media.length === 1 ? '1fr' : '1fr 1fr', marginTop: '8px' }}>
                     {c.media.map((m: any, i: number) => m.type === 'video'
                       ? <video key={i} src={m.url} controls style={{ width: '100%', borderRadius: '8px', border: '1px solid var(--slate-200)', maxHeight: '192px' }} />
-                      : <a key={i} href={m.url} target="_blank" rel="noreferrer"><img src={m.url} alt="" style={{ width: '100%', borderRadius: '8px', border: '1px solid var(--slate-200)', objectFit: 'cover', maxHeight: '160px' }} /></a>
+                      : <button type="button" key={i} onClick={() => setPreviewImage(m.url)} style={{ background: 'none', border: 'none', padding: 0, width: '100%', cursor: 'pointer', textAlign: 'left' }}><img src={m.url} alt="" style={{ width: '100%', borderRadius: '8px', border: '1px solid var(--slate-200)', objectFit: 'cover', maxHeight: '160px' }} /></button>
                     )}
                   </div>
                 )}
@@ -659,9 +678,9 @@ export default function PostDetail() {
                 {post.media.map((m: any, i: number) => m.type === 'video' ? (
                   <video key={i} src={m.url} controls style={{ width: '100%', borderRadius: '12px', border: '1px solid var(--slate-200)', gridColumn: 'span 2' }} />
                 ) : (
-                  <a key={i} href={m.url} target="_blank" rel="noreferrer">
+                  <button type="button" key={i} onClick={() => setPreviewImage(m.url)} style={{ background: 'none', border: 'none', padding: 0, width: '100%', cursor: 'pointer', textAlign: 'left' }}>
                     <img src={m.url} alt="" style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '12px', border: '1px solid var(--slate-200)' }} className="hover-opacity" />
-                  </a>
+                  </button>
                 ))}
               </div>
             )}
@@ -813,6 +832,49 @@ export default function PostDetail() {
           )}
         </div>
       </div>
+      
+      {previewImage && (
+        <div 
+          onClick={() => setPreviewImage(null)} 
+          style={{ 
+            position: 'fixed', 
+            inset: 0, 
+            backgroundColor: 'rgba(0,0,0,0.85)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            zIndex: 9999, 
+            cursor: 'zoom-out',
+            padding: '24px'
+          }}
+        >
+          <div style={{ position: 'relative', maxWidth: '100%', maxHeight: '100%' }} onClick={(e) => e.stopPropagation()}>
+            <img src={previewImage} alt="Preview" style={{ maxWidth: '90vw', maxHeight: '85vh', borderRadius: '12px', objectFit: 'contain', border: '2px solid rgba(255,255,255,0.1)' }} />
+            <button 
+              onClick={() => setPreviewImage(null)} 
+              style={{ 
+                position: 'absolute', 
+                top: '-44px', 
+                right: 0, 
+                background: 'rgba(255,255,255,0.1)', 
+                border: 'none', 
+                color: '#ffffff', 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                gap: '6px', 
+                fontSize: '13px',
+                fontWeight: '800', 
+                padding: '6px 12px',
+                borderRadius: '999px'
+              }}
+            >
+              <X size={16} /> Đóng
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

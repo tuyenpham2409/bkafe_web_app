@@ -2,12 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
   ActivityIndicator, KeyboardAvoidingView, Platform, Image, Alert,
-  RefreshControl, Linking,
+  RefreshControl, Linking, Modal,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { api } from '../api/client';
+import { api, resolveMediaUrl } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Required from '../components/Required';
 import { colors } from '../theme/colors';
@@ -41,6 +41,7 @@ export default function ContactScreen() {
   const [loadingInbox, setLoadingInbox] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [unhandledCount, setUnhandledCount] = useState(0);
+  const [previewImage, setPreviewImage] = useState(null);
 
   const isAdmin = user?.role === 'admin';
 
@@ -71,6 +72,13 @@ export default function ContactScreen() {
       }
     }, [isAdmin, loadInbox])
   );
+
+  // Poll inbox updates every 4 seconds to keep contacts updated without sockets
+  useEffect(() => {
+    if (!isAdmin) return;
+    const interval = setInterval(loadInbox, 4000);
+    return () => clearInterval(interval);
+  }, [isAdmin, loadInbox]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -209,13 +217,13 @@ export default function ContactScreen() {
             {c.media?.length > 0 && (
               <View style={styles.inboxMediaRow}>
                 {c.media.map((m, idx) => m.type === 'video' ? (
-                  <TouchableOpacity key={idx} style={styles.videoBoxInbox} onPress={() => Linking.openURL(m.url)}>
+                  <TouchableOpacity key={idx} style={styles.videoBoxInbox} onPress={() => Linking.openURL(resolveMediaUrl(m.url))}>
                     <Ionicons name="play-circle" size={24} color={colors.white} />
                     <Text style={styles.videoBoxLabel}>Mở video</Text>
                   </TouchableOpacity>
                 ) : (
-                  <TouchableOpacity key={idx} onPress={() => Linking.openURL(m.url)}>
-                    <Image source={{ uri: m.url }} style={styles.imageBoxInbox} />
+                  <TouchableOpacity key={idx} onPress={() => setPreviewImage(resolveMediaUrl(m.url))}>
+                    <Image source={{ uri: resolveMediaUrl(m.url) }} style={styles.imageBoxInbox} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -311,6 +319,27 @@ export default function ContactScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Image Preview Modal / Lightbox */}
+      {previewImage && (
+        <Modal visible={true} transparent animationType="fade" onRequestClose={() => setPreviewImage(null)}>
+          <TouchableOpacity 
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }} 
+            activeOpacity={1} 
+            onPress={() => setPreviewImage(null)}
+          >
+            <View style={{ width: '90%', height: '80%', justifyContent: 'center', alignItems: 'center' }}>
+              <Image source={{ uri: previewImage }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+              <TouchableOpacity 
+                style={{ position: 'absolute', top: 20, right: 10, padding: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20 }} 
+                onPress={() => setPreviewImage(null)}
+              >
+                <Ionicons name="close" size={24} color={colors.white} />
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </KeyboardAvoidingView>
   );
 }

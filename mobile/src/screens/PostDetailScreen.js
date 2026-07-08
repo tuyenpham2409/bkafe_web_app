@@ -7,7 +7,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { api } from '../api/client';
+import { api, resolveMediaUrl } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useLoginGate } from '../context/LoginGate';
 import Avatar from '../components/Avatar';
@@ -36,6 +36,7 @@ export default function PostDetailScreen({ route, navigation }) {
   const [comments, setComments] = useState([]);
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [previewImage, setPreviewImage] = useState(null);
 
   // New comment states
   const [commentText, setCommentText] = useState('');
@@ -99,6 +100,24 @@ export default function PostDetailScreen({ route, navigation }) {
       load();
     }, [load])
   );
+
+  // Poll comments and post data every 3 seconds to keep comments updated without sockets
+  useEffect(() => {
+    if (!id) return;
+    const interval = setInterval(async () => {
+      try {
+        const [p, cs] = await Promise.all([
+          api.get(`/posts/${id}?noview=1`),
+          api.get(`/posts/${id}/comments`),
+        ]);
+        setPost(p);
+        setComments(cs);
+      } catch (e) {
+        console.error(e);
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [id]);
 
   // Set action menu in header right
   useEffect(() => {
@@ -360,7 +379,11 @@ export default function PostDetailScreen({ route, navigation }) {
     const children = comments.filter((x) => x.parentId === c.id);
 
     return (
-      <View key={c.id} style={[styles.commentBlock, (depth > 0 && depth < 3) && styles.nestedCommentBlock]}>
+      <View key={c.id} style={[
+        styles.commentBlock,
+        (depth > 0 && depth < 3) && styles.nestedCommentBlock,
+        depth >= 3 && { marginLeft: -36 }
+      ]}>
         <View style={styles.commentRow}>
           <Avatar url={c.authorPhotoURL} name={c.authorName} size={depth === 0 ? 36 : 28} />
           
@@ -379,7 +402,7 @@ export default function PostDetailScreen({ route, navigation }) {
                 <View style={styles.editCommentMediaRow}>
                   {editCommentMedia.map((m, idx) => (
                     <View key={`ex-${idx}`} style={styles.smallThumb}>
-                      {m.type === 'video' ? <View style={styles.smallVideoThumb}><Ionicons name="videocam" size={14} color={colors.slate400} /></View> : <Image source={{ uri: m.url }} style={styles.smallThumbImg} />}
+                      {m.type === 'video' ? <View style={styles.smallVideoThumb}><Ionicons name="videocam" size={14} color={colors.slate400} /></View> : <Image source={{ uri: resolveMediaUrl(m.url) }} style={styles.smallThumbImg} />}
                       <TouchableOpacity style={styles.smallRemoveBtn} onPress={() => setEditCommentMedia((prev) => prev.filter((_, i) => i !== idx))}>
                         <Ionicons name="close" size={10} color={colors.white} />
                       </TouchableOpacity>
@@ -420,13 +443,13 @@ export default function PostDetailScreen({ route, navigation }) {
                   {c.media?.length > 0 && (
                     <View style={styles.commentMediaGrid}>
                       {c.media.map((m, idx) => m.type === 'video' ? (
-                        <TouchableOpacity key={idx} style={styles.commentVideoBox} onPress={() => Linking.openURL(m.url)}>
+                        <TouchableOpacity key={idx} style={styles.commentVideoBox} onPress={() => Linking.openURL(resolveMediaUrl(m.url))}>
                           <Ionicons name="play-circle" size={18} color={colors.white} />
                           <Text style={styles.commentVideoLabel}>Xem Video</Text>
                         </TouchableOpacity>
                       ) : (
-                        <TouchableOpacity key={idx} onPress={() => Linking.openURL(m.url)}>
-                          <Image source={{ uri: m.url }} style={styles.commentMediaImg} />
+                        <TouchableOpacity key={idx} onPress={() => setPreviewImage(resolveMediaUrl(m.url))}>
+                          <Image source={{ uri: resolveMediaUrl(m.url) }} style={styles.commentMediaImg} />
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -543,20 +566,20 @@ export default function PostDetailScreen({ route, navigation }) {
             </View>
           </View>
 
-          <Text style={styles.title}>{post.title || post.content.substring(0, 50)}</Text>
+          <Text style={styles.title}>{post.title?.trim() || (post.content?.length > 50 ? post.content.substring(0, 50) + '...' : post.content)}</Text>
           <View style={{ marginBottom: 12 }}><StarRatingDisplay rating={post.ratingAvg || 0} count={post.ratingCount || 0} /></View>
           <Text style={styles.content}>{post.content}</Text>
 
           {post.media?.length > 0 && (
             <View style={styles.mediaGrid}>
               {post.media.map((m, i) => m.type === 'video' ? (
-                <TouchableOpacity key={i} style={styles.videoBox} onPress={() => Linking.openURL(m.url)}>
+                <TouchableOpacity key={i} style={styles.videoBox} onPress={() => Linking.openURL(resolveMediaUrl(m.url))}>
                   <Ionicons name="play-circle" size={30} color={colors.white} />
                   <Text style={styles.videoLabel}>Mở video</Text>
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity key={i} onPress={() => Linking.openURL(m.url)}>
-                  <Image source={{ uri: m.url }} style={styles.mediaImg} />
+                <TouchableOpacity key={i} onPress={() => setPreviewImage(resolveMediaUrl(m.url))}>
+                  <Image source={{ uri: resolveMediaUrl(m.url) }} style={styles.mediaImg} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -702,7 +725,7 @@ export default function PostDetailScreen({ route, navigation }) {
             <View style={styles.editPostMediaList}>
               {editPostMedia.map((m, idx) => (
                 <View key={`exm-${idx}`} style={styles.editPostMediaThumb}>
-                  {m.type === 'video' ? <View style={styles.editPostVideoThumb}><Ionicons name="videocam" size={24} color={colors.slate400} /></View> : <Image source={{ uri: m.url }} style={styles.editPostMediaThumbImg} />}
+                  {m.type === 'video' ? <View style={styles.editPostVideoThumb}><Ionicons name="videocam" size={24} color={colors.slate400} /></View> : <Image source={{ uri: resolveMediaUrl(m.url) }} style={styles.editPostMediaThumbImg} />}
                   <TouchableOpacity style={styles.editPostRemoveBtn} onPress={() => setEditPostMedia((prev) => prev.filter((_, i) => i !== idx))}>
                     <Ionicons name="close" size={12} color={colors.white} />
                   </TouchableOpacity>
@@ -735,6 +758,27 @@ export default function PostDetailScreen({ route, navigation }) {
           </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Image Preview Modal / Lightbox */}
+      {previewImage && (
+        <Modal visible={true} transparent animationType="fade" onRequestClose={() => setPreviewImage(null)}>
+          <TouchableOpacity 
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }} 
+            activeOpacity={1} 
+            onPress={() => setPreviewImage(null)}
+          >
+            <View style={{ width: '90%', height: '80%', justifyContent: 'center', alignItems: 'center' }}>
+              <Image source={{ uri: previewImage }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+              <TouchableOpacity 
+                style={{ position: 'absolute', top: 20, right: 10, padding: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20 }} 
+                onPress={() => setPreviewImage(null)}
+              >
+                <Ionicons name="close" size={24} color={colors.white} />
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </KeyboardAvoidingView>
   );
 }

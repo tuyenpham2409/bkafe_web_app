@@ -15,47 +15,47 @@ function mediaFromFiles(files) {
   }));
 }
 
-// GET /api/posts?topic=&q=&sort=&status=&author=
+// GET /api/posts  (?topic=<slug>&q=<search>&sort=newest|popular&status=approved|pending|rejected)
 export const listPosts = asyncHandler(async (req, res) => {
-  const { topic, q, sort, status, author } = req.query;
+  const { topic, q, sort, status } = req.query;
   const filter = {};
 
-  // Visibility: admins may request any status; everyone else only sees approved,
-  // except an author viewing their own posts also sees pending/rejected.
-  if (req.user?.role === 'admin' && status) {
-    filter.status = status;
-  } else if (author && req.user && String(req.user._id) === String(author)) {
-    // own profile: all statuses
-  } else if (author) {
-    filter.status = 'approved';
+  if (status) {
+    if (status === 'pending' || status === 'rejected') {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Bạn không có quyền truy cập.' });
+      }
+      filter.status = status;
+    } else {
+      filter.status = 'approved';
+    }
   } else {
     filter.status = 'approved';
   }
 
   if (topic && topic !== 'all') filter.topic = topic;
-  if (author) filter.author = author;
-  if (q && q.trim()) {
+  if (q?.trim()) {
     const rx = new RegExp(q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     filter.$or = [{ title: rx }, { content: rx }];
   }
 
-  const sortMap = {
-    newest: { createdAt: -1 },
-    oldest: { createdAt: 1 },
-    rating_desc: { ratingAvg: -1, ratingCount: -1 },
-    rating_asc: { ratingAvg: 1, ratingCount: -1 },
-  };
-  const sortBy = sortMap[sort] || sortMap.newest;
+  let query = Post.find(filter).populate('author', AUTHOR_FIELDS);
+  if (sort === 'popular') {
+    query = query.sort({ ratingAvg: -1, ratingCount: -1, createdAt: -1 });
+  } else {
+    query = query.sort({ createdAt: -1 });
+  }
 
-  const posts = await Post.find(filter).sort(sortBy).populate('author', AUTHOR_FIELDS).lean();
-
-  // comment counts per post (single grouped query)
-  const ids = posts.map((p) => p._id);
-  const counts = await Comment.aggregate([
-    { $match: { post: { $in: ids } } },
-    { $group: { _id: '$post', n: { $sum: 1 } } },
+  const posts = await query.lean();
+  const postIds = posts.map((p) => p._id);
+  const commentCounts = await Comment.aggregate([
+    { $match: { post: { $in: postIds } } },
+    { $group: { _id: '$post', count: { $sum: 1 } } },
   ]);
-  const countMap = Object.fromEntries(counts.map((c) => [String(c._id), c.n]));
+  const countMap = {};
+  commentCounts.forEach((c) => {
+    countMap[String(c._id)] = c.count;
+  });
 
   res.json(posts.map((p) => ({ ...shapePost(p, req.user), commentCount: countMap[String(p._id)] || 0 })));
 });
@@ -68,17 +68,14 @@ export const getPost = asyncHandler(async (req, res) => {
     : await Post.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } }, { new: true }).populate('author', AUTHOR_FIELDS);
   if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
   res.json(shapePost(post, req.user));
-
 });
 
 // POST /api/posts   (multipart: title, content, topic, media[])
 export const createPost = asyncHandler(async (req, res) => {
-  // Kiểm tra bị khóa đăng bài
   if (req.user.bannedPosting) {
     return res.status(403).json({ message: 'Tài khoản của bạn đã bị hạn chế quyền đăng bài.' });
   }
   const { title, content, topic } = req.body;
-  // Chỉ bắt buộc content và topic; title có thể để trống
   if (!content?.trim() || !topic?.trim()) {
     return res.status(400).json({ message: 'Vui lòng nhập nội dung và chọn chủ đề.' });
   }
@@ -113,35 +110,35 @@ export const createPost = asyncHandler(async (req, res) => {
 export const updatePost = asyncHandler(async (req, res) => {
   const post = await Post.findById(req.params.id);
   if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
+  
   const isOwner = String(post.author) === String(req.user._id);
   if (!isOwner) {
-    return res.status(403).json({ message: 'Bạn không có quyền sửa bài viết này.' });
+    return res.status(403).json({ message: 'Chỉ người đăng bài mới có quyền chỉnh sửa bài viết của chính mình.' });
   }
-  if (post.status === 'rejected' && req.user.role !== 'admin') {
-    return res.status(400).json({ message: 'Không thể sửa bài viết đã bị từ chối duyệt.' });
-  }
-  const { title, content, topic, keepMedia } = req.body;
-  if (title !== undefined) post.title = title.trim();
-  if (content !== undefined) post.content = content.trim();
-  if (topic !== undefined) post.topic = topic.trim();
 
-  // keepMedia: JSON array of existing media URLs to retain; others are removed
+  const { title, content, topic, keepMedia } = req.body;
+  if (!content?.trim() || !topic?.trim()) {
+    return res.status(400).json({ message: 'Vui lòng nhập nội dung và chọn chủ đề.' });
+  }
+
+  post.title = title?.trim() || '';
+  post.content = content.trim();
+  post.topic = topic.trim();
+
   if (keepMedia !== undefined) {
     let keepUrls = [];
     try { keepUrls = JSON.parse(keepMedia); } catch {}
     post.media = post.media.filter((m) => keepUrls.includes(m.url));
   }
-  // Append newly uploaded files
   if (req.files?.length) {
     const newMedia = mediaFromFiles(req.files);
     post.media = [...post.media, ...newMedia].slice(0, 5);
   }
 
-
-  // Nếu bài đã approved được sửa đổi bởi người dùng thường, reset trạng thái về pending để duyệt lại
-  if (post.status === 'approved' && req.user.role !== 'admin') {
+  // Reset status to pending if updated by user who is not admin
+  if (req.user.role !== 'admin') {
     post.status = 'pending';
-    // Gửi thông báo đến tất cả admin khi bài viết cập nhật cần duyệt lại
+    post.rejectReason = '';
     const admins = await User.find({ role: 'admin' }).select('_id').lean();
     await Promise.all(
       admins.map((a) =>
@@ -197,7 +194,7 @@ export const approvePost = asyncHandler(async (req, res) => {
     user: post.author,
     type: 'post_approved',
     title: 'Bài viết đã được duyệt',
-    message: `Bài viết "${post.title}" của bạn đã được duyệt và hiển thị công khai.`,
+    message: `Bài viết "${post.title || post.content.substring(0, 30)}" của bạn đã được duyệt và hiển thị công khai.`,
     link: `/post/${post._id}`,
   });
   await post.populate('author', AUTHOR_FIELDS);
@@ -217,7 +214,7 @@ export const rejectPost = asyncHandler(async (req, res) => {
     user: post.author,
     type: 'post_rejected',
     title: 'Bài viết bị từ chối',
-    message: `Bài viết "${post.title}" của bạn đã bị từ chối. Lý do: ${reason}`,
+    message: `Bài viết "${post.title || post.content.substring(0, 30)}" của bạn đã bị từ chối. Lý do: ${reason}`,
     link: `/post/${post._id}`,
   });
   await post.populate('author', AUTHOR_FIELDS);
@@ -233,7 +230,7 @@ export const ratePost = asyncHandler(async (req, res) => {
   const post = await Post.findById(req.params.id);
   if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
   if (value === 0) {
-    post.ratings.delete(String(req.user._id)); // 0 = huỷ đánh giá
+    post.ratings.delete(String(req.user._id));
     post.markModified('ratings');
   } else {
     post.ratings.set(String(req.user._id), value);
@@ -242,7 +239,6 @@ export const ratePost = asyncHandler(async (req, res) => {
   await post.save();
   res.json({ ratingAvg: post.ratingAvg, ratingCount: post.ratingCount, myRating: value === 0 ? null : value });
 });
-
 
 // POST /api/posts/:id/share
 export const sharePost = asyncHandler(async (req, res) => {

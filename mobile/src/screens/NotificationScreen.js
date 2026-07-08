@@ -51,7 +51,7 @@ export default function NotificationScreen({ navigation }) {
 
   useEffect(() => {
     if (!user) return;
-    const interval = setInterval(load, 10000);
+    const interval = setInterval(load, 4000);
     return () => clearInterval(interval);
   }, [user, load]);
 

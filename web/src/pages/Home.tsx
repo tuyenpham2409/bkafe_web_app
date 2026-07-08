@@ -22,6 +22,17 @@ export default function Home() {
       .finally(() => setLoading(false));
   }, [slug]);
 
+  // Poll posts list every 10 seconds to keep timeline updated without sockets
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const qs = slug ? `?topic=${slug}&sort=newest` : '?sort=newest';
+      api.get(`/posts${qs}`)
+        .then(setPosts)
+        .catch((e) => console.error(e));
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [slug]);
+
   const topicName = slug ? topics.find((t) => t.slug === slug)?.name : null;
 
   // Helper: hiển thị thời gian ngắn gọn

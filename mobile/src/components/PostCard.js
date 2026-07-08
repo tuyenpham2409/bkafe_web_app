@@ -20,7 +20,7 @@ export default function PostCard({ post, topicName, onPress }) {
         )}
       </View>
 
-      <Text style={styles.title} numberOfLines={2}>{post.title}</Text>
+      <Text style={styles.title} numberOfLines={2}>{post.title?.trim() || (post.content?.length > 50 ? post.content.substring(0, 50) + '...' : post.content)}</Text>
       <Text style={styles.content} numberOfLines={3}>{post.content}</Text>
 
       {post.media?.length > 0 && (
