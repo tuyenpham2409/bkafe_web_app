@@ -44,7 +44,7 @@
               <a href="/post/<%= c.postId %>?noview=1" style="font-size: 11px; font-weight: 700; color: var(--primary-blue); text-decoration: none;">Xem bài &rarr;</a>
             </div>
           </div>
-          <form method="POST" action="/admin/comments/<%= c.id %>/delete" onsubmit="return confirm('Xoá bình luận này (và các phản hồi của nó)?')">
+          <form method="POST" action="/admin/comments/<%= c.id %>/delete" onsubmit="handleDeleteFormSubmit(event, 'Bạn có chắc chắn muốn xoá bình luận này (và tất cả các phản hồi của nó)?')">
             <button type="submit" class="btn-icon btn-icon-danger" style="padding: 6px;" title="Xoá">
               <%- include('../partials/icons', { name: 'trash-2', size: 16 }) %>
             </button>

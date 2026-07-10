@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Modal, RefreshControl,
+  ActivityIndicator, Modal, RefreshControl, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -23,6 +23,8 @@ export default function HomeScreen({ navigation }) {
   const [activeTopic, setActiveTopic] = useState('all');
   const [query, setQuery] = useState('');
   const [posts, setPosts] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [searchTab, setSearchTab] = useState('posts'); // 'posts' or 'users'
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
@@ -33,18 +35,28 @@ export default function HomeScreen({ navigation }) {
 
   const load = useCallback(async () => {
     try {
-      const params = new URLSearchParams({ sort: 'newest' });
-      if (activeTopic !== 'all') params.set('topic', activeTopic);
-      if (query.trim()) params.set('q', query.trim());
-      const data = await api.get(`/posts?${params.toString()}`);
-      setPosts(data);
+      if (searchTab === 'posts') {
+        const params = new URLSearchParams({ sort: 'newest' });
+        if (activeTopic !== 'all') params.set('topic', activeTopic);
+        if (query.trim()) params.set('q', query.trim());
+        const data = await api.get(`/posts?${params.toString()}`);
+        setPosts(data);
+      } else {
+        const q = query.trim();
+        if (!q) {
+          setUsers([]);
+        } else {
+          const data = await api.get(`/users/search?q=${encodeURIComponent(q)}`);
+          setUsers(data);
+        }
+      }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [activeTopic, query]);
+  }, [activeTopic, query, searchTab]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -103,49 +115,103 @@ export default function HomeScreen({ navigation }) {
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={load}
-          placeholder="Tìm câu hỏi..."
+          placeholder={searchTab === 'posts' ? "Tìm câu hỏi..." : "Tìm thành viên..."}
           placeholderTextColor={colors.slate400}
           style={styles.searchInput}
           returnKeyType="search"
         />
       </View>
 
-      {/* Topic chips */}
-      <FlatList
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.chipsRow}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, alignItems: 'center' }}
-        data={[{ slug: 'all', name: 'Tất cả' }, ...topics]}
-        keyExtractor={(t) => t.slug}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.chip, activeTopic === item.slug && styles.chipActive]}
-            onPress={() => setActiveTopic(item.slug)}
-          >
-            <Text style={[styles.chipText, activeTopic === item.slug && styles.chipTextActive]}>{item.name}</Text>
-          </TouchableOpacity>
-        )}
-      />
+      {/* Search Tab Switcher */}
+      <View style={styles.searchTabRow}>
+        <TouchableOpacity
+          style={[styles.searchTabItem, searchTab === 'posts' && styles.searchTabActive]}
+          onPress={() => { setLoading(true); setSearchTab('posts'); }}
+        >
+          <Text style={[styles.searchTabText, searchTab === 'posts' && styles.searchTabTextActive]}>Câu hỏi</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.searchTabItem, searchTab === 'users' && styles.searchTabActive]}
+          onPress={() => { setLoading(true); setSearchTab('users'); }}
+        >
+          <Text style={[styles.searchTabText, searchTab === 'users' && styles.searchTabTextActive]}>Thành viên</Text>
+        </TouchableOpacity>
+      </View>
 
-      {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
-      ) : (
-        <FlatList
-          style={{ flex: 1 }}
-          data={posts}
-          keyExtractor={(p) => p.id}
-          contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
-          renderItem={({ item }) => (
-            <PostCard
-              post={item}
-              topicName={topics.find((t) => t.slug === item.topic)?.name}
-              onPress={() => navigation.navigate('PostDetail', { id: item.id })}
+      {searchTab === 'posts' ? (
+        <>
+          {/* Topic chips */}
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.chipsRow}
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 8, alignItems: 'center' }}
+            data={[{ slug: 'all', name: 'Tất cả' }, ...topics]}
+            keyExtractor={(t) => t.slug}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[styles.chip, activeTopic === item.slug && styles.chipActive]}
+                onPress={() => setActiveTopic(item.slug)}
+              >
+                <Text style={[styles.chipText, activeTopic === item.slug && styles.chipTextActive]}>{item.name}</Text>
+              </TouchableOpacity>
+            )}
+          />
+
+          {loading ? (
+            <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
+          ) : (
+            <FlatList
+              style={{ flex: 1 }}
+              data={posts}
+              keyExtractor={(p) => p.id}
+              contentContainerStyle={styles.list}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
+              renderItem={({ item }) => (
+                <PostCard
+                  post={item}
+                  topicName={topics.find((t) => t.slug === item.topic)?.name}
+                  onPress={() => navigation.navigate('PostDetail', { id: item.id })}
+                />
+              )}
+              ListEmptyComponent={<Text style={styles.empty}>Chưa có câu hỏi nào.</Text>}
             />
           )}
-          ListEmptyComponent={<Text style={styles.empty}>Chưa có câu hỏi nào.</Text>}
-        />
+        </>
+      ) : (
+        <>
+          {loading ? (
+            <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
+          ) : (
+            <FlatList
+              style={{ flex: 1 }}
+              data={users}
+              keyExtractor={(u) => u.id}
+              contentContainerStyle={styles.list}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
+              renderItem={({ item }) => (
+                <View style={styles.userCard}>
+                  {item.photoURL ? (
+                    <Image source={{ uri: item.photoURL }} style={styles.userAvatar} />
+                  ) : (
+                    <View style={styles.avatarPlaceholder}>
+                      <Text style={styles.placeholderText}>{item.displayName?.charAt(0).toUpperCase()}</Text>
+                    </View>
+                  )}
+                  <View style={styles.userInfo}>
+                    <Text style={styles.userName}>{item.displayName}</Text>
+                    <Text style={styles.userSub}>@{item.username} · {item.role === 'admin' ? 'QTV' : 'Thành viên'}</Text>
+                  </View>
+                </View>
+              )}
+              ListEmptyComponent={
+                <Text style={styles.empty}>
+                  {query.trim() ? 'Không tìm thấy thành viên nào.' : 'Nhập từ khóa để tìm thành viên.'}
+                </Text>
+              }
+            />
+          )}
+        </>
       )}
 
       {/* Ad popup */}
@@ -175,6 +241,18 @@ const styles = StyleSheet.create({
   addBtn: { backgroundColor: colors.primary, width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   searchWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, marginHorizontal: 16, borderRadius: 999, borderWidth: 1, borderColor: colors.slate200, marginBottom: 10 },
   searchInput: { flex: 1, paddingVertical: 10, paddingHorizontal: 8, fontSize: 14, color: colors.slate900 },
+  searchTabRow: { flexDirection: 'row', paddingHorizontal: 16, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.slate100 },
+  searchTabItem: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  searchTabActive: { borderBottomColor: colors.primary },
+  searchTabText: { fontSize: 13.5, fontWeight: '700', color: colors.slate500 },
+  searchTabTextActive: { color: colors.primary },
+  userCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, padding: 14, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: colors.slate100 },
+  userAvatar: { width: 40, height: 40, borderRadius: 20 },
+  avatarPlaceholder: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
+  placeholderText: { fontSize: 16, fontWeight: '800', color: colors.primary },
+  userInfo: { marginLeft: 12, flex: 1 },
+  userName: { fontSize: 14.5, fontWeight: '800', color: colors.slate900 },
+  userSub: { fontSize: 12, color: colors.slate400, fontWeight: '600', marginTop: 2 },
   chipsRow: { flexGrow: 0, flexShrink: 0, height: 42, marginBottom: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: colors.slate100 },
   chipActive: { backgroundColor: colors.primary },

@@ -77,7 +77,7 @@
                 <%= fb.handled ? 'Đánh dấu chưa xử lý' : 'Đánh dấu đã xử lý' %>
               </button>
             </form>
-            <form method="POST" action="/about/<%= fb.id %>/delete" onsubmit="return confirm('Bạn có chắc chắn muốn xóa thư đóng góp này?')">
+            <form method="POST" action="/about/<%= fb.id %>/delete" onsubmit="handleDeleteFormSubmit(event, 'Bạn có chắc chắn muốn xóa thư đóng góp này?')">
               <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 13px; font-weight: 700; background-color: var(--red); color: var(--white); border: none; border-radius: var(--radius-md);">
                 Xóa
               </button>

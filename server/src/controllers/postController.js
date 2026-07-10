@@ -237,6 +237,16 @@ export const ratePost = asyncHandler(async (req, res) => {
   }
   post.recomputeRating();
   await post.save();
+
+  if (value > 0 && String(post.author) !== String(req.user._id)) {
+    await Notification.create({
+      user: post.author,
+      type: 'post_rated',
+      title: 'Bài viết được đánh giá',
+      message: `${req.user.displayName} đã đánh giá bài viết của bạn ${value}★.`,
+      link: `/post/${post._id}`,
+    });
+  }
   res.json({ ratingAvg: post.ratingAvg, ratingCount: post.ratingCount, myRating: value === 0 ? null : value });
 });
 

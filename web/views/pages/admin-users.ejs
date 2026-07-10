@@ -120,7 +120,7 @@ function isOnline(date) {
                   </form>
                 </details>
 
-                <form method="POST" action="/admin/users/<%= u.id %>/delete" onsubmit="return confirm('Xoá tài khoản này?')" style="display: inline;">
+                <form method="POST" action="/admin/users/<%= u.id %>/delete" onsubmit="handleDeleteFormSubmit(event, 'Bạn có chắc chắn muốn xoá tài khoản này?')" style="display: inline;">
                   <button type="submit" class="btn-icon btn-icon-danger" style="padding: 6px;"><%- include('../partials/icons', { name: 'trash-2', size: 16 }) %></button>
                 </form>
               <% } %>

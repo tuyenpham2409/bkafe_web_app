@@ -39,7 +39,7 @@ export function StarSelector({ visible, value, onSelect, onClose }) {
 export function RateButton({ myValue, onRate, size = 14 }) {
   const [open, setOpen] = useState(false);
   return (
-    <View>
+    <View style={{ position: 'relative', zIndex: 50 }}>
       <TouchableOpacity style={styles.trigger} onPress={() => setOpen((o) => !o)}>
         <Ionicons name={myValue !== null ? 'star' : 'star-outline'} size={size} color={myValue !== null ? colors.star : colors.slate500} />
         <Text style={[styles.triggerText, myValue !== null && { color: colors.star, fontWeight: '800' }]}>
@@ -62,10 +62,14 @@ const styles = StyleSheet.create({
   trigger: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   triggerText: { fontSize: 12, fontWeight: '700', color: colors.slate500 },
   selector: {
+    position: 'absolute',
+    bottom: 24,
+    left: 0,
+    width: 170,
+    zIndex: 100,
     flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: colors.white,
     borderRadius: 20, borderWidth: 1, borderColor: colors.slate200, paddingHorizontal: 8, paddingVertical: 6,
-    marginTop: 6, alignSelf: 'flex-start',
-    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2,
+    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 5,
   },
   zeroBtn: { paddingHorizontal: 5, borderRightWidth: 1, borderRightColor: colors.slate200, marginRight: 3 },
   zeroText: { fontSize: 10, fontWeight: '900', color: colors.slate400 },

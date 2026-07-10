@@ -1,7 +1,7 @@
 <%- include('../partials/header', { title: post.title || 'Chi tiết bài viết' }) %>
 
 <div class="post-detail-container" style="max-width: 672px; margin: 0 auto;">
-  <a href="/" class="btn-link" style="display: inline-flex; align-items: center; gap: 4px; font-weight: 700; margin-bottom: 16px; text-decoration: none; color: var(--primary-blue);">
+  <a href="/" class="btn-link" onclick="goBackOrHome(event)" style="display: inline-flex; align-items: center; gap: 4px; font-weight: 700; margin-bottom: 16px; text-decoration: none; color: var(--primary-blue);">
     <%- include('../partials/icons', { name: 'arrow-left', size: 16 }) %> 
     Quay lại trang chủ
   </a>
@@ -17,22 +17,24 @@
   <div class="card" style="padding: 24px; margin-bottom: 24px;">
     
     <!-- Post Status Banner (if not approved) -->
-    <% if (post.status === 'pending') { %>
-      <div style="background-color: var(--amber-light); color: var(--amber); padding: 12px 16px; border-radius: var(--radius-lg); font-size: 14px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
-        <span class="nav-dot" style="position: static; display: inline-block;"></span>
-        Bài viết đang chờ ban quản trị phê duyệt.
-      </div>
-    <% } else if (post.status === 'rejected') { %>
-      <div style="background-color: var(--red-light); color: var(--red); padding: 12px 16px; border-radius: var(--radius-lg); font-size: 14px; font-weight: 600; margin-bottom: 20px;">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-          <%- include('../partials/icons', { name: 'x-circle', size: 18 }) %>
-          <span>Bài viết đã bị từ chối phê duyệt.</span>
+    <div id="moderation-banner" style="<%= post.status === 'approved' ? 'display: none;' : '' %>">
+      <% if (post.status === 'pending') { %>
+        <div style="background-color: var(--amber-light); color: var(--amber); padding: 12px 16px; border-radius: var(--radius-lg); font-size: 14px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+          <span class="nav-dot" style="position: static; display: inline-block;"></span>
+          Bài viết đang chờ ban quản trị phê duyệt.
         </div>
-        <% if (post.rejectReason) { %>
-          <div style="font-size: 13px; font-weight: 500; opacity: 0.9;">Lý do: <%= post.rejectReason %></div>
-        <% } %>
-      </div>
-    <% } %>
+      <% } else if (post.status === 'rejected') { %>
+        <div style="background-color: var(--red-light); color: var(--red); padding: 12px 16px; border-radius: var(--radius-lg); font-size: 14px; font-weight: 600; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <%- include('../partials/icons', { name: 'x-circle', size: 18 }) %>
+            <span>Bài viết đã bị từ chối phê duyệt.</span>
+          </div>
+          <% if (post.rejectReason) { %>
+            <div style="font-size: 13px; font-weight: 500; opacity: 0.9;">Lý do: <%= post.rejectReason %></div>
+          <% } %>
+        </div>
+      <% } %>
+    </div>
 
     <div class="post-card-header" style="margin-bottom: 16px;">
       <div class="post-card-author">
@@ -75,8 +77,8 @@
               <% } %>
               
               <% if (isAdmin) { %>
-                <% if (post.status === 'pending') { %>
-                  <form method="POST" action="/admin/posts/<%= post.id %>/approve" style="display: block;">
+                <div id="admin-moderation-actions" style="<%= post.status === 'pending' ? 'display: block;' : 'display: none;' %>">
+                  <form method="POST" action="/admin/posts/<%= post.id %>/approve" style="display: block;" onsubmit="submitApprove(event, '/admin/posts/<%= post.id %>/approve')">
                     <button type="submit" class="dropdown-item text-success" style="width: 100%; text-align: left; border: none; background: transparent; cursor: pointer; font-family: inherit; font-size: inherit;">
                       <%- include('../partials/icons', { name: 'check-circle', size: 16 }) %> Duyệt bài
                     </button>
@@ -84,7 +86,7 @@
                   <button type="button" class="dropdown-item text-danger" style="width: 100%; text-align: left; border: none; background: transparent; cursor: pointer; font-family: inherit; font-size: inherit;" onclick="openRejectModal()">
                     <%- include('../partials/icons', { name: 'x-circle', size: 16 }) %> Từ chối duyệt
                   </button>
-                <% } %>
+                </div>
               <% } %>
 
               <% if (isOwner || isAdmin) { %>
@@ -127,15 +129,15 @@
         
         <!-- Ratings popover -->
         <div class="relative star-rating-popover" style="display: inline-block;">
-          <button type="button" class="btn-link" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-lg); background-color: var(--slate-50); color: <%= post.myRating ? 'var(--amber)' : 'var(--slate-500)' %>; font-weight: 700; font-size: 13px;" onclick="toggleRatePopover('post-<%= post.id %>')">
+          <button type="button" class="btn-link" id="post-rating-btn" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-lg); background-color: var(--slate-50); color: <%= post.myRating ? 'var(--amber)' : 'var(--slate-500)' %>; font-weight: 700; font-size: 13px;" onclick="toggleRatePopover('post-<%= post.id %>')">
             <%- include('../partials/icons', { name: 'star', size: 18, fill: post.myRating ? 'var(--amber)' : 'none', stroke: post.myRating ? 'var(--amber)' : 'var(--slate-300)' }) %>
-            <span><%= post.ratingCount > 0 ? `${post.ratingAvg.toFixed(1)}/5 (${post.ratingCount})` : 'Đánh giá' %></span>
+            <span id="post-rating-text"><%= post.ratingCount > 0 ? `${post.ratingAvg.toFixed(1)}/5 (${post.ratingCount})` : 'Đánh giá' %></span>
           </button>
-          <div id="rate-popover-post-<%= post.id %>" class="dropdown-menu" style="display: none; position: absolute; bottom: 100%; left: 0; margin-bottom: 6px; border-radius: 9999px; padding: 6px 10px; align-items: center; gap: 4px; z-index: 20; flex-direction: row; width: auto; white-space: nowrap;">
+          <div id="rate-popover-post-<%= post.id %>" class="dropdown-menu" style="display: none; position: absolute; bottom: 100%; right: 0; margin-bottom: 6px; border-radius: 9999px; padding: 6px 10px; align-items: center; gap: 4px; z-index: 20; flex-direction: row; width: auto; white-space: nowrap;">
             <form method="POST" action="/post/<%= post.id %>/rate" style="display: flex; align-items: center; gap: 2px;">
-              <button type="submit" name="value" value="0" style="font-size: 10px; font-weight: 900; color: var(--slate-400); padding: 0 4px; border: none; background: transparent; cursor: pointer; border-right: 1px solid var(--slate-100);">0</button>
+              <button type="submit" name="value" value="0" style="font-size: 10px; font-weight: 900; color: var(--slate-400); padding: 0 4px; border: none; background: transparent; cursor: pointer; border-right: 1px solid var(--slate-100);" onclick="submitRate(event, '/post/<%= post.id %>/rate', true, '<%= post.id %>')">0</button>
               <% [1,2,3,4,5].forEach(val => { %>
-                <button type="submit" name="value" value="<%= val %>" style="border: none; background: transparent; padding: 2px; cursor: pointer;">
+                <button type="submit" name="value" value="<%= val %>" style="border: none; background: transparent; padding: 2px; cursor: pointer;" onclick="submitRate(event, '/post/<%= post.id %>/rate', true, '<%= post.id %>')">
                   <%- include('../partials/icons', { name: 'star', size: 18, fill: (post.myRating || 0) >= val ? 'var(--amber)' : 'none', stroke: (post.myRating || 0) >= val ? 'var(--amber)' : 'var(--slate-300)' }) %>
                 </button>
               <% }) %>
@@ -168,7 +170,7 @@
   <div class="card" style="padding: 24px; margin-bottom: 24px;">
     <h3 style="font-size: 16px; font-weight: 800; color: var(--slate-900); margin-bottom: 16px;">Ý kiến của bạn</h3>
     <% if (user) { %>
-      <form method="POST" action="/post/<%= post.id %>/comments" enctype="multipart/form-data">
+      <form method="POST" action="/post/<%= post.id %>/comments" enctype="multipart/form-data" onsubmit="submitCommentForm(event, '/post/<%= post.id %>/comments', false)">
         <div class="form-group">
           <textarea name="content" required placeholder="Nhập bình luận của bạn..." class="form-input" style="min-height: 100px; font-size: 14px;"></textarea>
         </div>
@@ -201,7 +203,7 @@
       <div class="card text-center" style="padding: 40px 16px; color: var(--slate-500); font-weight: 600;">Chưa có bình luận nào. Hãy là người đầu tiên nêu ý kiến!</div>
     <% } else { %>
       <% topLevelComments.forEach(c => { %>
-        <%- include('../partials/comment', { comment: c, comments: comments, post: post }) %>
+        <%- include('../partials/comment', { comment: c, comments: comments, post: post, depth: 0 }) %>
       <% }) %>
     <% } %>
   </div>
@@ -217,7 +219,7 @@
       </button>
       <div class="modal-content" style="padding: 24px;">
         <h3 class="modal-title" style="font-size: 18px; font-weight: 800; margin-bottom: 12px; color: var(--slate-900);">Từ chối duyệt bài</h3>
-        <form method="POST" action="/admin/posts/<%= post.id %>/reject">
+        <form method="POST" action="/admin/posts/<%= post.id %>/reject" onsubmit="submitReject(event, '/admin/posts/<%= post.id %>/reject')">
           <div class="form-group">
             <label class="form-label">Lý do từ chối:</label>
             <select name="reason" class="form-input" style="margin-bottom: 12px;">

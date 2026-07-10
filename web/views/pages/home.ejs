@@ -2,7 +2,11 @@
 
 <div class="home-container" style="max-width: 672px; margin: 0 auto;">
   <% if (locals.notice) { %>
-    <div class="alert alert-info" style="margin-bottom: 20px;"><%= notice %></div>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        window.showToast("<%= notice %>", "success");
+      });
+    </script>
   <% } %>
   <% if (locals.success) { %>
     <div class="alert alert-success" style="margin-bottom: 20px;"><%= success %></div>

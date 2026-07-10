@@ -132,8 +132,14 @@ router.post('/admin/posts/:id/approve', requireAdmin, async (req, res) => {
   const sep = returnTo.includes('?') ? '&' : '?';
   try {
     await api.patch(`/posts/${id}/approve`, {}, req);
+    if (req.headers.accept?.includes('application/json')) {
+      return res.json({ success: true, message: 'Đã duyệt bài viết.' });
+    }
     res.redirect(`${returnTo}${sep}success=${encodeURIComponent('Đã duyệt bài viết.')}`);
   } catch (err) {
+    if (req.headers.accept?.includes('application/json')) {
+      return res.status(err.status || 500).json({ message: err.message });
+    }
     res.redirect(`${returnTo}${sep}error=${encodeURIComponent(err.message)}`);
   }
 });
@@ -146,8 +152,14 @@ router.post('/admin/posts/:id/reject', requireAdmin, async (req, res) => {
   const sep = returnTo.includes('?') ? '&' : '?';
   try {
     await api.patch(`/posts/${id}/reject`, { reason }, req);
+    if (req.headers.accept?.includes('application/json')) {
+      return res.json({ success: true, message: 'Đã từ chối duyệt bài viết.' });
+    }
     res.redirect(`${returnTo}${sep}success=${encodeURIComponent('Đã từ chối duyệt bài viết.')}`);
   } catch (err) {
+    if (req.headers.accept?.includes('application/json')) {
+      return res.status(err.status || 500).json({ message: err.message });
+    }
     res.redirect(`${returnTo}${sep}error=${encodeURIComponent(err.message)}`);
   }
 });
@@ -171,9 +183,15 @@ router.post('/post/:id/rate', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { value } = req.body;
   try {
-    await api.post(`/posts/${id}/rate`, { value: Number(value) }, req);
+    const result = await api.post(`/posts/${id}/rate`, { value: Number(value) }, req);
+    if (req.headers.accept?.includes('application/json')) {
+      return res.json(result);
+    }
     res.redirect(`/post/${id}?noview=1`);
   } catch (err) {
+    if (req.headers.accept?.includes('application/json')) {
+      return res.status(err.status || 500).json({ message: err.message });
+    }
     res.redirect(`/post/${id}?noview=1&error=${encodeURIComponent(err.message)}`);
   }
 });
@@ -182,9 +200,15 @@ router.post('/post/:id/rate', requireAuth, async (req, res) => {
 router.post('/post/:id/share', async (req, res) => {
   const { id } = req.params;
   try {
-    await api.post(`/posts/${id}/share`, {}, req);
+    const result = await api.post(`/posts/${id}/share`, {}, req);
+    if (req.headers.accept?.includes('application/json')) {
+      return res.json(result);
+    }
     res.redirect(`/post/${id}?noview=1`);
   } catch (err) {
+    if (req.headers.accept?.includes('application/json')) {
+      return res.status(err.status || 500).json({ message: err.message });
+    }
     res.redirect(`/post/${id}?noview=1&error=${encodeURIComponent(err.message)}`);
   }
 });

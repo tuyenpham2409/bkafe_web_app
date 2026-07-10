@@ -87,7 +87,7 @@
                   <button type="submit" class="btn-icon" style="color: var(--green);" title="Duyệt lại"><%- include('../partials/icons', { name: 'check-circle', size: 16 }) %></button>
                 </form>
               <% } %>
-              <form method="POST" action="/admin/posts/<%= p.id %>/delete" onsubmit="return confirm('Xoá câu hỏi này?')" style="display: inline;">
+              <form method="POST" action="/admin/posts/<%= p.id %>/delete" onsubmit="handleDeleteFormSubmit(event, 'Bạn có chắc chắn muốn xoá câu hỏi này?')" style="display: inline;">
                 <input type="hidden" name="returnTo" value="<%= returnTo %>">
                 <button type="submit" class="btn-icon btn-icon-danger" title="Xoá"><%- include('../partials/icons', { name: 'trash-2', size: 16 }) %></button>
               </form>

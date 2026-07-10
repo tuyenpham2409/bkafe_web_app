@@ -140,6 +140,16 @@ export const rateComment = asyncHandler(async (req, res) => {
   }
   comment.recomputeRating();
   await comment.save();
+
+  if (value > 0 && String(comment.author) !== String(req.user._id)) {
+    await Notification.create({
+      user: comment.author,
+      type: 'comment_rated',
+      title: 'Bình luận được đánh giá',
+      message: `${req.user.displayName} đã đánh giá bình luận của bạn ${value}★.`,
+      link: `/post/${comment.post}`,
+    });
+  }
   res.json({ ratingAvg: comment.ratingAvg, ratingCount: comment.ratingCount, myRating: value === 0 ? null : value });
 });
 
