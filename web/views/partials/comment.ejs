@@ -18,16 +18,18 @@ if (currentDepth === 1 || currentDepth === 2) {
     <!-- Comment Header -->
     <div class="post-card-header" style="margin-bottom: 12px;">
       <div class="post-card-author">
-        <% if (comment.authorPhotoURL) { %>
-          <img src="<%= comment.authorPhotoURL %>" alt="" class="post-card-avatar" style="width: 32px; height: 32px;" />
-        <% } else { %>
-          <div class="post-card-avatar-placeholder" style="width: 32px; height: 32px; font-size: 12px;">
-            <%= comment.authorName?.charAt(0).toUpperCase() || 'U' %>
-          </div>
-        <% } %>
+        <a href="/profile/<%= comment.authorId %>" style="text-decoration: none; flex-shrink: 0;">
+          <% if (comment.authorPhotoURL) { %>
+            <img src="<%= comment.authorPhotoURL %>" alt="" class="post-card-avatar" style="width: 32px; height: 32px;" />
+          <% } else { %>
+            <div class="post-card-avatar-placeholder" style="width: 32px; height: 32px; font-size: 12px;">
+              <%= comment.authorName?.charAt(0).toUpperCase() || 'U' %>
+            </div>
+          <% } %>
+        </a>
         <div class="post-card-author-info">
           <div class="post-card-author-name" style="font-size: 13px;">
-            <%= comment.authorName %>
+            <a href="/profile/<%= comment.authorId %>" style="text-decoration: none; color: inherit;"><%= comment.authorName %></a>
             <% if (comment.authorId === post.authorId) { %>
               <span class="badge badge-slate" style="font-size: 10px; padding: 2px 6px; margin-left: 4px;">Tác giả</span>
             <% } %>

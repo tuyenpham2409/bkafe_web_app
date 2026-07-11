@@ -38,15 +38,19 @@
 
     <div class="post-card-header" style="margin-bottom: 16px;">
       <div class="post-card-author">
-        <% if (post.authorPhotoURL) { %>
-          <img src="<%= post.authorPhotoURL %>" alt="" class="post-card-avatar" />
-        <% } else { %>
-          <div class="post-card-avatar-placeholder">
-            <%= post.authorName?.charAt(0).toUpperCase() || 'U' %>
-          </div>
-        <% } %>
+        <a href="/profile/<%= post.authorId %>" style="text-decoration: none; flex-shrink: 0;">
+          <% if (post.authorPhotoURL) { %>
+            <img src="<%= post.authorPhotoURL %>" alt="" class="post-card-avatar" />
+          <% } else { %>
+            <div class="post-card-avatar-placeholder">
+              <%= post.authorName?.charAt(0).toUpperCase() || 'U' %>
+            </div>
+          <% } %>
+        </a>
         <div class="post-card-author-info">
-          <div class="post-card-author-name"><%= post.authorName %></div>
+          <a href="/profile/<%= post.authorId %>" style="text-decoration: none; color: inherit;">
+            <div class="post-card-author-name"><%= post.authorName %></div>
+          </a>
           <div class="post-card-date"><%= new Date(post.createdAt).toLocaleDateString('vi-VN') %></div>
         </div>
       </div>
@@ -222,13 +226,14 @@
         <form method="POST" action="/admin/posts/<%= post.id %>/reject" onsubmit="submitReject(event, '/admin/posts/<%= post.id %>/reject')">
           <div class="form-group">
             <label class="form-label">Lý do từ chối:</label>
-            <select name="reason" class="form-input" style="margin-bottom: 12px;">
+            <select id="reject-select-detail" class="form-input" style="margin-bottom: 8px;" onchange="document.getElementById('reject-input-detail').value = this.value">
               <option value="Nội dung không phù hợp thuần phong mỹ tục">Nội dung không phù hợp thuần phong mỹ tục</option>
               <option value="Spam hoặc quảng cáo">Spam hoặc quảng cáo</option>
               <option value="Sai chủ đề">Sai chủ đề</option>
               <option value="Nội dung chưa rõ ràng, thiếu thông tin">Nội dung chưa rõ ràng, thiếu thông tin</option>
               <option value="Vi phạm quy định cộng đồng HUST">Vi phạm quy định cộng đồng HUST</option>
             </select>
+            <input type="text" name="reason" id="reject-input-detail" value="Nội dung không phù hợp thuần phong mỹ tục" placeholder="Hoặc nhập lý do khác..." class="form-input" style="margin-bottom: 12px;">
           </div>
           <div style="display: flex; gap: 8px; justify-content: flex-end;">
             <button type="button" class="btn btn-secondary" onclick="closeRejectModal()">Hủy</button>

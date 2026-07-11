@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
         item.innerHTML = `
           <div style="font-weight: 700; font-size: 13px; color: var(--slate-900); margin-bottom: 2px;">${n.title}</div>
           <div style="font-size: 12px; color: var(--slate-500); line-height: 1.4;">${n.message}</div>
+          <div style="font-size: 11px; color: var(--slate-400); font-weight: 500; margin-top: 4px;">${n.createdAt ? new Date(n.createdAt).toLocaleString('vi-VN') : ''}</div>
         `;
 
         item.addEventListener('click', async (e) => {
@@ -95,7 +96,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Admin badge live update
+  async function fetchAdminStats() {
+    const adminDot = document.getElementById('header-admin-dot');
+    if (!adminDot) return;
+    try {
+      const res = await fetch('/api/admin/stats');
+      if (!res.ok) return;
+      const data = await res.json();
+
+      adminDot.style.display = data.pendingPosts > 0 ? 'block' : 'none';
+
+      const sidebarDot = document.getElementById('sidebar-admin-dot');
+      if (sidebarDot) sidebarDot.style.display = data.pendingPosts > 0 ? 'inline-block' : 'none';
+
+      const feedbackBadge = document.getElementById('sidebar-feedback-badge');
+      if (feedbackBadge) {
+        if (data.unreadContacts > 0) {
+          feedbackBadge.textContent = data.unreadContacts > 99 ? '99+' : String(data.unreadContacts);
+          feedbackBadge.style.display = 'inline-flex';
+        } else {
+          feedbackBadge.style.display = 'none';
+        }
+      }
+    } catch {}
+  }
+
   // Initial fetch and poll every 10 seconds
   fetchNotifications();
-  setInterval(fetchNotifications, 10000);
+  fetchAdminStats();
+  setInterval(() => { fetchNotifications(); fetchAdminStats(); }, 10000);
 });

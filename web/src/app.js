@@ -33,8 +33,16 @@ app.use(currentUser);
 // Load topics list for sidebar navigation
 app.use(loadTopics);
 
+const ERROR_TRANSLATIONS = {
+  'login_required': 'Vui lòng đăng nhập để thực hiện hành động này.',
+  'admin_required': 'Yêu cầu quyền quản trị viên để truy cập trang này.'
+};
+
 // Expose path and query globally to EJS templates
 app.use((req, res, next) => {
+  if (req.query.error && ERROR_TRANSLATIONS[req.query.error]) {
+    req.query.error = ERROR_TRANSLATIONS[req.query.error];
+  }
   res.locals.path = req.path;
   res.locals.query = req.query;
   next();

@@ -35,7 +35,7 @@
         <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 16px; border-bottom: 1px solid var(--slate-100);">
           <div style="min-width: 0; flex: 1;">
             <div style="font-size: 12px; font-weight: 600;">
-              <span style="font-weight: 900; color: var(--slate-900);"><%= c.authorName %></span>
+              <a href="/profile/<%= c.authorId %>" style="color: inherit; text-decoration: none; font-weight: 900;"><%= c.authorName %></a>
               <span style="color: var(--slate-400);">(<%= c.authorEmail %>)</span>
             </div>
             <p style="color: var(--slate-700); font-size: 13px; margin-top: 4px; white-space: pre-wrap;"><%= c.content %></p>

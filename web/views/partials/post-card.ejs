@@ -5,7 +5,7 @@ const topicName = topicObj ? topicObj.name : null;
 %>
 <a href="/post/<%= post.id %>" class="card post-card" style="display: flex; text-decoration: none;">
   <div class="post-card-header">
-    <div class="post-card-author">
+    <div class="post-card-author" onclick="event.stopPropagation(); window.location.href='/profile/<%= post.authorId %>';" style="cursor: pointer;">
       <% if (post.authorPhotoURL) { %>
         <img src="<%= post.authorPhotoURL %>" alt="" class="post-card-avatar" />
       <% } else { %>

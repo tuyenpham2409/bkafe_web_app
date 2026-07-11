@@ -732,3 +732,20 @@ window.submitDeleteComment = async function(event, url, commentId) {
     }
   });
 };
+
+// Scroll Restoration: save on unload, restore on back_forward navigation
+window.addEventListener('beforeunload', () => {
+  sessionStorage.setItem('scroll:' + location.pathname + location.search, String(window.scrollY));
+});
+
+window.addEventListener('load', () => {
+  const navEntry = performance.getEntriesByType('navigation')[0];
+  if (navEntry && navEntry.type === 'back_forward') {
+    const saved = sessionStorage.getItem('scroll:' + location.pathname + location.search);
+    if (saved) {
+      const y = parseInt(saved, 10);
+      window.scrollTo(0, y);
+      [50, 150, 300].forEach(d => setTimeout(() => window.scrollTo(0, y), d));
+    }
+  }
+});

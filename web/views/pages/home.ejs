@@ -1,6 +1,8 @@
 <%- include('../partials/header', { title: currentTopic ? currentTopic.name : 'Trang chủ' }) %>
 
-<div class="home-container" style="max-width: 672px; margin: 0 auto;">
+<div class="home-container" style="max-width: 672px; margin: 0 auto;"
+     data-topic="<%= currentTopic ? currentTopic.slug : '' %>"
+     data-sort="<%= sort %>">
   <% if (locals.notice) { %>
     <script>
       document.addEventListener('DOMContentLoaded', () => {
@@ -50,5 +52,41 @@
     <% } %>
   </div>
 </div>
+
+<script>
+(function() {
+  const container = document.querySelector('.home-container');
+  if (!container) return;
+  const topic = container.dataset.topic;
+  const sort = container.dataset.sort || 'newest';
+
+  const firstLink = container.querySelector('.post-list a.card');
+  let knownFirstId = firstLink ? firstLink.href.split('/post/')[1] : null;
+
+  function checkNewPosts() {
+    const qs = new URLSearchParams({ sort });
+    if (topic) qs.set('topic', topic);
+    fetch('/api/posts?' + qs.toString())
+      .then(r => r.ok ? r.json() : null)
+      .then(posts => {
+        if (!posts || !posts.length) return;
+        const newFirstId = String(posts[0].id || posts[0]._id || '');
+        if (knownFirstId && newFirstId !== knownFirstId) {
+          if (!document.getElementById('new-posts-banner')) {
+            const banner = document.createElement('div');
+            banner.id = 'new-posts-banner';
+            banner.style.cssText = 'position: sticky; top: 72px; z-index: 100; margin-bottom: 12px; text-align: center;';
+            banner.innerHTML = '<button onclick="location.reload()" style="background: var(--primary-blue); color: #fff; border: none; border-radius: 9999px; padding: 8px 20px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.3);">Có bài mới — Nhấn để tải lại ↑</button>';
+            container.insertAdjacentElement('afterbegin', banner);
+          }
+          knownFirstId = newFirstId;
+        }
+      })
+      .catch(() => {});
+  }
+
+  setInterval(checkNewPosts, 60000);
+})();
+</script>
 
 <%- include('../partials/footer') %>
