@@ -508,6 +508,9 @@ img, video {
   overflow-y: auto;
 }
 .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   text-align: left;
   padding: 12px 16px;
@@ -516,9 +519,13 @@ img, video {
   border-bottom: 1px solid var(--slate-50);
   cursor: pointer;
   transition: var(--transition-base);
+  box-sizing: border-box;
+  text-decoration: none;
+  color: var(--slate-700);
 }
 .dropdown-item:hover {
   background-color: var(--slate-50);
+  color: var(--slate-900);
 }
 .dropdown-item-unread {
   background-color: rgba(37, 99, 235, 0.04);

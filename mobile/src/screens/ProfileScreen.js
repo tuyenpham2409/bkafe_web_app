@@ -36,13 +36,33 @@ export default function ProfileScreen({ navigation }) {
   const [showSettings, setShowSettings] = useState(false);
 
   const [newUsername, setNewUsername] = useState('');
+  const [newDisplayName, setNewDisplayName] = useState(user?.displayName || '');
+  const [newBio, setNewBio] = useState(user?.bio || '');
   const [curPw, setCurPw] = useState('');
   const [newPw, setNewPw] = useState('');
   const [settingsMsg, setSettingsMsg] = useState('');
 
+  React.useEffect(() => {
+    if (user) {
+      setNewDisplayName(user.displayName || '');
+      setNewBio(user.bio || '');
+    }
+  }, [user]);
+
+  const updateProfile = async () => {
+    setSettingsMsg('');
+    try {
+      await api.put('/users/me', { displayName: newDisplayName.trim(), bio: newBio });
+      setSettingsMsg('✅ Đã cập nhật thông tin hồ sơ.');
+      await refreshUser();
+    } catch (e) {
+      setSettingsMsg('❌ ' + e.message);
+    }
+  };
+
   const load = useCallback(() => {
     if (!user) return;
-    api.get(`/posts?author=${user.id}`).then(setPosts).catch(() => {});
+    api.get('/posts?status=mine').then(setPosts).catch(() => {});
   }, [user]);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -102,6 +122,7 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.roleText}>{user.role === 'admin' ? 'Quản trị viên' : 'Sinh viên HUST'}</Text>
         </View>
         <Text style={styles.email}>{user.email}</Text>
+        <Text style={styles.bioText}>{user.bio?.trim() ? user.bio : 'Chưa có thông tin tiểu sử.'}</Text>
 
         {user.role === 'admin' && (
           <TouchableOpacity style={styles.adminBtn} onPress={() => navigation.navigate('AdminDashboard')}>
@@ -126,7 +147,12 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.card}>
           {!!settingsMsg && <Text style={styles.settingsMsg}>{settingsMsg}</Text>}
 
-          <Text style={styles.sectionTitle}>Đổi tên đăng nhập</Text>
+          <Text style={styles.sectionTitle}>Cập nhật hồ sơ</Text>
+          <TextInput value={newDisplayName} onChangeText={setNewDisplayName} placeholder="Tên hiển thị" placeholderTextColor={colors.slate400} style={styles.input} />
+          <TextInput value={newBio} onChangeText={setNewBio} placeholder="Tiểu sử (bio)" placeholderTextColor={colors.slate400} multiline style={[styles.input, { minHeight: 60 }]} />
+          <TouchableOpacity style={[styles.darkBtn, { marginBottom: 12 }]} onPress={updateProfile}><Text style={styles.darkBtnText}>Lưu thay đổi</Text></TouchableOpacity>
+
+          <Text style={[styles.sectionTitle, { marginTop: 10 }]}>Đổi tên đăng nhập</Text>
           {user.usernameChanged ? (
             <Text style={styles.warnText}>Bạn đã đổi tên đăng nhập một lần và không thể đổi lại.</Text>
           ) : (
@@ -176,6 +202,7 @@ const styles = StyleSheet.create({
   roleBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.slate100, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, marginTop: 10 },
   roleText: { fontSize: 11.5, fontWeight: '700', color: colors.slate600 },
   email: { fontSize: 12, color: colors.slate400, marginTop: 8 },
+  bioText: { fontSize: 13.5, color: colors.slate600, textAlign: 'center', lineHeight: 19, paddingHorizontal: 8, marginTop: 10 },
   adminBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 10, marginTop: 16, width: '100%' },
   adminBtnText: { fontSize: 12.5, fontWeight: '800', color: colors.white },
   rowBtns: { flexDirection: 'row', gap: 10, marginTop: 16, width: '100%' },

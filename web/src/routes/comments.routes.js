@@ -21,7 +21,7 @@ router.post('/post/:postId/comments', upload.array('media', 5), async (req, res)
 
     const created = await api.post(`/posts/${postId}/comments`, formData, req);
     if (req.headers.accept?.includes('application/json')) {
-      const postObj = await api.get(`/posts/${postId}`, req);
+      const postObj = await api.get(`/posts/${postId}?noview=1`, req);
       return res.render('partials/comment', {
         comment: created,
         comments: [created],
@@ -58,7 +58,7 @@ router.post('/comments/:id/reply', upload.array('media', 5), async (req, res) =>
 
     const created = await api.post(`/comments/${id}/reply`, formData, req);
     if (req.headers.accept?.includes('application/json')) {
-      const postObj = await api.get(`/posts/${postId}`, req);
+      const postObj = await api.get(`/posts/${postId}?noview=1`, req);
       const parentDepth = Number(req.body.depth || 0);
       return res.render('partials/comment', {
         comment: created,

@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import User from '../models/User.js';
 import { signToken } from '../utils/token.js';
 import { asyncHandler } from '../middlewares/errorHandler.js';
@@ -90,37 +89,4 @@ export const changeUsername = asyncHandler(async (req, res) => {
   user.usernameChanged = true;
   await user.save();
   res.json({ message: 'Đã đổi tên đăng nhập.', user: user.toPublic() });
-});
-
-// POST /api/auth/forgot  { identifier } -> returns a reset token (dev; normally emailed)
-export const forgotPassword = asyncHandler(async (req, res) => {
-  const id = String(req.body.identifier || '').trim().toLowerCase();
-  const query = id.includes('@') ? { email: id } : { username: id };
-  const user = await User.findOne(query);
-  // Always respond success to avoid leaking which accounts exist.
-  if (!user) return res.json({ message: 'Nếu tài khoản tồn tại, mã đặt lại đã được tạo.' });
-
-  const raw = crypto.randomBytes(24).toString('hex');
-  user.resetToken = crypto.createHash('sha256').update(raw).digest('hex');
-  user.resetTokenExp = new Date(Date.now() + 30 * 60 * 1000); // 30 min
-  await user.save();
-  // No email service in local mode -> return the token so the reset can be completed.
-  res.json({ message: 'Đã tạo mã đặt lại mật khẩu (hiệu lực 30 phút).', resetToken: raw });
-});
-
-// POST /api/auth/reset  { token, newPassword }
-export const resetPassword = asyncHandler(async (req, res) => {
-  const { token, newPassword } = req.body;
-  if (!token || !newPassword || String(newPassword).length < 6) {
-    return res.status(400).json({ message: 'Thiếu mã hoặc mật khẩu mới quá ngắn (tối thiểu 6 ký tự).' });
-  }
-  const hashed = crypto.createHash('sha256').update(String(token)).digest('hex');
-  const user = await User.findOne({ resetToken: hashed, resetTokenExp: { $gt: new Date() } }).select('+resetToken +resetTokenExp');
-  if (!user) return res.status(400).json({ message: 'Mã đặt lại không hợp lệ hoặc đã hết hạn.' });
-
-  await user.setPassword(newPassword);
-  user.resetToken = undefined;
-  user.resetTokenExp = undefined;
-  await user.save();
-  res.json({ message: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.' });
 });

@@ -8,14 +8,15 @@ const router = Router();
 // GET /profile/:id - User profile page (own posts included)
 router.get('/profile/:id', async (req, res, next) => {
   const { id } = req.params;
+  const isOwnProfile = res.locals.currentUser?.id === id;
   try {
-    const [profile, allPosts] = await Promise.all([
+    const [profile, posts] = await Promise.all([
       api.get(`/users/${id}`, req),
-      api.get('/posts?sort=newest', req),
+      // Own profile sees pending/rejected posts too; other users only ever see approved ones.
+      isOwnProfile
+        ? api.get('/posts?status=mine&sort=newest', req)
+        : api.get(`/posts?author=${id}&sort=newest`, req),
     ]);
-    // The shared /posts endpoint doesn't support server-side author filtering,
-    // so we filter down to this profile's own posts here in the BFF.
-    const posts = allPosts.filter((p) => p.authorId === id);
     res.render('pages/profile', {
       profile,
       posts,

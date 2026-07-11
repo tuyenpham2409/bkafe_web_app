@@ -285,6 +285,81 @@ window.copyPageUrl = async function(event) {
   }
 };
 
+// Who Rated Modal — plain fetch + setInterval polling while open, no realtime/socket library.
+let ratersPollInterval = null;
+
+async function loadRaters(postId) {
+  const list = document.getElementById('raters-list');
+  if (!list) return;
+  try {
+    const res = await fetch(`/post/${postId}/raters`, { headers: { 'Accept': 'application/json' } });
+    const raters = await res.json();
+    if (!res.ok) throw new Error(raters.message || 'Không thể tải danh sách đánh giá.');
+
+    list.innerHTML = '';
+    if (raters.length === 0) {
+      const empty = document.createElement('p');
+      empty.style.cssText = 'font-size: 13px; color: var(--slate-400); font-weight: 600;';
+      empty.textContent = 'Chưa có ai đánh giá bài viết này.';
+      list.appendChild(empty);
+      return;
+    }
+    raters.forEach((r) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display: flex; align-items: center; gap: 10px;';
+
+      const avatar = document.createElement('div');
+      avatar.style.cssText = 'width: 36px; height: 36px; border-radius: 50%; background-color: var(--slate-100); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: var(--slate-500); overflow: hidden; flex-shrink: 0;';
+      if (r.photoURL) {
+        const img = document.createElement('img');
+        img.src = r.photoURL;
+        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+        avatar.appendChild(img);
+      } else {
+        avatar.textContent = (r.displayName || 'U').charAt(0).toUpperCase();
+      }
+
+      const info = document.createElement('div');
+      info.style.cssText = 'flex: 1; min-width: 0;';
+      const name = document.createElement('div');
+      name.style.cssText = 'font-size: 13.5px; font-weight: 800; color: var(--slate-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+      name.textContent = r.displayName;
+      info.appendChild(name);
+
+      const stars = document.createElement('div');
+      stars.style.cssText = 'font-size: 12px; font-weight: 700; color: var(--amber); white-space: nowrap;';
+      stars.textContent = `${'★'.repeat(r.value)}${'☆'.repeat(5 - r.value)} (${r.value}/5)`;
+
+      row.appendChild(avatar);
+      row.appendChild(info);
+      row.appendChild(stars);
+      list.appendChild(row);
+    });
+  } catch (err) {
+    list.innerHTML = '';
+    const errEl = document.createElement('p');
+    errEl.style.cssText = 'font-size: 13px; color: var(--red); font-weight: 600;';
+    errEl.textContent = err.message;
+    list.appendChild(errEl);
+  }
+}
+
+window.openRatersModal = function(postId) {
+  const modal = document.getElementById('raters-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  loadRaters(postId);
+  clearInterval(ratersPollInterval);
+  ratersPollInterval = setInterval(() => loadRaters(postId), 3000);
+};
+
+window.closeRatersModal = function() {
+  const modal = document.getElementById('raters-modal');
+  if (modal) modal.style.display = 'none';
+  clearInterval(ratersPollInterval);
+  ratersPollInterval = null;
+};
+
 // Media Lightbox
 window.openMediaLightbox = function(url) {
   const lightbox = document.getElementById('media-lightbox');

@@ -1,13 +1,20 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import Avatar from './Avatar';
 import { colors } from '../theme/colors';
 
 export default function PostCard({ post, topicName, onPress }) {
+  const navigation = useNavigation();
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.header}>
+      <TouchableOpacity 
+        style={styles.header}
+        onPress={() => navigation.navigate('UserProfile', { userId: post.authorId })}
+        activeOpacity={0.7}
+      >
         <Avatar url={post.authorPhotoURL} name={post.authorName} size={38} />
         <View style={{ flex: 1, marginLeft: 10 }}>
           <Text style={styles.author} numberOfLines={1}>{post.authorName}</Text>
@@ -18,7 +25,7 @@ export default function PostCard({ post, topicName, onPress }) {
             <Text style={styles.topicText}>#{topicName}</Text>
           </View>
         )}
-      </View>
+      </TouchableOpacity>
 
       <Text style={styles.title} numberOfLines={2}>{post.title?.trim() || (post.content?.length > 50 ? post.content.substring(0, 50) + '...' : post.content)}</Text>
       <Text style={styles.content} numberOfLines={3}>{post.content}</Text>

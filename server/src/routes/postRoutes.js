@@ -15,6 +15,7 @@ r.delete('/:id', auth(), p.deletePost);
 r.patch('/:id/approve', auth(), isAdmin, p.approvePost);
 r.patch('/:id/reject', auth(), isAdmin, p.rejectPost);
 r.post('/:id/rate', auth(), p.ratePost);
+r.get('/:id/raters', auth(false), p.getPostRaters);
 r.post('/:id/share', auth(false), p.sharePost);
 
 // comments nested under a post

@@ -1,0 +1,26 @@
+[
+  {
+    "_id": "6a526eda724e75d4d91406e8",
+    "user": "6a526296a4452ad519be6de5",
+    "type": "post_rated",
+    "title": "Bài viết được đánh giá",
+    "message": "Quản trị BKafe đã đánh giá bài viết của bạn 5★.",
+    "link": "/post/6a52629ea4452ad519be6e61",
+    "read": false,
+    "createdAt": "2026-07-11T16:27:06.983Z",
+    "updatedAt": "2026-07-11T16:27:06.983Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a526ef4724e75d4d9140754",
+    "user": "6a526296a4452ad519be6de5",
+    "type": "post_edited_by_admin",
+    "title": "Bài viết của bạn đã được quản trị viên chỉnh sửa",
+    "message": "Quản trị viên đã cập nhật nội dung câu hỏi \"Xin tài liệu Giải tích số\" của bạn.",
+    "link": "/post/6a52629ea4452ad519be6e61",
+    "read": false,
+    "createdAt": "2026-07-11T16:27:32.901Z",
+    "updatedAt": "2026-07-11T16:27:32.901Z",
+    "__v": 0
+  }
+]

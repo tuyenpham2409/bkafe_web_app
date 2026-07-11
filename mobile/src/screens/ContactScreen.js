@@ -90,10 +90,6 @@ export default function ContactScreen() {
       const r = await api.patch(`/contacts/${id}/handled`);
       setContacts((cs) => cs.map((c) => c.id === id ? { ...c, handled: r.handled } : c));
       setUnhandledCount((n) => r.handled ? n - 1 : n + 1);
-      // Dispatch contacts changed event to update sidebar badge if listening
-      if (typeof window !== 'undefined' && typeof Event !== 'undefined') {
-        window.dispatchEvent(new Event('bkafe-contacts-changed'));
-      }
     } catch (e) {
       Alert.alert('Lỗi', e.message);
     }
@@ -113,9 +109,6 @@ export default function ContactScreen() {
               const item = contacts.find((c) => c.id === id);
               return item && !item.handled ? n - 1 : n;
             });
-            if (typeof window !== 'undefined' && typeof Event !== 'undefined') {
-              window.dispatchEvent(new Event('bkafe-contacts-changed'));
-            }
           } catch (e) {
             Alert.alert('Lỗi', e.message);
           }

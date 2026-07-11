@@ -1,17 +1,21 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, Image,
   ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Linking,
   Alert, Modal,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { api, resolveMediaUrl } from '../api/client';
+import * as Clipboard from 'expo-clipboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api, resolveMediaUrl, WEB_URL } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useLoginGate } from '../context/LoginGate';
 import Avatar from '../components/Avatar';
 import { StarRatingDisplay, RateButton } from '../components/StarRating';
+import Required from '../components/Required';
 import { colors } from '../theme/colors';
 
 const MAX_IMAGE = 5 * 1024 * 1024;
@@ -67,8 +71,18 @@ export default function PostDetailScreen({ route, navigation }) {
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
 
+  // Who-rated modal states
+  const [ratersModalOpen, setRatersModalOpen] = useState(false);
+  const [raters, setRaters] = useState([]);
+  const [ratersLoading, setRatersLoading] = useState(false);
+  const ratersPollRef = useRef(null);
+
   const isAdmin = user?.role === 'admin';
   const isOwner = user && post && user.id === post.authorId;
+
+  // Tracks which post id has already had its view counted, so refocusing this
+  // screen or polling doesn't keep incrementing views (mirrors web's noview=1 pattern).
+  const viewCountedIdRef = useRef(null);
 
   // Load topics for edit
   useEffect(() => {
@@ -76,11 +90,13 @@ export default function PostDetailScreen({ route, navigation }) {
   }, []);
 
   const load = useCallback(async () => {
+    const countThisView = viewCountedIdRef.current !== id;
     try {
       const [p, cs] = await Promise.all([
-        api.get(`/posts/${id}?noview=1`),
+        api.get(`/posts/${id}${countThisView ? '' : '?noview=1'}`),
         api.get(`/posts/${id}/comments`),
       ]);
+      if (countThisView) viewCountedIdRef.current = id;
       setPost(p);
       setComments(cs);
       // Init post edit data
@@ -145,7 +161,7 @@ export default function PostDetailScreen({ route, navigation }) {
     if (isAdmin && post.status === 'rejected') {
       actions.push({ text: 'Duyệt lại bài viết', onPress: doApprove });
     }
-    if (isOwner && post.status !== 'rejected') {
+    if (isAdmin || (isOwner && post.status !== 'rejected')) {
       actions.push({
         text: 'Sửa bài viết',
         onPress: () => {
@@ -258,8 +274,16 @@ export default function PostDetailScreen({ route, navigation }) {
 
   const share = async () => {
     try {
+      await Clipboard.setStringAsync(`${WEB_URL}/post/${id}`);
+      Alert.alert('Đã sao chép', 'Đã sao chép liên kết bài viết vào bộ nhớ tạm!');
+
+      const storageKey = `shared_post_${id}`;
+      const alreadyShared = await AsyncStorage.getItem(storageKey);
+      if (alreadyShared) return;
+
       const r = await api.post(`/posts/${id}/share`);
       setPost((p) => ({ ...p, shares: r.shares }));
+      await AsyncStorage.setItem(storageKey, 'true');
     } catch (e) {
       console.error(e);
     }
@@ -274,6 +298,32 @@ export default function PostDetailScreen({ route, navigation }) {
       Alert.alert('Lỗi', e.message);
     }
   };
+
+  const loadRaters = useCallback(async () => {
+    try {
+      const data = await api.get(`/posts/${id}/raters`);
+      setRaters(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRatersLoading(false);
+    }
+  }, [id]);
+
+  const openRatersModal = () => {
+    setRatersModalOpen(true);
+    setRatersLoading(true);
+    loadRaters();
+    ratersPollRef.current = setInterval(loadRaters, 3000);
+  };
+
+  const closeRatersModal = () => {
+    setRatersModalOpen(false);
+    clearInterval(ratersPollRef.current);
+    ratersPollRef.current = null;
+  };
+
+  useEffect(() => () => clearInterval(ratersPollRef.current), []);
 
   const submitComment = async () => {
     if (!user) return requireLogin('Bạn cần đăng nhập để bình luận.');
@@ -385,7 +435,9 @@ export default function PostDetailScreen({ route, navigation }) {
         depth >= 3 && { marginLeft: -36 }
       ]}>
         <View style={styles.commentRow}>
-          <Avatar url={c.authorPhotoURL} name={c.authorName} size={depth === 0 ? 36 : 28} />
+          <TouchableOpacity onPress={() => navigation.navigate('UserProfile', { userId: c.authorId })}>
+            <Avatar url={c.authorPhotoURL} name={c.authorName} size={depth === 0 ? 36 : 28} />
+          </TouchableOpacity>
           
           <View style={{ flex: 1, marginLeft: 8 }}>
             {isEditingThis ? (
@@ -436,7 +488,7 @@ export default function PostDetailScreen({ route, navigation }) {
               /* View comment content */
               <>
                 <View style={styles.bubble}>
-                  <Text style={styles.commentAuthor}>{c.authorName}</Text>
+                  <Text style={styles.commentAuthor} onPress={() => navigation.navigate('UserProfile', { userId: c.authorId })}>{c.authorName}</Text>
                   <Text style={styles.commentText}>{c.content}</Text>
                   
                   {/* Media attachment display */}
@@ -549,7 +601,11 @@ export default function PostDetailScreen({ route, navigation }) {
 
         {/* Post card */}
         <View style={styles.card}>
-          <View style={styles.postHeader}>
+          <TouchableOpacity 
+            style={styles.postHeader}
+            onPress={() => navigation.navigate('UserProfile', { userId: post.authorId })}
+            activeOpacity={0.7}
+          >
             <Avatar url={post.authorPhotoURL} name={post.authorName} size={44} />
             <View style={{ marginLeft: 10, flex: 1 }}>
               <Text style={styles.authorNameText}>{post.authorName}</Text>
@@ -564,10 +620,12 @@ export default function PostDetailScreen({ route, navigation }) {
                 )}
               </View>
             </View>
-          </View>
+          </TouchableOpacity>
 
           <Text style={styles.title}>{post.title?.trim() || (post.content?.length > 50 ? post.content.substring(0, 50) + '...' : post.content)}</Text>
-          <View style={{ marginBottom: 12 }}><StarRatingDisplay rating={post.ratingAvg || 0} count={post.ratingCount || 0} /></View>
+          <TouchableOpacity style={{ marginBottom: 12, alignSelf: 'flex-start' }} onPress={openRatersModal}>
+            <StarRatingDisplay rating={post.ratingAvg || 0} count={post.ratingCount || 0} />
+          </TouchableOpacity>
           <Text style={styles.content}>{post.content}</Text>
 
           {post.media?.length > 0 && (
@@ -684,42 +742,72 @@ export default function PostDetailScreen({ route, navigation }) {
         </View>
       </Modal>
 
+      {/* Who Rated Modal */}
+      <Modal visible={ratersModalOpen} animationType="slide" transparent onRequestClose={closeRatersModal}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Ai đã đánh giá</Text>
+            {ratersLoading ? (
+              <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} />
+            ) : raters.length === 0 ? (
+              <Text style={styles.modalHint}>Chưa có ai đánh giá bài viết này.</Text>
+            ) : (
+              <ScrollView style={{ maxHeight: 320 }}>
+                {raters.map((r) => (
+                  <View key={r.userId} style={styles.raterRow}>
+                    <Avatar url={r.photoURL} name={r.displayName} size={36} />
+                    <Text style={styles.raterName} numberOfLines={1}>{r.displayName}</Text>
+                    <Text style={styles.raterStars}>{'★'.repeat(r.value)}{'☆'.repeat(5 - r.value)} ({r.value}/5)</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity style={styles.confirmBtn} onPress={closeRatersModal}>
+                <Text style={styles.confirmBtnText}>Đóng</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Post Edit Modal */}
       <Modal visible={editingPost} animationType="slide">
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-          <ScrollView style={styles.editPostContainer} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-            <Text style={styles.editPostHeader}>Chỉnh sửa câu hỏi</Text>
-            
-            <Text style={styles.editPostLabel}>Chủ đề</Text>
-            <View style={styles.editPostTopicsRow}>
-              {topics.map((t) => (
-                <TouchableOpacity
-                  key={t.slug}
-                  style={[styles.topicChip, editPostTopic === t.slug && styles.topicChipActive]}
-                  onPress={() => setEditPostTopic(t.slug)}
-                >
-                  <Text style={[styles.topicChipText, editPostTopic === t.slug && styles.topicChipTextActive]}>
-                    {t.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+        <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+            <ScrollView style={styles.editPostContainer} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+              <Text style={styles.editPostHeader}>Chỉnh sửa câu hỏi</Text>
+              
+              <Text style={styles.editPostLabel}>Chủ đề<Required /></Text>
+              <View style={styles.editPostTopicsRow}>
+                {topics.map((t) => (
+                  <TouchableOpacity
+                    key={t.slug}
+                    style={[styles.topicChip, editPostTopic === t.slug && styles.topicChipActive]}
+                    onPress={() => setEditPostTopic(t.slug)}
+                  >
+                    <Text style={[styles.topicChipText, editPostTopic === t.slug && styles.topicChipTextActive]}>
+                      {t.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-            <Text style={styles.editPostLabel}>Tiêu đề</Text>
-            <TextInput
-              value={editPostTitle}
-              onChangeText={setEditPostTitle}
-              placeholder="Nhập tiêu đề (có thể bỏ trống)..."
-              style={styles.editPostInput}
-            />
+              <Text style={styles.editPostLabel}>Tiêu đề (Không bắt buộc)</Text>
+              <TextInput
+                value={editPostTitle}
+                onChangeText={setEditPostTitle}
+                placeholder="Nhập tiêu đề (có thể bỏ trống)..."
+                style={styles.editPostInput}
+              />
 
-            <Text style={styles.editPostLabel}>Nội dung</Text>
-            <TextInput
-              value={editPostContent}
-              onChangeText={setEditPostContent}
-              style={[styles.editPostInput, styles.editPostTextarea]}
-              multiline
-            />
+              <Text style={styles.editPostLabel}>Nội dung<Required /></Text>
+              <TextInput
+                value={editPostContent}
+                onChangeText={setEditPostContent}
+                style={[styles.editPostInput, styles.editPostTextarea]}
+                multiline
+              />
 
             <Text style={styles.editPostLabel}>Ảnh / Video đính kèm (tối đa 5)</Text>
             <View style={styles.editPostMediaList}>
@@ -757,7 +845,8 @@ export default function PostDetailScreen({ route, navigation }) {
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-      </Modal>
+      </SafeAreaView>
+    </Modal>
 
       {/* Image Preview Modal / Lightbox */}
       {previewImage && (
@@ -884,6 +973,10 @@ const styles = StyleSheet.create({
   cancelBtnText: { fontSize: 13, fontWeight: '800', color: colors.slate600 },
   confirmBtn: { backgroundColor: colors.primary, paddingVertical: 10, paddingHorizontal: 18, borderRadius: 8, minWidth: 80, alignItems: 'center' },
   confirmBtnText: { fontSize: 13, fontWeight: '800', color: colors.white },
+
+  raterRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.slate100 },
+  raterName: { flex: 1, fontSize: 13.5, fontWeight: '800', color: colors.slate900 },
+  raterStars: { fontSize: 12, fontWeight: '700', color: colors.amber },
 
   // Fullscreen edit post modal
   editPostContainer: { flex: 1, backgroundColor: colors.white },

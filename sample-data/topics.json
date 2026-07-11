@@ -1,0 +1,42 @@
+[
+  {
+    "_id": "6a4cbc95d7aab936f6a1148b",
+    "slug": "hoc-tap",
+    "__v": 0,
+    "createdAt": "2026-07-07T08:45:09.197Z",
+    "description": "Hỏi đáp bài vở, môn học, kinh nghiệm ôn thi.",
+    "name": "Học tập",
+    "order": 1,
+    "updatedAt": "2026-07-11T15:34:46.313Z"
+  },
+  {
+    "_id": "6a4cbc95d7aab936f6a1148c",
+    "slug": "tai-lieu",
+    "__v": 0,
+    "createdAt": "2026-07-07T08:45:09.360Z",
+    "description": "Chia sẻ & xin tài liệu, đề thi, slide.",
+    "name": "Tài liệu",
+    "order": 2,
+    "updatedAt": "2026-07-11T15:34:46.322Z"
+  },
+  {
+    "_id": "6a4cbc95d7aab936f6a1148d",
+    "slug": "doi-song",
+    "__v": 0,
+    "createdAt": "2026-07-07T08:45:09.368Z",
+    "description": "Đời sống sinh viên, ký túc xá, ăn ở đi lại.",
+    "name": "Đời sống",
+    "order": 3,
+    "updatedAt": "2026-07-11T15:34:46.327Z"
+  },
+  {
+    "_id": "6a4cbc95d7aab936f6a1148e",
+    "slug": "viec-lam",
+    "__v": 0,
+    "createdAt": "2026-07-07T08:45:09.375Z",
+    "description": "Việc làm thêm, thực tập, câu lạc bộ.",
+    "name": "Việc làm & CLB",
+    "order": 4,
+    "updatedAt": "2026-07-11T15:34:46.331Z"
+  }
+]

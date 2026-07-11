@@ -23,19 +23,27 @@ function userActiveTime(date) {
 export default function AdminDashboardScreen({ navigation }) {
   const { user } = useAuth();
   
-  // Tab: 'stats', 'posts', 'users'
+  // Tab: 'stats', 'posts', 'comments', 'users'
   const [activeTab, setActiveTab] = useState('stats');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Sub-tab for Duyệt bài: 'pending' or 'approved'
+  // Sub-tab for Duyệt bài: 'all', 'pending' or 'approved'
   const [postStatusFilter, setPostStatusFilter] = useState('pending');
 
   // States
   const [stats, setStats] = useState(null);
   const [postsList, setPostsList] = useState([]);
+  const [postQuery, setPostQuery] = useState('');
+  const [postSort, setPostSort] = useState('newest'); // 'newest' | 'oldest' | 'views'
+
   const [users, setUsers] = useState([]);
   const [userQuery, setUserQuery] = useState('');
+  const [userSort, setUserSort] = useState('newest'); // 'newest' | 'oldest' | 'active'
+
+  const [commentsList, setCommentsList] = useState([]);
+  const [commentQuery, setCommentQuery] = useState('');
+  const [commentSort, setCommentSort] = useState('newest'); // 'newest' | 'oldest'
 
   // User Settings Modal
   const [selectedUser, setSelectedUser] = useState(null);
@@ -59,8 +67,20 @@ export default function AdminDashboardScreen({ navigation }) {
         const data = await api.get('/stats');
         setStats(data);
       } else if (activeTab === 'posts') {
-        const data = await api.get(`/posts?status=${postStatusFilter}`);
-        setPostsList(data);
+        if (postStatusFilter === 'all') {
+          const [pending, approved, rejected] = await Promise.all([
+            api.get('/posts?status=pending'),
+            api.get('/posts?status=approved'),
+            api.get('/posts?status=rejected'),
+          ]);
+          setPostsList([...pending, ...approved, ...rejected]);
+        } else {
+          const data = await api.get(`/posts?status=${postStatusFilter}`);
+          setPostsList(data);
+        }
+      } else if (activeTab === 'comments') {
+        const data = await api.get('/comments');
+        setCommentsList(data);
       } else if (activeTab === 'users') {
         const data = await api.get('/users');
         setUsers(data);
@@ -157,31 +177,90 @@ export default function AdminDashboardScreen({ navigation }) {
     ]);
   };
 
-  // Filter users based on query
-  const filteredUsers = users.filter((u) => {
-    const q = userQuery.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      (u.displayName || '').toLowerCase().includes(q) ||
-      (u.username || '').toLowerCase().includes(q) ||
-      (u.email || '').toLowerCase().includes(q)
-    );
-  });
+  const handleDeleteComment = async (cid) => {
+    Alert.alert('Xoá bình luận', 'Bạn có chắc chắn muốn xoá bình luận này và tất cả các phản hồi của nó?', [
+      { text: 'Hủy', style: 'cancel' },
+      {
+        text: 'Xoá',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await api.del(`/comments/${cid}`);
+            setCommentsList((prev) => prev.filter((c) => c.id !== cid));
+            Alert.alert('Thành công', 'Đã xoá bình luận.');
+          } catch (e) {
+            Alert.alert('Lỗi', e.message);
+          }
+        },
+      },
+    ]);
+  };
+
+  const filteredAndSortedPosts = postsList
+    .filter((p) => {
+      const q = postQuery.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        (p.title || '').toLowerCase().includes(q) ||
+        (p.content || '').toLowerCase().includes(q) ||
+        (p.authorName || '').toLowerCase().includes(q)
+      );
+    })
+    .sort((a, b) => {
+      if (postSort === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+      if (postSort === 'views') return (b.views || 0) - (a.views || 0);
+      return new Date(b.createdAt) - new Date(a.createdAt); // newest
+    });
+
+  const filteredUsers = users
+    .filter((u) => {
+      const q = userQuery.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        (u.displayName || '').toLowerCase().includes(q) ||
+        (u.username || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q)
+      );
+    })
+    .sort((a, b) => {
+      if (userSort === 'oldest') return new Date(a.joinedAt) - new Date(b.joinedAt);
+      if (userSort === 'active') return new Date(b.lastActiveAt || 0) - new Date(a.lastActiveAt || 0);
+      return new Date(b.joinedAt) - new Date(a.joinedAt); // newest
+    });
+
+  const filteredAndSortedComments = commentsList
+    .filter((c) => {
+      const q = commentQuery.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        (c.content || '').toLowerCase().includes(q) ||
+        (c.authorName || '').toLowerCase().includes(q) ||
+        (c.authorEmail || '').toLowerCase().includes(q)
+      );
+    })
+    .sort((a, b) => {
+      if (commentSort === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+      return new Date(b.createdAt) - new Date(a.createdAt); // newest
+    });
 
   return (
     <View style={styles.screen}>
       {/* Top Tab Selector */}
       <View style={styles.tabBar}>
         <TouchableOpacity style={[styles.tabItem, activeTab === 'stats' && styles.tabItemActive]} onPress={() => { setLoading(true); setActiveTab('stats'); }}>
-          <Ionicons name="stats-chart" size={16} color={activeTab === 'stats' ? colors.primary : colors.slate500} />
+          <Ionicons name="stats-chart" size={15} color={activeTab === 'stats' ? colors.primary : colors.slate500} />
           <Text style={[styles.tabText, activeTab === 'stats' && styles.tabTextActive]}>KPI Stats</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tabItem, activeTab === 'posts' && styles.tabItemActive]} onPress={() => { setLoading(true); setActiveTab('posts'); }}>
-          <Ionicons name="document-text" size={16} color={activeTab === 'posts' ? colors.primary : colors.slate500} />
+          <Ionicons name="document-text" size={15} color={activeTab === 'posts' ? colors.primary : colors.slate500} />
           <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>Duyệt bài</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={[styles.tabItem, activeTab === 'comments' && styles.tabItemActive]} onPress={() => { setLoading(true); setActiveTab('comments'); }}>
+          <Ionicons name="chatbubbles" size={15} color={activeTab === 'comments' ? colors.primary : colors.slate500} />
+          <Text style={[styles.tabText, activeTab === 'comments' && styles.tabTextActive]}>Bình luận</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={[styles.tabItem, activeTab === 'users' && styles.tabItemActive]} onPress={() => { setLoading(true); setActiveTab('users'); }}>
-          <Ionicons name="people" size={16} color={activeTab === 'users' ? colors.primary : colors.slate500} />
+          <Ionicons name="people" size={15} color={activeTab === 'users' ? colors.primary : colors.slate500} />
           <Text style={[styles.tabText, activeTab === 'users' && styles.tabTextActive]}>Thành viên</Text>
         </TouchableOpacity>
       </View>
@@ -203,7 +282,7 @@ export default function AdminDashboardScreen({ navigation }) {
               </View>
               <View style={styles.statCard}>
                 <Ionicons name="document-text" size={24} color={colors.green} />
-                <Text style={styles.statValue}>{stats.totalPosts}</Text>
+                <Text style={styles.statValue}>{stats.approvedPosts}</Text>
                 <Text style={styles.statLabel}>Bài viết</Text>
               </View>
               <View style={styles.statCard}>
@@ -213,22 +292,33 @@ export default function AdminDashboardScreen({ navigation }) {
               </View>
               <View style={styles.statCard}>
                 <Ionicons name="people" size={24} color="#6366f1" />
-                <Text style={styles.statValue}>{stats.totalUsers}</Text>
+                <Text style={styles.statValue}>{stats.users}</Text>
                 <Text style={styles.statLabel}>Thành viên</Text>
               </View>
               <View style={styles.statCard}>
                 <Ionicons name="chatbubbles" size={24} color="#ec4899" />
-                <Text style={styles.statValue}>{stats.totalComments}</Text>
+                <Text style={styles.statValue}>{stats.comments}</Text>
                 <Text style={styles.statLabel}>Bình luận</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Ionicons name="pulse" size={24} color="#14b8a6" />
+                <Text style={styles.statValue}>{stats.activeUsers}</Text>
+                <Text style={styles.statLabel}>Đang truy cập</Text>
               </View>
             </View>
           )}
 
-          {/* DUYỆT BÀI TAB */}
+          {/* POSTS TAB */}
           {activeTab === 'posts' && (
             <View>
               {/* Sub tabs for posts list */}
               <View style={styles.subTabBar}>
+                <TouchableOpacity
+                  style={[styles.subTabItem, postStatusFilter === 'all' && styles.subTabItemActive]}
+                  onPress={() => { setLoading(true); setPostStatusFilter('all'); }}
+                >
+                  <Text style={[styles.subTabText, postStatusFilter === 'all' && styles.subTabTextActive]}>Tất cả</Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.subTabItem, postStatusFilter === 'pending' && styles.subTabItemActive]}
                   onPress={() => { setLoading(true); setPostStatusFilter('pending'); }}
@@ -243,10 +333,36 @@ export default function AdminDashboardScreen({ navigation }) {
                 </TouchableOpacity>
               </View>
 
+              <View style={styles.searchRow}>
+                <Ionicons name="search" size={18} color={colors.slate400} style={styles.searchIcon} />
+                <TextInput
+                  value={postQuery}
+                  onChangeText={setPostQuery}
+                  placeholder="Tìm theo tiêu đề, nội dung, tác giả..."
+                  placeholderTextColor={colors.slate400}
+                  style={styles.searchInput}
+                />
+              </View>
+
+              <View style={styles.sortRow}>
+                <Text style={styles.sortLabel}>Sắp xếp:</Text>
+                <TouchableOpacity style={[styles.sortBtn, postSort === 'newest' && styles.sortBtnActive]} onPress={() => setPostSort('newest')}>
+                  <Text style={[styles.sortBtnText, postSort === 'newest' && styles.sortBtnTextActive]}>Mới nhất</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.sortBtn, postSort === 'oldest' && styles.sortBtnActive]} onPress={() => setPostSort('oldest')}>
+                  <Text style={[styles.sortBtnText, postSort === 'oldest' && styles.sortBtnTextActive]}>Cũ nhất</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.sortBtn, postSort === 'views' && styles.sortBtnActive]} onPress={() => setPostSort('views')}>
+                  <Text style={[styles.sortBtnText, postSort === 'views' && styles.sortBtnTextActive]}>Lượt xem</Text>
+                </TouchableOpacity>
+              </View>
+
               <Text style={styles.sectionTitle}>
-                {postStatusFilter === 'pending' ? `Bài viết chờ duyệt (${postsList.length})` : `Bài viết đã duyệt (${postsList.length})`}
+                {postStatusFilter === 'all' ? `Tổng số câu hỏi (${filteredAndSortedPosts.length})` :
+                 postStatusFilter === 'pending' ? `Câu hỏi chờ duyệt (${filteredAndSortedPosts.length})` : `Câu hỏi đã duyệt (${filteredAndSortedPosts.length})`}
               </Text>
-              {postsList.map((p) => (
+
+              {filteredAndSortedPosts.map((p) => (
                 <TouchableOpacity
                   key={p.id}
                   style={styles.postCard}
@@ -258,9 +374,15 @@ export default function AdminDashboardScreen({ navigation }) {
                       <Text style={styles.postAuthor}>{p.authorName}</Text>
                       <Text style={styles.postTime}>{new Date(p.createdAt).toLocaleString('vi-VN')}</Text>
                     </View>
-                    <View style={p.status === 'approved' ? styles.badgeApproved : styles.badgePending}>
-                      <Text style={p.status === 'approved' ? styles.badgeTextApproved : styles.badgeTextPending}>
-                        {p.status === 'approved' ? 'Đã duyệt' : 'Chờ duyệt'}
+                    <View style={
+                      p.status === 'approved' ? styles.badgeApproved :
+                      p.status === 'pending' ? styles.badgePending : styles.badgeRejected
+                    }>
+                      <Text style={
+                        p.status === 'approved' ? styles.badgeTextApproved :
+                        p.status === 'pending' ? styles.badgeTextPending : styles.badgeTextRejected
+                      }>
+                        {p.status === 'approved' ? 'Đã duyệt' : p.status === 'pending' ? 'Chờ duyệt' : 'Từ chối'}
                       </Text>
                     </View>
                   </View>
@@ -270,8 +392,64 @@ export default function AdminDashboardScreen({ navigation }) {
                   <Text style={styles.postSnippet} numberOfLines={2}>{p.content}</Text>
                 </TouchableOpacity>
               ))}
-              {postsList.length === 0 && (
-                <Text style={styles.emptyText}>Không có bài đăng nào.</Text>
+              {filteredAndSortedPosts.length === 0 && (
+                <Text style={styles.emptyText}>Không tìm thấy bài viết nào.</Text>
+              )}
+            </View>
+          )}
+
+          {/* BÌNH LUẬN TAB */}
+          {activeTab === 'comments' && (
+            <View>
+              <View style={styles.searchRow}>
+                <Ionicons name="search" size={18} color={colors.slate400} style={styles.searchIcon} />
+                <TextInput
+                  value={commentQuery}
+                  onChangeText={setCommentQuery}
+                  placeholder="Tìm theo nội dung, tác giả..."
+                  placeholderTextColor={colors.slate400}
+                  style={styles.searchInput}
+                />
+              </View>
+
+              <View style={styles.sortRow}>
+                <Text style={styles.sortLabel}>Sắp xếp:</Text>
+                <TouchableOpacity style={[styles.sortBtn, commentSort === 'newest' && styles.sortBtnActive]} onPress={() => setCommentSort('newest')}>
+                  <Text style={[styles.sortBtnText, commentSort === 'newest' && styles.sortBtnTextActive]}>Mới nhất</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.sortBtn, commentSort === 'oldest' && styles.sortBtnActive]} onPress={() => setCommentSort('oldest')}>
+                  <Text style={[styles.sortBtnText, commentSort === 'oldest' && styles.sortBtnTextActive]}>Cũ nhất</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.sectionTitle}>
+                Danh sách bình luận ({filteredAndSortedComments.length})
+              </Text>
+
+              {filteredAndSortedComments.map((c) => (
+                <View key={c.id} style={styles.commentItemCard}>
+                  <View style={styles.commentHeaderRow}>
+                    <Avatar url={c.authorPhotoURL} name={c.authorName} size={28} />
+                    <View style={{ marginLeft: 8, flex: 1 }}>
+                      <Text style={styles.commentAuthorName}>{c.authorName}</Text>
+                      <Text style={styles.commentMetaText}>{new Date(c.createdAt).toLocaleString('vi-VN')}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => handleDeleteComment(c.id)} style={styles.deleteCommentBtn}>
+                      <Ionicons name="trash-outline" size={16} color={colors.red} />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={styles.commentContentText}>{c.content}</Text>
+                  <TouchableOpacity
+                    style={styles.viewPostLink}
+                    onPress={() => navigation.navigate('PostDetail', { id: c.postId })}
+                  >
+                    <Text style={styles.viewPostLinkText}>Xem bài viết →</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              {filteredAndSortedComments.length === 0 && (
+                <Text style={styles.emptyText}>Không tìm thấy bình luận nào.</Text>
               )}
             </View>
           )}
@@ -288,6 +466,19 @@ export default function AdminDashboardScreen({ navigation }) {
                   placeholderTextColor={colors.slate400}
                   style={styles.searchInput}
                 />
+              </View>
+
+              <View style={styles.sortRow}>
+                <Text style={styles.sortLabel}>Sắp xếp:</Text>
+                <TouchableOpacity style={[styles.sortBtn, userSort === 'newest' && styles.sortBtnActive]} onPress={() => setUserSort('newest')}>
+                  <Text style={[styles.sortBtnText, userSort === 'newest' && styles.sortBtnTextActive]}>Mới nhất</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.sortBtn, userSort === 'oldest' && styles.sortBtnActive]} onPress={() => setUserSort('oldest')}>
+                  <Text style={[styles.sortBtnText, userSort === 'oldest' && styles.sortBtnTextActive]}>Cũ nhất</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.sortBtn, userSort === 'active' && styles.sortBtnActive]} onPress={() => setUserSort('active')}>
+                  <Text style={[styles.sortBtnText, userSort === 'active' && styles.sortBtnTextActive]}>Hoạt động</Text>
+                </TouchableOpacity>
               </View>
 
               {filteredUsers.map((u) => {
@@ -452,6 +643,25 @@ const styles = StyleSheet.create({
   userActive: { fontSize: 10, fontWeight: '700', color: colors.slate400, marginTop: 3 },
   banRowBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.redLight, alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 },
   banTextBadge: { fontSize: 9.5, fontWeight: '800', color: colors.red },
+
+  badgeRejected: { backgroundColor: colors.redLight, borderWidth: 1, borderColor: '#fecaca', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  badgeTextRejected: { fontSize: 9, fontWeight: '800', color: colors.red },
+  sortRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 4, marginBottom: 12, gap: 8 },
+  sortLabel: { fontSize: 12.5, fontWeight: '700', color: colors.slate500 },
+  sortBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, backgroundColor: colors.slate100, borderWidth: 1, borderColor: colors.slate200 },
+  sortBtnActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  sortBtnText: { fontSize: 11.5, fontWeight: '700', color: colors.slate600 },
+  sortBtnTextActive: { color: colors.white },
+
+  // Comments Tab
+  commentItemCard: { backgroundColor: colors.white, borderRadius: 14, borderWidth: 1, borderColor: colors.slate200, padding: 12, marginBottom: 12 },
+  commentHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  commentAuthorName: { fontSize: 13, fontWeight: '800', color: colors.slate900 },
+  commentMetaText: { fontSize: 10, color: colors.slate400, fontWeight: '600', marginTop: 1 },
+  deleteCommentBtn: { padding: 4 },
+  commentContentText: { fontSize: 13, color: colors.slate700, lineHeight: 18, marginBottom: 8 },
+  viewPostLink: { alignSelf: 'flex-start', paddingVertical: 2 },
+  viewPostLinkText: { fontSize: 11.5, fontWeight: '700', color: colors.primary },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: '#00000055', justifyContent: 'flex-end' },

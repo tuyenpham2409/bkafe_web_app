@@ -50,8 +50,8 @@ export default function CreatePostScreen({ navigation }) {
 
   const handleSubmit = async () => {
     setError('');
-    if (!title.trim() || !content.trim() || !topic) {
-      setError('Vui lòng nhập tiêu đề, nội dung và chọn chủ đề.');
+    if (!content.trim() || !topic) {
+      setError('Vui lòng nhập nội dung và chọn chủ đề.');
       return;
     }
     setLoading(true);
@@ -61,9 +61,16 @@ export default function CreatePostScreen({ navigation }) {
       form.append('content', content.trim());
       form.append('topic', topic);
       files.forEach((asset) => form.append('media', guessFile(asset)));
-      await api.postForm('/posts', form);
-      Alert.alert('Thành công', 'Bài viết đã được gửi (chờ Admin duyệt nếu bạn không phải quản trị viên).');
-      navigation.goBack();
+      const post = await api.postForm('/posts', form);
+      if (post.status === 'approved') {
+        Alert.alert('Thành công', 'Đăng bài viết thành công!', [
+          { text: 'OK', onPress: () => navigation.replace('PostDetail', { id: post.id }) },
+        ]);
+      } else {
+        Alert.alert('Đã gửi', 'Bài viết của bạn đã được gửi và đang chờ ban quản trị phê duyệt.', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      }
     } catch (err) {
       setError(err.message || 'Đã xảy ra lỗi khi tạo bài viết.');
     } finally { setLoading(false); }
@@ -82,7 +89,7 @@ export default function CreatePostScreen({ navigation }) {
         ))}
       </View>
 
-      <Text style={styles.label}>Tiêu đề<Required /></Text>
+      <Text style={styles.label}>Tiêu đề (Không bắt buộc)</Text>
       <TextInput value={title} onChangeText={setTitle} placeholder="Nhập tiêu đề câu hỏi..." placeholderTextColor={colors.slate400} style={styles.input} />
 
       <Text style={styles.label}>Nội dung<Required /></Text>

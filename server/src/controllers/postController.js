@@ -15,12 +15,16 @@ function mediaFromFiles(files) {
   }));
 }
 
-// GET /api/posts  (?topic=<slug>&q=<search>&sort=newest|popular&status=approved|pending|rejected)
+// GET /api/posts  (?topic=<slug>&q=<search>&sort=newest|popular&status=approved|pending|rejected|mine&author=<userId>)
 export const listPosts = asyncHandler(async (req, res) => {
-  const { topic, q, sort, status } = req.query;
+  const { topic, q, sort, status, author } = req.query;
   const filter = {};
 
-  if (status) {
+  if (status === 'mine') {
+    // Own posts of any status (pending/rejected/approved) — never exposes other users' unapproved posts.
+    if (!req.user) return res.status(401).json({ message: 'Cần đăng nhập.' });
+    filter.author = req.user._id;
+  } else {
     if (status === 'pending' || status === 'rejected') {
       if (req.user?.role !== 'admin') {
         return res.status(403).json({ message: 'Bạn không có quyền truy cập.' });
@@ -29,8 +33,7 @@ export const listPosts = asyncHandler(async (req, res) => {
     } else {
       filter.status = 'approved';
     }
-  } else {
-    filter.status = 'approved';
+    if (author && /^[0-9a-fA-F]{24}$/.test(author)) filter.author = author;
   }
 
   if (topic && topic !== 'all') filter.topic = topic;
@@ -110,10 +113,11 @@ export const createPost = asyncHandler(async (req, res) => {
 export const updatePost = asyncHandler(async (req, res) => {
   const post = await Post.findById(req.params.id);
   if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
-  
+
   const isOwner = String(post.author) === String(req.user._id);
-  if (!isOwner) {
-    return res.status(403).json({ message: 'Chỉ người đăng bài mới có quyền chỉnh sửa bài viết của chính mình.' });
+  const isAdmin = req.user.role === 'admin';
+  if (!isOwner && !isAdmin) {
+    return res.status(403).json({ message: 'Chỉ người đăng bài hoặc quản trị viên mới có quyền chỉnh sửa bài viết này.' });
   }
 
   const { title, content, topic, keepMedia } = req.body;
@@ -135,8 +139,8 @@ export const updatePost = asyncHandler(async (req, res) => {
     post.media = [...post.media, ...newMedia].slice(0, 5);
   }
 
-  // Reset status to pending if updated by user who is not admin
-  if (req.user.role !== 'admin') {
+  if (!isAdmin) {
+    // Reset status to pending if updated by the (non-admin) owner
     post.status = 'pending';
     post.rejectReason = '';
     const admins = await User.find({ role: 'admin' }).select('_id').lean();
@@ -151,6 +155,15 @@ export const updatePost = asyncHandler(async (req, res) => {
         })
       )
     );
+  } else if (!isOwner) {
+    // Admin edited someone else's post — leave its status untouched, just notify the author
+    await Notification.create({
+      user: post.author,
+      type: 'post_edited_by_admin',
+      title: 'Bài viết của bạn đã được quản trị viên chỉnh sửa',
+      message: `Quản trị viên đã cập nhật nội dung câu hỏi "${post.title || 'không tiêu đề'}" của bạn.`,
+      link: `/post/${post._id}`,
+    });
   }
 
   await post.save();
@@ -255,4 +268,29 @@ export const sharePost = asyncHandler(async (req, res) => {
   const post = await Post.findByIdAndUpdate(req.params.id, { $inc: { shares: 1 } }, { new: true });
   if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
   res.json({ shares: post.shares });
+});
+
+// GET /api/posts/:id/raters — who rated this post and with how many stars (public, for the rating popover)
+export const getPostRaters = asyncHandler(async (req, res) => {
+  const post = await Post.findById(req.params.id).select('ratings').lean();
+  if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
+
+  const entries = Object.entries(post.ratings || {});
+  const users = await User.find({ _id: { $in: entries.map(([uid]) => uid) } })
+    .select(AUTHOR_FIELDS)
+    .lean();
+  const userMap = {};
+  users.forEach((u) => { userMap[String(u._id)] = u; });
+
+  const raters = entries
+    .map(([uid, value]) => ({
+      userId: uid,
+      displayName: userMap[uid]?.displayName || 'Người dùng',
+      username: userMap[uid]?.username || '',
+      photoURL: userMap[uid]?.photoURL || '',
+      value,
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  res.json(raters);
 });

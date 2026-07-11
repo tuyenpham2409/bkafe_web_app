@@ -73,7 +73,9 @@ router.get('/post/:id/edit', requireAuth, async (req, res, next) => {
   const { id } = req.params;
   try {
     const post = await api.get(`/posts/${id}?noview=1`, req);
-    if (post.authorId !== res.locals.currentUser?.id) {
+    const isOwner = post.authorId === res.locals.currentUser?.id;
+    const isAdmin = res.locals.currentUser?.role === 'admin';
+    if (!isOwner && !isAdmin) {
       return res.status(403).send('Bạn không có quyền sửa bài viết này.');
     }
     res.render('pages/create-post', {
@@ -113,8 +115,9 @@ router.post('/post/:id/edit', requireAuth, upload.array('media', 5), async (req,
     }
 
     const post = await api.put(`/posts/${id}`, formData, req);
+    const isAdmin = res.locals.currentUser?.role === 'admin';
 
-    if (post.status === 'approved') {
+    if (isAdmin || post.status === 'approved') {
       res.redirect(`/post/${id}?noview=1&success=${encodeURIComponent('Đã cập nhật bài viết thành công.')}`);
     } else {
       res.redirect(`/?notice=${encodeURIComponent('Bài viết đã được cập nhật và đang chờ duyệt lại.')}`);
@@ -193,6 +196,17 @@ router.post('/post/:id/rate', requireAuth, async (req, res) => {
       return res.status(err.status || 500).json({ message: err.message });
     }
     res.redirect(`/post/${id}?noview=1&error=${encodeURIComponent(err.message)}`);
+  }
+});
+
+// Who-rated list (polled from the client while the modal is open)
+router.get('/post/:id/raters', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const raters = await api.get(`/posts/${id}/raters`, req);
+    res.json(raters);
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
   }
 });
 

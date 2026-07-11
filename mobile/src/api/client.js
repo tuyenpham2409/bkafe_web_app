@@ -23,6 +23,23 @@ function resolveApiUrl() {
 
 export const API_URL = resolveApiUrl();
 
+// Same host-resolution logic as the API, but pointing at the web app (port 3000)
+// so a shared link opens the BKafe website instead of the API.
+function resolveWebUrl() {
+  const hostUri = Constants.expoConfig?.hostUri || Constants.expoGoConfig?.debuggerHost;
+  const host = hostUri ? hostUri.split(':')[0] : null;
+
+  if (host && host !== 'localhost' && host !== '127.0.0.1') {
+    return `http://${host}:3000`;
+  }
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:3000';
+  }
+  return 'http://localhost:3000';
+}
+
+export const WEB_URL = resolveWebUrl();
+
 async function request(path, { method = 'GET', body, isForm } = {}) {
   const headers = {};
   const token = await getToken();

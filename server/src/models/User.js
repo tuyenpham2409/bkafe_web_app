@@ -12,9 +12,6 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     photoURL: { type: String, default: '' },
     bio: { type: String, default: '' },
-    // password reset
-    resetToken: { type: String, select: false },
-    resetTokenExp: { type: Date, select: false },
     lastActiveAt: { type: Date, default: Date.now },
     // Admin can restrict specific activities
     bannedPosting:    { type: Boolean, default: false },

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Modal, RefreshControl, Image,
+  ActivityIndicator, Modal, RefreshControl, Image, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -28,6 +28,7 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [postSort, setPostSort] = useState('newest'); // 'newest' | 'oldest' | 'rating_desc' | 'rating_asc'
 
   useEffect(() => {
     api.get('/topics').then(setTopics).catch(() => {});
@@ -161,21 +162,46 @@ export default function HomeScreen({ navigation }) {
           {loading ? (
             <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
           ) : (
-            <FlatList
-              style={{ flex: 1 }}
-              data={posts}
-              keyExtractor={(p) => p.id}
-              contentContainerStyle={styles.list}
-              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
-              renderItem={({ item }) => (
-                <PostCard
-                  post={item}
-                  topicName={topics.find((t) => t.slug === item.topic)?.name}
-                  onPress={() => navigation.navigate('PostDetail', { id: item.id })}
-                />
-              )}
-              ListEmptyComponent={<Text style={styles.empty}>Chưa có câu hỏi nào.</Text>}
-            />
+            <>
+              <View style={styles.sortRow}>
+                <Text style={styles.sortLabel}>Sắp xếp:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                  <TouchableOpacity style={[styles.sortBtn, postSort === 'newest' && styles.sortBtnActive]} onPress={() => setPostSort('newest')}>
+                    <Text style={[styles.sortBtnText, postSort === 'newest' && styles.sortBtnTextActive]}>Mới nhất</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.sortBtn, postSort === 'oldest' && styles.sortBtnActive]} onPress={() => setPostSort('oldest')}>
+                    <Text style={[styles.sortBtnText, postSort === 'oldest' && styles.sortBtnTextActive]}>Cũ nhất</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.sortBtn, postSort === 'rating_desc' && styles.sortBtnActive]} onPress={() => setPostSort('rating_desc')}>
+                    <Text style={[styles.sortBtnText, postSort === 'rating_desc' && styles.sortBtnTextActive]}>Đánh giá cao → thấp</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.sortBtn, postSort === 'rating_asc' && styles.sortBtnActive]} onPress={() => setPostSort('rating_asc')}>
+                    <Text style={[styles.sortBtnText, postSort === 'rating_asc' && styles.sortBtnTextActive]}>Đánh giá thấp → cao</Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              </View>
+
+              <FlatList
+                style={{ flex: 1 }}
+                data={[...posts].sort((a, b) => {
+                  if (postSort === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+                  if (postSort === 'rating_desc') return (b.ratingAvg || 0) - (a.ratingAvg || 0);
+                  if (postSort === 'rating_asc') return (a.ratingAvg || 0) - (b.ratingAvg || 0);
+                  return new Date(b.createdAt) - new Date(a.createdAt); // newest
+                })}
+                keyExtractor={(p) => p.id}
+                contentContainerStyle={styles.list}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
+                renderItem={({ item }) => (
+                  <PostCard
+                    post={item}
+                    topicName={topics.find((t) => t.slug === item.topic)?.name}
+                    onPress={() => navigation.navigate('PostDetail', { id: item.id })}
+                  />
+                )}
+                ListEmptyComponent={<Text style={styles.empty}>Chưa có câu hỏi nào.</Text>}
+              />
+            </>
           )}
         </>
       ) : (
@@ -190,7 +216,7 @@ export default function HomeScreen({ navigation }) {
               contentContainerStyle={styles.list}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
               renderItem={({ item }) => (
-                <View style={styles.userCard}>
+                <TouchableOpacity style={styles.userCard} onPress={() => navigation.navigate('UserProfile', { userId: item.id })}>
                   {item.photoURL ? (
                     <Image source={{ uri: item.photoURL }} style={styles.userAvatar} />
                   ) : (
@@ -202,7 +228,7 @@ export default function HomeScreen({ navigation }) {
                     <Text style={styles.userName}>{item.displayName}</Text>
                     <Text style={styles.userSub}>@{item.username} · {item.role === 'admin' ? 'QTV' : 'Thành viên'}</Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               )}
               ListEmptyComponent={
                 <Text style={styles.empty}>
@@ -260,6 +286,12 @@ const styles = StyleSheet.create({
   chipTextActive: { color: colors.white },
   list: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24 },
   empty: { textAlign: 'center', color: colors.slate400, fontWeight: '700', marginTop: 40 },
+  sortRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginBottom: 12, gap: 8 },
+  sortLabel: { fontSize: 12.5, fontWeight: '700', color: colors.slate500 },
+  sortBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, backgroundColor: colors.slate100, borderWidth: 1, borderColor: colors.slate200 },
+  sortBtnActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  sortBtnText: { fontSize: 11.5, fontWeight: '700', color: colors.slate600 },
+  sortBtnTextActive: { color: colors.white },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: 20 },
   popup: { backgroundColor: colors.white, borderRadius: 20, padding: 24, width: '100%', maxWidth: 360 },
   popupClose: { position: 'absolute', top: 16, right: 16, zIndex: 1 },

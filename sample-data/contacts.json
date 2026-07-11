@@ -1,0 +1,26 @@
+[
+  {
+    "_id": "6a52629ea4452ad519be6ec5",
+    "name": "Bùi Tuấn Minh",
+    "email": "minh.bt20233866@sis.hust.edu.vn",
+    "message": "Nền tảng BKafe chạy mượt mà quá nhóm ơi! Mong nhóm bổ sung thêm tính năng thông báo trực tiếp trên web.",
+    "user": "6a526297a4452ad519be6df7",
+    "handled": false,
+    "media": [],
+    "createdAt": "2026-07-11T15:34:54.291Z",
+    "updatedAt": "2026-07-11T15:34:54.291Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a52629ea4452ad519be6ec7",
+    "name": "Trần Văn Long",
+    "email": "long.tv20233864@sis.hust.edu.vn",
+    "message": "Giao diện mobile app rất đẹp mắt, chúc nhóm đạt điểm tuyệt đối môn học nhé!",
+    "user": "6a526297a4452ad519be6df9",
+    "handled": true,
+    "media": [],
+    "createdAt": "2026-07-11T15:34:54.294Z",
+    "updatedAt": "2026-07-11T15:34:54.294Z",
+    "__v": 0
+  }
+]
