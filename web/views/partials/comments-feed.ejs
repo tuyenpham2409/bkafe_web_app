@@ -1,0 +1,8 @@
+<% const topLevelComments = comments.filter(c => !c.parentId); %>
+<% if (topLevelComments.length === 0) { %>
+  <div class="card text-center" style="padding: 40px 16px; color: var(--slate-500); font-weight: 600;">Chưa có bình luận nào. Hãy là người đầu tiên nêu ý kiến!</div>
+<% } else { %>
+  <% topLevelComments.forEach(c => { %>
+    <%- include('comment', { comment: c, comments: comments, post: post, depth: 0 }) %>
+  <% }) %>
+<% } %>

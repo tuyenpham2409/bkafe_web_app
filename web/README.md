@@ -17,7 +17,7 @@ bkafe_web_app/          (repo)
 ## Tính năng chính
 - Đăng nhập/đăng ký bằng **MSSV (username) hoặc email**, phân quyền admin/user, đổi mật khẩu, đổi username 1 lần.
 - Câu hỏi phân theo **4 chủ đề**, mỗi câu hỏi là 1 trang riêng, hỗ trợ đính kèm ảnh/video.
-- Bình luận + trả lời cho bài viết, hiển thị công khai ngay sau khi gửi.
+- Bình luận + trả lời cho bài viết, hiển thị công khai ngay sau khi gửi; luồng thảo luận **tự cập nhật theo thời gian thực bằng polling** (`fetch` + `setInterval`) nên bình luận/trả lời/đánh giá của người khác hiện ra mà không cần tải lại trang.
 - Đánh giá sao (0–5) cho bài viết và bình luận; bấm vào tổng điểm đánh giá của bài viết để xem "Ai đã đánh giá" — danh sách này tự cập nhật theo thời gian thực bằng `fetch` + `setInterval` (polling thuần, không dùng thư viện realtime/websocket nào).
 - Trang cá nhân: xem/sửa tên hiển thị, bio, avatar; bài viết đang chờ duyệt/bị từ chối của chính mình hiển thị kèm badge trạng thái (người khác chỉ thấy bài đã duyệt).
 - Popup quảng cáo sau 1 phút ở trang chủ, ẩn vĩnh viễn qua cookie (không phải localStorage) khi đã đóng.
@@ -53,7 +53,7 @@ web/
 │   ├── css/
 │   │   └── style.css      # CSS thuần của ứng dụng (design token + 3 ngưỡng responsive)
 │   └── js/
-│       ├── main.js        # Toggle menu/dropdown, toast, lightbox, popover đánh giá, modal "ai đã đánh giá" (polling)
+│       ├── main.js        # Toggle menu/dropdown, toast, lightbox, popover đánh giá, modal "ai đã đánh giá" + tự làm mới luồng bình luận (polling)
 │       ├── notifications.js # Polling thông báo qua AJAX
 │       ├── ad-popup.js    # Popup ưu đãi kèm quản lý cookie
 │       └── media-preview.js # Hiển thị tên file đính kèm
@@ -61,7 +61,8 @@ web/
 │   ├── config/env.js      # Nạp cấu hình từ .env
 │   ├── lib/
 │   │   ├── apiClient.js   # HTTP Client giao tiếp REST API
-│   │   └── cookies.js     # Parser cookies thủ công
+│   │   ├── cookies.js     # Parser cookies thủ công
+│   │   └── commentsSig.js # Chữ ký feed bình luận để client polling tự làm mới
 │   ├── middlewares/       # Middleware phân quyền và nạp dữ liệu toàn cục
 │   ├── routes/            # Khai báo các router Express (posts, comments, profile, admin, auth, search, about, api)
 │   ├── app.js             # Cấu hình Express app

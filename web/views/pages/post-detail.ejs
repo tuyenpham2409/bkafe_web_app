@@ -165,7 +165,7 @@
 
         <div class="post-card-stat-item" style="font-size: 13px; font-weight: 600; color: var(--slate-500);">
           <%- include('../partials/icons', { name: 'message-circle', size: 18 }) %>
-          <span style="margin-left: 4px;"><%= comments.length %> bình luận</span>
+          <span style="margin-left: 4px;"><span id="post-comment-count"><%= comments.length %></span> bình luận</span>
         </div>
       </div>
 
@@ -207,15 +207,8 @@
   <div id="comments-section">
   <h3 style="font-size: 18px; font-weight: 800; color: var(--slate-900); margin-bottom: 16px;">Thảo luận</h3>
 
-  <% const topLevelComments = comments.filter(c => !c.parentId); %>
-  <div class="comments-list">
-    <% if (topLevelComments.length === 0) { %>
-      <div class="card text-center" style="padding: 40px 16px; color: var(--slate-500); font-weight: 600;">Chưa có bình luận nào. Hãy là người đầu tiên nêu ý kiến!</div>
-    <% } else { %>
-      <% topLevelComments.forEach(c => { %>
-        <%- include('../partials/comment', { comment: c, comments: comments, post: post, depth: 0 }) %>
-      <% }) %>
-    <% } %>
+  <div class="comments-list" data-post-id="<%= post.id %>" data-sig="<%= commentsSig %>">
+    <%- include('../partials/comments-feed', { comments: comments, post: post }) %>
   </div>
   </div>
 </div>
@@ -302,8 +295,8 @@
       <%- include('../partials/icons', { name: 'x', size: 24 }) %>
     </button>
   </div>
-  <div style="max-width: 90%; max-height: 90%; display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation()">
-    <img id="lightbox-image" src="" alt="" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--radius-lg);" />
+  <div style="display: flex; align-items: center; justify-content: center;" onclick="event.stopPropagation()">
+    <img id="lightbox-image" src="" alt="" style="max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: var(--radius-lg);" />
   </div>
 </div>
 

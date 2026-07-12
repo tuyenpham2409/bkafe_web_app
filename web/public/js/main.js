@@ -211,8 +211,19 @@ window.toggleRatePopover = function(id) {
 // Comment Reply form toggle
 window.toggleReplyForm = function(commentId) {
   const form = document.getElementById(`reply-form-${commentId}`);
-  if (form) {
-    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  if (!form) return;
+  const opening = form.style.display !== 'block';
+  form.style.display = opening ? 'block' : 'none';
+  if (opening) {
+    const textarea = form.querySelector('textarea[name="content"]');
+    if (textarea) {
+      if (!textarea.value.trim() && textarea.dataset.mention) {
+        textarea.value = textarea.dataset.mention;
+      }
+      textarea.focus();
+      const end = textarea.value.length;
+      textarea.setSelectionRange(end, end);
+    }
   }
 };
 
@@ -284,6 +295,43 @@ window.copyPageUrl = async function(event) {
     console.error('Failed to copy link: ', err);
   }
 };
+
+// Comments auto-refresh — plain fetch + setInterval polling (no realtime/socket library).
+// Swaps the rendered feed in only when its signature changes, and never while the
+// user is mid-interaction (typing, or a reply/edit form or rating popover is open),
+// so an in-progress reply is never wiped out by a background refresh.
+let commentsPollInterval = null;
+
+function isCommentsListBusy(list) {
+  if (document.activeElement && list.contains(document.activeElement)) return true;
+  const openables = list.querySelectorAll('[id^="reply-form-"], [id^="comment-edit-form-"], .star-rating-popover .dropdown-menu');
+  for (const el of openables) {
+    if (el.style.display && el.style.display !== 'none') return true;
+  }
+  return false;
+}
+
+async function pollComments(list) {
+  const postId = list.dataset.postId;
+  if (!postId || isCommentsListBusy(list)) return;
+  try {
+    const res = await fetch(`/post/${postId}/comments/feed`, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.sig === list.dataset.sig || isCommentsListBusy(list)) return;
+    list.innerHTML = data.html;
+    list.dataset.sig = data.sig;
+    const countEl = document.getElementById('post-comment-count');
+    if (countEl) countEl.textContent = data.count;
+  } catch (e) {}
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const list = document.querySelector('.comments-list[data-post-id]');
+  if (list) {
+    commentsPollInterval = setInterval(() => pollComments(list), 3000);
+  }
+});
 
 // Who Rated Modal — plain fetch + setInterval polling while open, no realtime/socket library.
 let ratersPollInterval = null;

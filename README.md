@@ -61,7 +61,7 @@ npm start                 # quét QR bằng Expo Go, hoặc phím a/w cho emulat
 **Website**
 - Lưu trữ dữ liệu bằng MongoDB/Mongoose.
 - Đăng nhập/đăng xuất, phân biệt quyền admin/user (JWT).
-- Trang nội dung theo mã (`/post/:id`): bình luận + trả lời + đánh giá sao, hiển thị công khai ngay sau khi gửi. Đánh giá tách riêng thành popup sao kèm mục "Xem ai đã đánh giá" (cập nhật theo thời gian thực bằng polling JS thuần, không dùng thư viện realtime nào).
+- Trang nội dung theo mã (`/post/:id`): bình luận + trả lời + đánh giá sao, hiển thị công khai ngay sau khi gửi và **tự cập nhật theo thời gian thực bằng polling JS thuần** (bình luận/trả lời/đánh giá của người khác hiện ra không cần tải lại trang, không dùng thư viện realtime nào). Đánh giá tách riêng thành popup sao kèm mục "Xem ai đã đánh giá" cũng cập nhật thời gian thực bằng polling.
 - Popup quảng cáo hiện sau 1 phút ở trang chủ, đóng thì lưu cookie để lần sau không hiện lại.
 - Trang Giới thiệu & Liên hệ kèm form gửi ý kiến.
 - Trang quản trị: xem tổng lượt truy cập, duyệt/từ chối bài (kèm lý do + thông báo), **sửa nội dung bất kỳ bài viết nào** (gửi thông báo cho tác giả), xem/xoá danh sách bình luận, quản lý người dùng (khoá quyền, đổi vai trò, xoá).

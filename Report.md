@@ -57,7 +57,7 @@ mobile/   App di động (React Native + Expo)             ← gọi cùng API
 | Viết bình luận (yêu cầu đăng nhập; nội dung + đính kèm ảnh/video) | ✅ | ✅ | *Website:* "Có form bình luận và đánh giá... với các thông tin tên người, email, nội dung bình luận, điểm đánh giá" | **Hoàn thiện có điều chỉnh** — xem ghi chú bên dưới |
 | Trả lời bình luận (lồng nhau nhiều cấp) | ✅ | ✅ | *(như trên)* | Hoàn thiện |
 | Sửa / xoá bình luận (chủ bình luận hoặc admin) | ✅ | ✅ | — | Hoàn thiện |
-| Bình luận hiển thị công khai ngay sau khi gửi | ✅ | ✅ | *Website:* "Các bình luận và đánh giá sau khi gửi sẽ được hiển thị công khai" | Hoàn thiện |
+| Bình luận hiển thị công khai ngay sau khi gửi; luồng thảo luận tự cập nhật theo thời gian thực bằng polling (bình luận/trả lời/đánh giá của người khác hiện ra không cần tải lại trang) | ✅ | ✅ | *Website:* "Các bình luận và đánh giá sau khi gửi sẽ được hiển thị công khai" | Hoàn thiện |
 | Đánh giá sao (0–5) cho bài viết, tách thành thao tác riêng (popover chọn sao) | ✅ | ✅ | *(cùng mục form bình luận/đánh giá)* | Hoàn thiện |
 | Đánh giá sao (0–5) cho từng bình luận | ✅ | ✅ | — | Hoàn thiện |
 | **"Ai đã đánh giá"** — xem danh sách người đã đánh giá kèm avatar, tên, số sao; danh sách tự cập nhật theo thời gian thực bằng polling (`fetch`/`api.get` + `setInterval` mỗi ~3 giây khi đang mở), không dùng thư viện realtime/websocket | ✅ | ✅ | *(bổ sung nâng cao cho mục đánh giá)* | Hoàn thiện |

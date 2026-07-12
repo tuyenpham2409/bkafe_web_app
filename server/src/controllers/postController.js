@@ -249,7 +249,7 @@ export const ratePost = asyncHandler(async (req, res) => {
     post.ratings.set(String(req.user._id), value);
   }
   post.recomputeRating();
-  await post.save();
+  await post.save({ timestamps: false });
 
   if (value > 0 && String(post.author) !== String(req.user._id)) {
     await Notification.create({

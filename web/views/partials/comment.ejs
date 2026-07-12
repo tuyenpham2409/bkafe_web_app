@@ -161,7 +161,7 @@ if (currentDepth === 1 || currentDepth === 2) {
         <form method="POST" action="/comments/<%= comment.id %>/reply" enctype="multipart/form-data" onsubmit="submitCommentForm(event, '/comments/<%= comment.id %>/reply', true, '<%= comment.id %>', <%= currentDepth %>)">
           <input type="hidden" name="postId" value="<%= post.id %>">
           <div style="display: flex; gap: 8px;">
-            <textarea name="content" required placeholder="Viết phản hồi của bạn..." class="form-input" style="min-height: 60px; font-size: 14px; flex-grow: 1;"></textarea>
+            <textarea name="content" required data-mention="@<%= comment.authorName %> " placeholder="Viết phản hồi của bạn..." class="form-input" style="min-height: 60px; font-size: 14px; flex-grow: 1;"></textarea>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
             <div style="display: flex; align-items: center; gap: 8px;">

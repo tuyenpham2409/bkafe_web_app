@@ -3,6 +3,7 @@ import { api } from '../lib/apiClient.js';
 import { requireAuth } from '../middlewares/requireAuth.js';
 import { requireAdmin } from '../middlewares/requireAdmin.js';
 import { upload } from '../middlewares/upload.js';
+import { commentsSignature } from '../lib/commentsSig.js';
 
 const router = Router();
 
@@ -20,6 +21,7 @@ router.get('/post/:id', async (req, res, next) => {
     res.render('pages/post-detail', {
       post,
       comments,
+      commentsSig: commentsSignature(comments),
       error: req.query.error || null,
       success: req.query.success || null,
     });
@@ -196,6 +198,23 @@ router.post('/post/:id/rate', requireAuth, async (req, res) => {
       return res.status(err.status || 500).json({ message: err.message });
     }
     res.redirect(`/post/${id}?noview=1&error=${encodeURIComponent(err.message)}`);
+  }
+});
+
+// Comments feed (polled from the client to auto-refresh the discussion without a reload)
+router.get('/post/:id/comments/feed', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [post, comments] = await Promise.all([
+      api.get(`/posts/${id}?noview=1`, req),
+      api.get(`/posts/${id}/comments`, req),
+    ]);
+    res.render('partials/comments-feed', { post, comments }, (err, html) => {
+      if (err) return res.status(500).json({ message: err.message });
+      res.json({ html, sig: commentsSignature(comments), count: comments.length });
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ message: err.message });
   }
 });
 
