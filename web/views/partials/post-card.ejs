@@ -28,7 +28,7 @@ const topicName = topicObj ? topicObj.name : null;
   <h2 class="post-card-title"><%= title %></h2>
   <p class="post-card-body line-clamp-3"><%= post.content %></p>
 
-  <!-- Media preview -->
+  
   <% if (post.media && post.media.length > 0) { %>
     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px;">
       <% post.media.slice(0, 3).forEach((m, i) => { %>

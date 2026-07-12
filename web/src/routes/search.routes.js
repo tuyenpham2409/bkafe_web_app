@@ -10,7 +10,7 @@ const SORTS = [
   { value: 'rating_asc', label: 'Đánh giá thấp → cao' },
 ];
 
-// GET /search?q=&tab=posts|users&sort=&topic=
+
 router.get('/search', async (req, res, next) => {
   const q = req.query.q || '';
   const tab = req.query.tab === 'users' ? 'users' : 'posts';
@@ -35,7 +35,7 @@ router.get('/search', async (req, res, next) => {
       if (sort === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
       if (sort === 'rating_desc') return (b.ratingAvg || 0) - (a.ratingAvg || 0);
       if (sort === 'rating_asc') return (a.ratingAvg || 0) - (b.ratingAvg || 0);
-      return new Date(b.createdAt) - new Date(a.createdAt); // newest
+      return new Date(b.createdAt) - new Date(a.createdAt); 
     });
 
     res.render('pages/search', { q, tab, sort, topic, SORTS, posts, users });

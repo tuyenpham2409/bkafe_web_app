@@ -12,14 +12,14 @@ const postSchema = new mongoose.Schema(
   {
     title: { type: String, trim: true },
     content: { type: String, required: true },
-    topic: { type: String, required: true, index: true }, // Topic.slug
+    topic: { type: String, required: true, index: true }, 
     author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     media: { type: [mediaSchema], default: [] },
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending', index: true },
     rejectReason: { type: String, default: '' },
     views: { type: Number, default: 0 },
     shares: { type: Number, default: 0 },
-    // one rating per user: Map<userId, value 0..5>
+    
     ratings: { type: Map, of: Number, default: {} },
     ratingAvg: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },
@@ -27,7 +27,7 @@ const postSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Recompute the cached average/count from the ratings map.
+
 postSchema.methods.recomputeRating = function () {
   const values = Array.from(this.ratings.values());
   this.ratingCount = values.length;

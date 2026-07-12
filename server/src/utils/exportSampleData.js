@@ -1,6 +1,6 @@
-// Xuất dữ liệu mẫu hiện có trong MongoDB ra sample-data/*.json (ở gốc repo),
-// dùng để nộp bài kèm code khi không thể đính kèm trực tiếp một MongoDB đang chạy.
-// Chạy sau khi đã `npm run seed`: `npm run export-sample-data`.
+
+
+
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

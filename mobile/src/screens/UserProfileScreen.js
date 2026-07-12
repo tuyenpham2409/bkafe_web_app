@@ -49,7 +49,7 @@ export default function UserProfileScreen({ route, navigation }) {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ padding: 16, paddingTop: 24, paddingBottom: 40 }}>
-      {/* Profile Card */}
+      {}
       <View style={styles.card}>
         <Avatar url={profile.photoURL} name={profile.displayName} size={84} />
         <Text style={styles.name}>{profile.displayName}</Text>
@@ -59,14 +59,14 @@ export default function UserProfileScreen({ route, navigation }) {
           <Text style={styles.roleText}>{profile.role === 'admin' ? 'Quản trị viên' : 'Sinh viên HUST'}</Text>
         </View>
 
-        {/* Bio Section */}
+        {}
         <Text style={styles.bioText}>
           {profile.bio?.trim() ? profile.bio : 'Chưa có thông tin tiểu sử.'}
         </Text>
 
         <View style={styles.divider} />
 
-        {/* Stats Row */}
+        {}
         <View style={styles.statsRow}>
           <View style={styles.statCol}>
             <Text style={styles.statVal}>{profile.postCount ?? posts.length}</Text>
@@ -80,13 +80,13 @@ export default function UserProfileScreen({ route, navigation }) {
 
         <View style={styles.divider} />
 
-        {/* Joining Date */}
+        {}
         <Text style={styles.email}>
           Tham gia ngày: {new Date(profile.joinedAt).toLocaleDateString('vi-VN')}
         </Text>
       </View>
 
-      {/* User's Posts list */}
+      {}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Các câu hỏi đã đăng ({posts.length})</Text>
         {posts.map((p) => (

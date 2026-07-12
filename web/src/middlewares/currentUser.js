@@ -9,7 +9,7 @@ export async function currentUser(req, res, next) {
       const data = await api.get('/auth/me', req);
       res.locals.currentUser = data.user;
     } catch (err) {
-      // Clear cookie if token is invalid or expired
+      
       res.clearCookie('bkafe_token');
     }
   }

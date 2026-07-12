@@ -6,7 +6,7 @@ import * as cm from '../controllers/commentController.js';
 
 const r = Router();
 
-// posts
+
 r.get('/', auth(false), p.listPosts);
 r.get('/:id', auth(false), p.getPost);
 r.post('/', auth(), upload.array('media', 5), p.createPost);
@@ -18,7 +18,7 @@ r.post('/:id/rate', auth(), p.ratePost);
 r.get('/:id/raters', auth(false), p.getPostRaters);
 r.post('/:id/share', auth(false), p.sharePost);
 
-// comments nested under a post
+
 r.get('/:postId/comments', auth(false), cm.listComments);
 r.post('/:postId/comments', auth(), upload.array('media', 5), cm.createComment);
 

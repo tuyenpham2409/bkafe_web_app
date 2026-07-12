@@ -1,5 +1,5 @@
 <%
-// Find replies to this comment
+
 const replies = comments.filter(c => c.parentId === comment.id);
 const user = locals.currentUser;
 const isCommentOwner = user && user.id === comment.authorId;
@@ -15,7 +15,7 @@ if (currentDepth === 1 || currentDepth === 2) {
 %>
 <div class="comment-node" id="comment-<%= comment.id %>" style="<%= styleStr %>">
   <div class="card" style="padding: 16px; margin-bottom: 8px;">
-    <!-- Comment Header -->
+    
     <div class="post-card-header" style="margin-bottom: 12px;">
       <div class="post-card-author">
         <a href="/profile/<%= comment.authorId %>" style="text-decoration: none; flex-shrink: 0;">
@@ -43,7 +43,7 @@ if (currentDepth === 1 || currentDepth === 2) {
         </div>
       </div>
 
-      <!-- Rating Display -->
+      
       <div style="font-size: 12px;" id="comment-rating-summary-<%= comment.id %>">
         <% if (comment.ratingCount > 0) { %>
           <div style="display: flex; align-items: center; gap: 4px; color: var(--amber); font-weight: 700;">
@@ -54,7 +54,7 @@ if (currentDepth === 1 || currentDepth === 2) {
       </div>
     </div>
 
-    <!-- Comment Content / Edit Form -->
+    
     <div id="comment-content-display-<%= comment.id %>" class="post-card-body" style="font-size: 14px; white-space: pre-wrap;"><%= comment.content %></div>
     
     <% if (isCommentOwner) { %>
@@ -62,14 +62,14 @@ if (currentDepth === 1 || currentDepth === 2) {
         <input type="hidden" name="postId" value="<%= post.id %>">
         <textarea name="content" required class="form-input" style="min-height: 80px; font-size: 14px; margin-bottom: 8px;"><%= comment.content %></textarea>
         
-        <!-- Media file list to keep -->
+        
         <% if (comment.media && comment.media.length > 0) { %>
           <div style="margin-bottom: 8px;">
             <label style="font-size: 12px; font-weight: 600; color: var(--slate-600);">Giữ lại hình ảnh/video:</label>
             <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
               <% comment.media.forEach((m, idx) => { %>
                 <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--slate-700);">
-                  <!-- We send keepMedia as a JSON array of urls to keep. Since Express urlencoded will collect multiple fields into an array if they share the same name, we can do that or handle it in BFF -->
+                  
                   <input type="checkbox" name="keepMedia" value="<%= m.url %>" checked style="width: 16px; height: 16px;">
                   <%= m.type === 'video' ? 'Video' : 'Ảnh' %> (<%= m.url.substring(m.url.lastIndexOf('/') + 1) %>)
                 </label>
@@ -90,7 +90,7 @@ if (currentDepth === 1 || currentDepth === 2) {
       </form>
     <% } %>
 
-    <!-- Comment Media Attachments -->
+    
     <% if (comment.media && comment.media.length > 0) { %>
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px;">
         <% comment.media.forEach((m, i) => { %>
@@ -107,9 +107,9 @@ if (currentDepth === 1 || currentDepth === 2) {
       </div>
     <% } %>
 
-    <!-- Comment Footer / Actions -->
+    
     <div class="post-card-footer" style="margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--slate-100); font-size: 13px; gap: 12px;">
-      <!-- Rate Comment button -->
+      
       <div class="relative star-rating-popover" style="display: inline-block;">
         <button type="button" class="btn-link text-slate" id="comment-rating-btn-<%= comment.id %>" style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; color: <%= comment.myRating ? 'var(--amber)' : 'var(--slate-500)' %>; font-weight: <%= comment.myRating ? '900' : '700' %>;" onclick="toggleRatePopover('<%= comment.id %>')">
           <%- include('icons', { name: 'star', size: 14, fill: comment.myRating ? 'var(--amber)' : 'none', stroke: comment.myRating ? 'var(--amber)' : 'currentColor' }) %>
@@ -128,7 +128,7 @@ if (currentDepth === 1 || currentDepth === 2) {
         </div>
       </div>
 
-      <!-- Reply toggle -->
+      
       <% if (user) { %>
         <button type="button" onclick="toggleReplyForm('<%= comment.id %>')" class="btn-link text-slate" style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-weight: 700; color: var(--slate-500);">
           <%- include('icons', { name: 'message-circle', size: 14 }) %>
@@ -136,7 +136,7 @@ if (currentDepth === 1 || currentDepth === 2) {
         </button>
       <% } %>
 
-      <!-- Edit / Delete -->
+      
       <% if (isCommentOwner) { %>
         <button type="button" onclick="toggleEditComment('<%= comment.id %>')" class="btn-link text-slate" style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; font-weight: 700; color: var(--slate-500); margin-left: auto;">
           <%- include('icons', { name: 'edit', size: 14 }) %>
@@ -155,7 +155,7 @@ if (currentDepth === 1 || currentDepth === 2) {
       <% } %>
     </div>
 
-    <!-- Reply Form -->
+    
     <% if (user) { %>
       <div id="reply-form-<%= comment.id %>" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--slate-100);">
         <form method="POST" action="/comments/<%= comment.id %>/reply" enctype="multipart/form-data" onsubmit="submitCommentForm(event, '/comments/<%= comment.id %>/reply', true, '<%= comment.id %>', <%= currentDepth %>)">
@@ -182,7 +182,7 @@ if (currentDepth === 1 || currentDepth === 2) {
     <% } %>
   </div>
 
-  <!-- Recursive Child Replies -->
+  
   <% if (replies && replies.length > 0) { %>
     <div class="replies-container">
       <% replies.forEach(reply => { %>

@@ -13,10 +13,10 @@
     <div class="alert alert-success" style="margin-bottom: 20px;"><%= success %></div>
   <% } %>
 
-  <!-- Main Post Card -->
+  
   <div class="card" style="padding: 24px; margin-bottom: 24px;">
     
-    <!-- Post Status Banner (if not approved) -->
+    
     <div id="moderation-banner" style="<%= post.status === 'approved' ? 'display: none;' : '' %>">
       <% if (post.status === 'pending') { %>
         <div style="background-color: var(--amber-light); color: var(--amber); padding: 12px 16px; border-radius: var(--radius-lg); font-size: 14px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
@@ -63,7 +63,7 @@
           </span>
         <% } %>
 
-        <!-- Admin & Owner Controls -->
+        
         <% const user = locals.currentUser; %>
         <% const isAdmin = user && user.role === 'admin'; %>
         <% const isOwner = user && user.id === post.authorId; %>
@@ -104,13 +104,13 @@
       </div>
     </div>
 
-    <!-- Post Title & Body -->
+    
     <h1 class="post-card-title" style="font-size: 22px; line-height: 1.4; margin-bottom: 12px; color: var(--slate-900);">
       <%= post.title || post.content?.substring(0, 50) + (post.content?.length > 50 ? '...' : '') %>
     </h1>
     <div class="post-card-body" style="font-size: 15px; line-height: 1.6; color: var(--slate-700); white-space: pre-wrap; margin-bottom: 20px;"><%= post.content %></div>
 
-    <!-- Post Media Attachments -->
+    
     <% if (post.media && post.media.length > 0) { %>
       <div style="display: grid; grid-template-columns: repeat(1, 1fr); gap: 12px; margin-bottom: 20px;">
         <% post.media.forEach((m, idx) => { %>
@@ -127,11 +127,11 @@
       </div>
     <% } %>
 
-    <!-- Post Footer -->
+    
     <div class="post-card-footer" style="padding-top: 16px; border-top: 1px solid var(--slate-100);">
       <div class="post-card-stats" style="gap: 16px;">
         
-        <!-- Ratings popover -->
+        
         <div class="relative star-rating-popover" style="display: inline-block;">
           <button type="button" class="btn-link" id="post-rating-btn" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-lg); background-color: var(--slate-50); color: <%= post.myRating ? 'var(--amber)' : 'var(--slate-500)' %>; font-weight: 700; font-size: 13px;" onclick="toggleRatePopover('post-<%= post.id %>')">
             <%- include('../partials/icons', { name: 'star', size: 18, fill: post.myRating ? 'var(--amber)' : 'none', stroke: post.myRating ? 'var(--amber)' : 'var(--slate-300)' }) %>
@@ -149,13 +149,13 @@
           </div>
         </div>
 
-        <!-- Who rated trigger -->
+        
         <button type="button" class="btn-link" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-lg); background-color: var(--slate-50); color: var(--slate-500); font-weight: 700; font-size: 13px;" onclick="openRatersModal('<%= post.id %>')" title="Xem ai đã đánh giá">
           <%- include('../partials/icons', { name: 'user', size: 16 }) %>
           <span>Xem đánh giá</span>
         </button>
 
-        <!-- Share count & button -->
+        
         <form method="POST" action="/post/<%= post.id %>/share" style="display: inline;">
           <button type="submit" class="btn-link" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-lg); background-color: var(--slate-50); color: var(--slate-500); font-weight: 700; font-size: 13px;" onclick="copyPageUrl(event)">
             <%- include('../partials/icons', { name: 'share-2', size: 18 }) %>
@@ -176,7 +176,7 @@
     </div>
   </div>
 
-  <!-- Write Comment Form -->
+  
   <div class="card" style="padding: 24px; margin-bottom: 24px;">
     <h3 style="font-size: 16px; font-weight: 800; color: var(--slate-900); margin-bottom: 16px;">Ý kiến của bạn</h3>
     <% if (user) { %>
@@ -203,7 +203,7 @@
     <% } %>
   </div>
 
-  <!-- Comments Feed -->
+  
   <div id="comments-section">
   <h3 style="font-size: 18px; font-weight: 800; color: var(--slate-900); margin-bottom: 16px;">Thảo luận</h3>
 
@@ -213,7 +213,7 @@
   </div>
 </div>
 
-<!-- Admin Rejection Reason Modal -->
+
 <% if (isAdmin) { %>
   <div id="reject-modal" class="modal-overlay" style="display: none;">
     <div class="modal-container" style="max-width: 440px; width: 90%;">
@@ -244,7 +244,7 @@
   </div>
 <% } %>
 
-<!-- Delete Reason Modal (Admin or Owner) -->
+
 <% if (isAdmin || isOwner) { %>
   <div id="delete-modal" class="modal-overlay" style="display: none;">
     <div class="modal-container" style="max-width: 440px; width: 90%;">
@@ -273,7 +273,7 @@
   </div>
 <% } %>
 
-<!-- Who Rated Modal -->
+
 <div id="raters-modal" class="modal-overlay" style="display: none;">
   <div class="modal-container" style="max-width: 420px; width: 90%;">
     <button type="button" class="modal-close-btn" onclick="closeRatersModal()">
@@ -288,7 +288,7 @@
   </div>
 </div>
 
-<!-- Media Lightbox Modal -->
+
 <div id="media-lightbox" class="modal-overlay" style="display: none; background-color: rgba(15, 23, 42, 0.95);" onclick="closeMediaLightbox()">
   <div style="position: absolute; top: 16px; right: 16px; z-index: 50;">
     <button type="button" class="btn-icon" style="color: var(--white); background-color: rgba(255,255,255,0.1);" onclick="closeMediaLightbox()">

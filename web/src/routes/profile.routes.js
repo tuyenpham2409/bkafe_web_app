@@ -5,14 +5,14 @@ import { upload } from '../middlewares/upload.js';
 
 const router = Router();
 
-// GET /profile/:id - User profile page (own posts included)
+
 router.get('/profile/:id', async (req, res, next) => {
   const { id } = req.params;
   const isOwnProfile = res.locals.currentUser?.id === id;
   try {
     const [profile, posts] = await Promise.all([
       api.get(`/users/${id}`, req),
-      // Own profile sees pending/rejected posts too; other users only ever see approved ones.
+      
       isOwnProfile
         ? api.get('/posts?status=mine&sort=newest', req)
         : api.get(`/posts?author=${id}&sort=newest`, req),
@@ -31,7 +31,7 @@ router.get('/profile/:id', async (req, res, next) => {
   }
 });
 
-// POST /profile/edit - Edit own display name & bio
+
 router.post('/profile/edit', requireAuth, async (req, res) => {
   const { displayName, bio } = req.body;
   const userId = res.locals.currentUser?.id;
@@ -43,7 +43,7 @@ router.post('/profile/edit', requireAuth, async (req, res) => {
   }
 });
 
-// POST /profile/avatar - Instant avatar upload (stored as base64 data URL, like the API expects)
+
 router.post('/profile/avatar', requireAuth, upload.single('avatar'), async (req, res) => {
   const userId = res.locals.currentUser?.id;
   try {
@@ -56,7 +56,7 @@ router.post('/profile/avatar', requireAuth, upload.single('avatar'), async (req,
   }
 });
 
-// POST /profile/username - Edit own username (allowed once)
+
 router.post('/profile/username', requireAuth, async (req, res) => {
   const { username } = req.body;
   const userId = res.locals.currentUser?.id;
@@ -68,7 +68,7 @@ router.post('/profile/username', requireAuth, async (req, res) => {
   }
 });
 
-// POST /profile/password - Change password
+
 router.post('/profile/password', requireAuth, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   const userId = res.locals.currentUser?.id;

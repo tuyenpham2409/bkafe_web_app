@@ -134,9 +134,9 @@ window.goBackOrHome = function(event) {
   }
 };
 
-// Mobile menu toggle
+
 document.addEventListener('DOMContentLoaded', () => {
-  // Count one website view per browser session
+  
   if (!sessionStorage.getItem('bkafe_site_viewed')) {
     sessionStorage.setItem('bkafe_site_viewed', 'true');
     fetch('/api/stats/view', { method: 'POST' }).catch(() => {});
@@ -147,9 +147,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const sidebarNav = document.querySelector('.sidebar-nav');
   const mobileMenuNav = document.getElementById('mobile-menu-nav');
 
-  // After redirect-after-post lands on #comment-<id> or #comments-section,
-  // flash the target briefly so the user notices the result without the
-  // page having jumped back to the very top.
+  
+  
+  
   if (location.hash.startsWith('#comment-')) {
     const target = document.getElementById(location.hash.slice(1));
     if (target) {
@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (mobileToggleBtn && mobileMenuOverlay && sidebarNav && mobileMenuNav) {
-    // Clone sidebar nav into mobile menu nav
+    
     mobileMenuNav.appendChild(sidebarNav.cloneNode(true));
 
     mobileToggleBtn.addEventListener('click', () => {
@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Password show/hide toggle (delegated so it works for password fields loaded anywhere)
+
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.toggle-password-btn');
   if (!btn) return;
@@ -188,7 +188,7 @@ document.addEventListener('click', (e) => {
   btn.title = showing ? 'Hiện mật khẩu' : 'Ẩn mật khẩu';
 });
 
-// Dropdowns & Popovers
+
 window.togglePostMenu = function() {
   const dropdown = document.getElementById('post-options-dropdown');
   if (dropdown) {
@@ -200,7 +200,7 @@ window.toggleRatePopover = function(id) {
   const popover = document.getElementById(`rate-popover-${id}`);
   if (popover) {
     const isHidden = popover.style.display === 'none';
-    // Close other open popovers
+    
     document.querySelectorAll('.star-rating-popover .dropdown-menu').forEach(el => {
       el.style.display = 'none';
     });
@@ -208,7 +208,7 @@ window.toggleRatePopover = function(id) {
   }
 };
 
-// Comment Reply form toggle
+
 window.toggleReplyForm = function(commentId) {
   const form = document.getElementById(`reply-form-${commentId}`);
   if (!form) return;
@@ -227,7 +227,7 @@ window.toggleReplyForm = function(commentId) {
   }
 };
 
-// Comment Edit form toggle
+
 window.toggleEditComment = function(commentId) {
   const form = document.getElementById(`comment-edit-form-${commentId}`);
   const display = document.getElementById(`comment-content-display-${commentId}`);
@@ -238,7 +238,7 @@ window.toggleEditComment = function(commentId) {
   }
 };
 
-// Admin Modals
+
 window.openRejectModal = function() {
   const modal = document.getElementById('reject-modal');
   if (modal) modal.style.display = 'flex';
@@ -259,7 +259,7 @@ window.closeDeleteModal = function() {
   if (modal) modal.style.display = 'none';
 };
 
-// Copy Page URL (Post Share)
+
 window.copyPageUrl = async function(event) {
   event.preventDefault();
   const form = event.currentTarget.closest('form');
@@ -296,10 +296,10 @@ window.copyPageUrl = async function(event) {
   }
 };
 
-// Comments auto-refresh — plain fetch + setInterval polling (no realtime/socket library).
-// Swaps the rendered feed in only when its signature changes, and never while the
-// user is mid-interaction (typing, or a reply/edit form or rating popover is open),
-// so an in-progress reply is never wiped out by a background refresh.
+
+
+
+
 let commentsPollInterval = null;
 
 function isCommentsListBusy(list) {
@@ -333,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Who Rated Modal — plain fetch + setInterval polling while open, no realtime/socket library.
+
 let ratersPollInterval = null;
 
 async function loadRaters(postId) {
@@ -408,7 +408,7 @@ window.closeRatersModal = function() {
   ratersPollInterval = null;
 };
 
-// Media Lightbox
+
 window.openMediaLightbox = function(url) {
   const lightbox = document.getElementById('media-lightbox');
   const img = document.getElementById('lightbox-image');
@@ -424,16 +424,16 @@ window.closeMediaLightbox = function() {
   }
 };
 
-// Global click listener to close dropdowns when clicking outside
+
 document.addEventListener('click', (e) => {
-  // Post Options dropdown
+  
   const postBtn = document.getElementById('post-options-btn');
   const postDropdown = document.getElementById('post-options-dropdown');
   if (postDropdown && postDropdown.style.display === 'block' && postBtn && !postBtn.contains(e.target) && !postDropdown.contains(e.target)) {
     postDropdown.style.display = 'none';
   }
 
-  // Rate Popovers
+  
   if (!e.target.closest('.star-rating-popover')) {
     document.querySelectorAll('.star-rating-popover .dropdown-menu').forEach(el => {
       el.style.display = 'none';
@@ -464,15 +464,15 @@ window.submitRate = async function(event, url, isPost, targetId) {
       return;
     }
 
-    const result = await res.json(); // { ratingAvg, ratingCount, myRating }
+    const result = await res.json(); 
     
-    // Close popover
+    
     document.querySelectorAll('.star-rating-popover .dropdown-menu').forEach(el => {
       el.style.display = 'none';
     });
 
     if (isPost) {
-      // Update post rating UI elements
+      
       const textSpan = document.getElementById('post-rating-text');
       if (textSpan) {
         textSpan.textContent = result.ratingCount > 0 
@@ -480,7 +480,7 @@ window.submitRate = async function(event, url, isPost, targetId) {
           : 'Đánh giá';
       }
       
-      // Update main rating icon
+      
       const rateBtn = document.getElementById('post-rating-btn');
       if (rateBtn) {
         const svg = rateBtn.querySelector('svg');
@@ -500,7 +500,7 @@ window.submitRate = async function(event, url, isPost, targetId) {
         }
       }
 
-      // Update popover star highlighting
+      
       const popover = document.getElementById(`rate-popover-post-${targetId}`);
       if (popover) {
         const stars = popover.querySelectorAll('button[name="value"]');
@@ -524,7 +524,7 @@ window.submitRate = async function(event, url, isPost, targetId) {
         });
       }
     } else {
-      // Update comment rating UI elements
+      
       const textBtn = document.getElementById(`comment-rating-btn-${targetId}`);
       if (textBtn) {
         if (result.myRating) {
@@ -558,7 +558,7 @@ window.submitRate = async function(event, url, isPost, targetId) {
         }
       }
 
-      // Update comment rating summary at top right
+      
       const summaryDiv = document.getElementById(`comment-rating-summary-${targetId}`);
       if (summaryDiv) {
         if (result.ratingCount > 0) {
@@ -573,7 +573,7 @@ window.submitRate = async function(event, url, isPost, targetId) {
         }
       }
 
-      // Update popover star highlighting
+      
       const popover = document.getElementById(`rate-popover-${targetId}`);
       if (popover) {
         const stars = popover.querySelectorAll('button[name="value"]');
@@ -619,7 +619,7 @@ window.submitApprove = async function(event, url) {
     }
     const data = await res.json();
     
-    // Remove or update moderation banner
+    
     const banner = document.getElementById('moderation-banner');
     if (banner) {
       banner.style.backgroundColor = 'var(--emerald-light)';
@@ -631,7 +631,7 @@ window.submitApprove = async function(event, url) {
         </span>
         <span style="font-size: 13px; font-weight: 600; color: var(--emerald-dark); margin-left: 8px;">Bài viết đã được phê duyệt hiển thị công khai thành công!</span>
       `;
-      // Auto-hide the banner after 3 seconds
+      
       setTimeout(() => {
         banner.style.display = 'none';
       }, 3000);
@@ -663,10 +663,10 @@ window.submitReject = async function(event, url) {
       return;
     }
     
-    // Close modal
+    
     window.closeRejectModal();
     
-    // Update moderation banner
+    
     const banner = document.getElementById('moderation-banner');
     if (banner) {
       banner.style.backgroundColor = 'var(--rose-light)';
@@ -856,7 +856,7 @@ window.submitDeleteComment = async function(event, url, commentId) {
   });
 };
 
-// Scroll Restoration: save on unload, restore on back_forward navigation
+
 window.addEventListener('beforeunload', () => {
   sessionStorage.setItem('scroll:' + location.pathname + location.search, String(window.scrollY));
 });

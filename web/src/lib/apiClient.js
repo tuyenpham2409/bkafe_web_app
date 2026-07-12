@@ -4,12 +4,12 @@ async function request(path, options = {}, req = null) {
   const url = `${env.apiUrl}${path}`;
   const headers = { ...options.headers };
 
-  // Forward authorization token if available in cookies
+  
   if (req && req.cookies && req.cookies.bkafe_token) {
     headers['Authorization'] = `Bearer ${req.cookies.bkafe_token}`;
   }
 
-  // Automatically parse body as JSON if not sending FormData
+  
   if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
     headers['Content-Type'] = 'application/json';
   }

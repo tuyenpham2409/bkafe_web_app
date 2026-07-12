@@ -5,9 +5,9 @@ import { requireAdmin } from '../middlewares/requireAdmin.js';
 
 const router = Router();
 
-// GET /about - Public About & Contact page for everyone, EXCEPT admin: an admin
-// visiting this same URL sees their feedback inbox instead (matches the original
-// AboutContact.tsx, which branched on user.role rather than using a separate route).
+
+
+
 router.get('/about', async (req, res, next) => {
   if (res.locals.currentUser?.role === 'admin') {
     try {
@@ -27,7 +27,7 @@ router.get('/about', async (req, res, next) => {
   });
 });
 
-// POST /about - Handle feedback submission (public)
+
 router.post('/about', upload.array('media', 5), async (req, res) => {
   const { name, email, message } = req.body;
   try {
@@ -50,7 +50,7 @@ router.post('/about', upload.array('media', 5), async (req, res) => {
   }
 });
 
-// POST /about/:id/toggle - Admin toggles a feedback's handled status
+
 router.post('/about/:id/toggle', requireAdmin, async (req, res) => {
   const { id } = req.params;
   try {
@@ -61,7 +61,7 @@ router.post('/about/:id/toggle', requireAdmin, async (req, res) => {
   }
 });
 
-// POST /about/:id/delete - Admin deletes a feedback entry
+
 router.post('/about/:id/delete', requireAdmin, async (req, res) => {
   const { id } = req.params;
   try {

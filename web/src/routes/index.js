@@ -11,7 +11,7 @@ import searchRouter from './search.routes.js';
 
 const router = Router();
 
-// Mount routes
+
 router.use('/', authRouter);
 router.use('/', homeRouter);
 router.use('/', postsRouter);
@@ -22,7 +22,7 @@ router.use('/', adminRouter);
 router.use('/', searchRouter);
 router.use('/api', apiRouter);
 
-// Health check route
+
 router.get('/health', (req, res) => res.send('OK'));
 
 export default router;

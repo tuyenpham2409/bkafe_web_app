@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Only show the ad popup on the homepage
+  
   const isHomepage = window.location.pathname === '/';
   if (!isHomepage) return;
 
@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // Show after 1 minute (60,000 ms)
+  
   setTimeout(() => {
     const adModal = document.getElementById('ad-popup-modal');
     if (adModal) {
@@ -33,13 +33,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const dismissAd = () => {
         adModal.style.display = 'none';
-        setCookie('bkafe_ad_dismissed', 'true', 30); // Dismiss for 30 days
+        setCookie('bkafe_ad_dismissed', 'true', 30); 
       };
 
       if (closeBtn) closeBtn.addEventListener('click', dismissAd);
       if (actionBtn) actionBtn.addEventListener('click', dismissAd);
 
-      // Dismiss if user clicks outside the modal box
+      
       adModal.addEventListener('click', (e) => {
         if (e.target === adModal) {
           dismissAd();

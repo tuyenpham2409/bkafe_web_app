@@ -42,23 +42,23 @@ export default function PostDetailScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [previewImage, setPreviewImage] = useState(null);
 
-  // New comment states
+  
   const [commentText, setCommentText] = useState('');
   const [commentFiles, setCommentFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
-  // Reply states
+  
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [replyFiles, setReplyFiles] = useState([]);
 
-  // Comment edit states
+  
   const [editingComment, setEditingComment] = useState(null);
   const [editCommentText, setEditCommentText] = useState('');
   const [editCommentMedia, setEditCommentMedia] = useState([]);
   const [editCommentFiles, setEditCommentFiles] = useState([]);
 
-  // Post edit states
+  
   const [editingPost, setEditingPost] = useState(false);
   const [editPostTitle, setEditPostTitle] = useState('');
   const [editPostContent, setEditPostContent] = useState('');
@@ -67,11 +67,11 @@ export default function PostDetailScreen({ route, navigation }) {
   const [editPostFiles, setEditPostFiles] = useState([]);
   const [postSaving, setPostSaving] = useState(false);
 
-  // Admin mod states
+  
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
 
-  // Who-rated modal states
+  
   const [ratersModalOpen, setRatersModalOpen] = useState(false);
   const [raters, setRaters] = useState([]);
   const [ratersLoading, setRatersLoading] = useState(false);
@@ -80,11 +80,11 @@ export default function PostDetailScreen({ route, navigation }) {
   const isAdmin = user?.role === 'admin';
   const isOwner = user && post && user.id === post.authorId;
 
-  // Tracks which post id has already had its view counted, so refocusing this
-  // screen or polling doesn't keep incrementing views (mirrors web's noview=1 pattern).
+  
+  
   const viewCountedIdRef = useRef(null);
 
-  // Load topics for edit
+  
   useEffect(() => {
     api.get('/topics').then(setTopics).catch(() => {});
   }, []);
@@ -99,7 +99,7 @@ export default function PostDetailScreen({ route, navigation }) {
       if (countThisView) viewCountedIdRef.current = id;
       setPost(p);
       setComments(cs);
-      // Init post edit data
+      
       setEditPostTitle(p.title || '');
       setEditPostContent(p.content || '');
       setEditPostTopic(p.topic || '');
@@ -117,7 +117,7 @@ export default function PostDetailScreen({ route, navigation }) {
     }, [load])
   );
 
-  // Poll comments and post data every 3 seconds to keep comments updated without sockets
+  
   useEffect(() => {
     if (!id) return;
     const interval = setInterval(async () => {
@@ -135,7 +135,7 @@ export default function PostDetailScreen({ route, navigation }) {
     return () => clearInterval(interval);
   }, [id]);
 
-  // Set action menu in header right
+  
   useEffect(() => {
     if (post && (isAdmin || (isOwner && post.status !== 'rejected'))) {
       navigation.setOptions({
@@ -422,7 +422,7 @@ export default function PostDetailScreen({ route, navigation }) {
     }
   };
 
-  // Render a comment node recursively (Tree structure)
+  
   const renderCommentNode = (c, depth = 0) => {
     const isCommentOwner = user && user.id === c.authorId;
     const isEditingThis = editingComment === c.id;
@@ -441,8 +441,7 @@ export default function PostDetailScreen({ route, navigation }) {
           
           <View style={{ flex: 1, marginLeft: 8 }}>
             {isEditingThis ? (
-              /* Inline comment edit form */
-              <View style={styles.inlineEditForm}>
+                            <View style={styles.inlineEditForm}>
                 <TextInput
                   value={editCommentText}
                   onChangeText={setEditCommentText}
@@ -450,7 +449,7 @@ export default function PostDetailScreen({ route, navigation }) {
                   multiline
                 />
                 
-                {/* Media manager */}
+                {}
                 <View style={styles.editCommentMediaRow}>
                   {editCommentMedia.map((m, idx) => (
                     <View key={`ex-${idx}`} style={styles.smallThumb}>
@@ -485,13 +484,12 @@ export default function PostDetailScreen({ route, navigation }) {
                 </View>
               </View>
             ) : (
-              /* View comment content */
-              <>
+                            <>
                 <View style={styles.bubble}>
                   <Text style={styles.commentAuthor} onPress={() => navigation.navigate('UserProfile', { userId: c.authorId })}>{c.authorName}</Text>
                   <Text style={styles.commentText}>{c.content}</Text>
                   
-                  {/* Media attachment display */}
+                  {}
                   {c.media?.length > 0 && (
                     <View style={styles.commentMediaGrid}>
                       {c.media.map((m, idx) => m.type === 'video' ? (
@@ -535,7 +533,7 @@ export default function PostDetailScreen({ route, navigation }) {
               </>
             )}
 
-            {/* Reply inputs inline */}
+            {}
             {replyingTo === c.id && user && (
               <View style={styles.replyForm}>
                 <View style={styles.replyInputRow}>
@@ -555,7 +553,7 @@ export default function PostDetailScreen({ route, navigation }) {
                   </TouchableOpacity>
                 </View>
                 
-                {/* Reply Media Previews */}
+                {}
                 {replyFiles.length > 0 && (
                   <View style={styles.commentMediaGrid}>
                     {replyFiles.map((f, idx) => (
@@ -571,7 +569,7 @@ export default function PostDetailScreen({ route, navigation }) {
               </View>
             )}
 
-            {/* Children comments */}
+            {}
             {children.length > 0 && (
               <View style={styles.repliesList}>
                 {children.map((child) => renderCommentNode(child, depth + 1))}
@@ -599,7 +597,7 @@ export default function PostDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* Post card */}
+        {}
         <View style={styles.card}>
           <TouchableOpacity 
             style={styles.postHeader}
@@ -656,7 +654,7 @@ export default function PostDetailScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* Comments section */}
+        {}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Bình luận và giải đáp</Text>
 
@@ -675,7 +673,7 @@ export default function PostDetailScreen({ route, navigation }) {
                 multiline
               />
               
-              {/* Comment Attachments Selection */}
+              {}
               {commentFiles.length > 0 && (
                 <View style={styles.attachmentsRow}>
                   {commentFiles.map((f, i) => (
@@ -717,7 +715,7 @@ export default function PostDetailScreen({ route, navigation }) {
         </View>
       </ScrollView>
 
-      {/* Reject Modal */}
+      {}
       <Modal visible={rejectModalOpen} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -742,7 +740,7 @@ export default function PostDetailScreen({ route, navigation }) {
         </View>
       </Modal>
 
-      {/* Who Rated Modal */}
+      {}
       <Modal visible={ratersModalOpen} animationType="slide" transparent onRequestClose={closeRatersModal}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -771,7 +769,7 @@ export default function PostDetailScreen({ route, navigation }) {
         </View>
       </Modal>
 
-      {/* Post Edit Modal */}
+      {}
       <Modal visible={editingPost} animationType="slide">
         <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
@@ -848,7 +846,7 @@ export default function PostDetailScreen({ route, navigation }) {
       </SafeAreaView>
     </Modal>
 
-      {/* Image Preview Modal / Lightbox */}
+      {}
       {previewImage && (
         <Modal visible={true} transparent animationType="fade" onRequestClose={() => setPreviewImage(null)}>
           <TouchableOpacity 
@@ -890,17 +888,17 @@ const styles = StyleSheet.create({
   actionText: { fontSize: 12.5, fontWeight: '700', color: colors.slate500 },
   sectionTitle: { fontSize: 16, fontWeight: '900', color: colors.slate900, paddingBottom: 12, marginBottom: 4, borderBottomWidth: 1, borderBottomColor: colors.slate100 },
   
-  // Status tags
+  
   statusTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, borderWidth: 1 },
   statusPending: { backgroundColor: colors.amberLight, borderColor: '#fde68a' },
   statusRejected: { backgroundColor: colors.redLight, borderColor: '#fecaca' },
   statusTagText: { fontSize: 9, fontWeight: '800', color: colors.slate700 },
 
-  // Reject Notice
+  
   rejectNotice: { backgroundColor: colors.redLight, borderColor: '#fecaca', borderWidth: 1, padding: 12, borderRadius: 12, marginBottom: 12 },
   rejectNoticeText: { color: colors.red, fontSize: 13, fontWeight: '700' },
 
-  // Comment section
+  
   commentForm: { backgroundColor: colors.slate50, borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f099', padding: 12, marginTop: 8 },
   identityChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.slate100, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, marginBottom: 10 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.green },
@@ -917,7 +915,7 @@ const styles = StyleSheet.create({
   guestText: { fontSize: 13, fontWeight: '700', color: colors.primaryDark, textAlign: 'center', marginBottom: 6 },
   link: { color: colors.primaryDark, fontWeight: '900', fontSize: 13 },
   
-  // Recursive comment block
+  
   commentBlock: { marginTop: 12 },
   nestedCommentBlock: { marginLeft: 12, borderLeftWidth: 1.5, borderLeftColor: colors.slate200, paddingLeft: 8 },
   commentRow: { flexDirection: 'row' },
@@ -932,20 +930,20 @@ const styles = StyleSheet.create({
   ratingTextSmall: { fontSize: 11, fontWeight: '800', color: colors.amber },
   empty: { textAlign: 'center', color: colors.slate400, fontWeight: '700', fontSize: 13, paddingVertical: 24 },
   
-  // Comment attached media
+  
   commentMediaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
   commentMediaImg: { width: 72, height: 72, borderRadius: 8, borderWidth: 1, borderColor: colors.slate200 },
   commentVideoBox: { width: 72, height: 72, borderRadius: 8, backgroundColor: colors.slate700, alignItems: 'center', justifyContent: 'center' },
   commentVideoLabel: { color: colors.white, fontSize: 8, fontWeight: '700', marginTop: 2 },
 
-  // Inline replies input
+  
   replyForm: { marginTop: 6, backgroundColor: colors.slate50, padding: 8, borderRadius: 10, borderLeftWidth: 2, borderLeftColor: colors.primary },
   replyInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   replyInput: { flex: 1, backgroundColor: colors.white, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, fontSize: 13, borderWidth: 1, borderColor: colors.slate200 },
   replyAddMediaBtn: { padding: 4 },
   replySendBtn: { backgroundColor: colors.primary, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 
-  // Inline Comment Editor
+  
   inlineEditForm: { backgroundColor: colors.slate50, borderWidth: 1, borderColor: colors.primaryLight, padding: 10, borderRadius: 12 },
   inlineEditTextInput: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate200, borderRadius: 10, padding: 10, fontSize: 13, minHeight: 60, textAlignVertical: 'top' },
   editCommentMediaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
@@ -955,14 +953,14 @@ const styles = StyleSheet.create({
   saveBtnSmall: { backgroundColor: colors.primary, paddingVertical: 4, paddingHorizontal: 12, borderRadius: 6 },
   saveTextSmall: { fontSize: 12, fontWeight: '800', color: colors.white },
 
-  // Common Thumbnail elements
+  
   smallThumb: { width: 44, height: 44, borderRadius: 8, position: 'relative', borderWidth: 1, borderColor: colors.slate200 },
   smallThumbImg: { width: '100%', height: '100%', borderRadius: 8 },
   smallVideoThumb: { width: '100%', height: '100%', borderRadius: 8, backgroundColor: colors.slate100, alignItems: 'center', justifyContent: 'center' },
   smallRemoveBtn: { position: 'absolute', top: -3, right: -3, backgroundColor: '#000000aa', borderRadius: 8, width: 14, height: 14, alignItems: 'center', justifyContent: 'center' },
   smallAddMediaBtn: { width: 44, height: 44, borderRadius: 8, borderWidth: 1, borderColor: colors.slate300, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
 
-  // Modal elements
+  
   modalOverlay: { flex: 1, backgroundColor: '#00000055', justifyContent: 'center', alignItems: 'center', padding: 16 },
   modalContainer: { width: '100%', maxWidth: 340, backgroundColor: colors.white, borderRadius: 16, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
   modalTitle: { fontSize: 16, fontWeight: '900', color: colors.slate900, marginBottom: 8 },
@@ -978,7 +976,7 @@ const styles = StyleSheet.create({
   raterName: { flex: 1, fontSize: 13.5, fontWeight: '800', color: colors.slate900 },
   raterStars: { fontSize: 12, fontWeight: '700', color: colors.amber },
 
-  // Fullscreen edit post modal
+  
   editPostContainer: { flex: 1, backgroundColor: colors.white },
   editPostHeader: { fontSize: 20, fontWeight: '900', color: colors.slate900, marginBottom: 20 },
   editPostLabel: { fontSize: 11, fontWeight: '800', color: colors.slate500, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 8, marginTop: 16 },

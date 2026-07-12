@@ -2,8 +2,8 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import User from '../models/User.js';
 
-// Reads the Bearer token, loads the user and attaches it to req.user.
-// `required=false` lets a route work for both guests and logged-in users.
+
+
 export function auth(required = true) {
   return async (req, res, next) => {
     try {
@@ -25,7 +25,7 @@ export function auth(required = true) {
       }
 
       req.user = user;
-      // Fire-and-forget: update lastActiveAt without blocking the request
+      
       User.findByIdAndUpdate(user._id, { lastActiveAt: new Date() }).catch(() => {});
       next();
 

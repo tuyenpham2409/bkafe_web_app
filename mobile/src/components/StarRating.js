@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
-// Read-only summary: ★★★★☆  4.2/5 (12 đánh giá)
 export function StarRatingDisplay({ rating = 0, count = 0, size = 15 }) {
   const rounded = Math.round(rating);
   return (
@@ -18,7 +17,6 @@ export function StarRatingDisplay({ rating = 0, count = 0, size = 15 }) {
   );
 }
 
-// Tappable 0-5 star selector, used both for rating a post and rating a comment.
 export function StarSelector({ visible, value, onSelect, onClose }) {
   if (!visible) return null;
   return (
@@ -35,7 +33,6 @@ export function StarSelector({ visible, value, onSelect, onClose }) {
   );
 }
 
-// Small trigger button + popover, mirrors the web's RatePopover.
 export function RateButton({ myValue, onRate, size = 14 }) {
   const [open, setOpen] = useState(false);
   return (

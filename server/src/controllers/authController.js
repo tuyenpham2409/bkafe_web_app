@@ -5,7 +5,7 @@ import { asyncHandler } from '../middlewares/errorHandler.js';
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,15}$/;
 const ADMIN_EMAIL = 'admin@bkafe.hust.edu.vn';
 
-// POST /api/auth/register
+
 export const register = asyncHandler(async (req, res) => {
   const { username, displayName, email, password } = req.body;
   if (!username || !displayName || !email || !password) {
@@ -19,7 +19,7 @@ export const register = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Mật khẩu phải có ít nhất 6 ký tự.' });
   }
 
-  // enforce uniqueness explicitly for friendly messages (unique index is the real guard)
+  
   if (await User.exists({ username: uname })) {
     return res.status(409).json({ message: 'Tên đăng nhập này đã được sử dụng.' });
   }
@@ -35,7 +35,7 @@ export const register = asyncHandler(async (req, res) => {
   res.status(201).json({ token: signToken(user), user: user.toPublic() });
 });
 
-// POST /api/auth/login  { identifier (username or email), password }
+
 export const login = asyncHandler(async (req, res) => {
   const { identifier, password } = req.body;
   if (!identifier || !password) return res.status(400).json({ message: 'Vui lòng nhập tài khoản và mật khẩu.' });
@@ -49,12 +49,12 @@ export const login = asyncHandler(async (req, res) => {
   res.json({ token: signToken(user), user: user.toPublic() });
 });
 
-// GET /api/auth/me
+
 export const me = asyncHandler(async (req, res) => {
   res.json({ user: req.user.toPublic() });
 });
 
-// PUT /api/auth/password  { currentPassword, newPassword }
+
 export const changePassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   if (!newPassword || String(newPassword).length < 6) {
@@ -69,7 +69,7 @@ export const changePassword = asyncHandler(async (req, res) => {
   res.json({ message: 'Đã đổi mật khẩu thành công.' });
 });
 
-// PUT /api/auth/username  { username } — allowed only ONCE
+
 export const changeUsername = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
   if (user.usernameChanged) {

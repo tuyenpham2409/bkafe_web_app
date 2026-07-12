@@ -15,13 +15,13 @@ function mediaFromFiles(files) {
   }));
 }
 
-// GET /api/posts  (?topic=<slug>&q=<search>&sort=newest|popular&status=approved|pending|rejected|mine&author=<userId>)
+
 export const listPosts = asyncHandler(async (req, res) => {
   const { topic, q, sort, status, author } = req.query;
   const filter = {};
 
   if (status === 'mine') {
-    // Own posts of any status (pending/rejected/approved) — never exposes other users' unapproved posts.
+    
     if (!req.user) return res.status(401).json({ message: 'Cần đăng nhập.' });
     filter.author = req.user._id;
   } else {
@@ -63,7 +63,7 @@ export const listPosts = asyncHandler(async (req, res) => {
   res.json(posts.map((p) => ({ ...shapePost(p, req.user), commentCount: countMap[String(p._id)] || 0 })));
 });
 
-// GET /api/posts/:id  (?noview=1 to skip view increment)
+
 export const getPost = asyncHandler(async (req, res) => {
   const skipView = req.query.noview === '1';
   const post = skipView
@@ -73,7 +73,7 @@ export const getPost = asyncHandler(async (req, res) => {
   res.json(shapePost(post, req.user));
 });
 
-// POST /api/posts   (multipart: title, content, topic, media[])
+
 export const createPost = asyncHandler(async (req, res) => {
   if (req.user.bannedPosting) {
     return res.status(403).json({ message: 'Tài khoản của bạn đã bị hạn chế quyền đăng bài.' });
@@ -91,7 +91,7 @@ export const createPost = asyncHandler(async (req, res) => {
     status: req.user.role === 'admin' ? 'approved' : 'pending',
   });
   await post.populate('author', AUTHOR_FIELDS);
-  // Gửi thông báo đến tất cả admin khi có câu hỏi mới chờ duyệt
+  
   if (req.user.role !== 'admin') {
     const admins = await User.find({ role: 'admin' }).select('_id').lean();
     await Promise.all(
@@ -109,7 +109,7 @@ export const createPost = asyncHandler(async (req, res) => {
   res.status(201).json(shapePost(post, req.user));
 });
 
-// PUT /api/posts/:id   (author or admin)
+
 export const updatePost = asyncHandler(async (req, res) => {
   const post = await Post.findById(req.params.id);
   if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
@@ -140,7 +140,7 @@ export const updatePost = asyncHandler(async (req, res) => {
   }
 
   if (!isAdmin) {
-    // Reset status to pending if updated by the (non-admin) owner
+    
     post.status = 'pending';
     post.rejectReason = '';
     const admins = await User.find({ role: 'admin' }).select('_id').lean();
@@ -156,7 +156,7 @@ export const updatePost = asyncHandler(async (req, res) => {
       )
     );
   } else if (!isOwner) {
-    // Admin edited someone else's post — leave its status untouched, just notify the author
+    
     await Notification.create({
       user: post.author,
       type: 'post_edited_by_admin',
@@ -171,7 +171,7 @@ export const updatePost = asyncHandler(async (req, res) => {
   res.json(shapePost(post, req.user));
 });
 
-// DELETE /api/posts/:id  { reason }  (author or admin)
+
 export const deletePost = asyncHandler(async (req, res) => {
   const post = await Post.findById(req.params.id);
   if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
@@ -180,7 +180,7 @@ export const deletePost = asyncHandler(async (req, res) => {
     return res.status(403).json({ message: 'Bạn không có quyền xoá bài viết này.' });
   }
   const reason = String(req.body.reason || '').trim();
-  // Admin xoá bài của người khác → gửi thông báo cho tác giả
+  
   if (req.user.role === 'admin' && !isOwner) {
     const displayTitle = post.title?.trim() || post.content?.substring(0, 50);
     await Notification.create({
@@ -196,7 +196,7 @@ export const deletePost = asyncHandler(async (req, res) => {
   res.json({ message: 'Đã xoá bài viết.' });
 });
 
-// PATCH /api/posts/:id/approve  (admin)
+
 export const approvePost = asyncHandler(async (req, res) => {
   const post = await Post.findById(req.params.id);
   if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
@@ -214,7 +214,7 @@ export const approvePost = asyncHandler(async (req, res) => {
   res.json(shapePost(post, req.user));
 });
 
-// PATCH /api/posts/:id/reject  (admin)  { reason }
+
 export const rejectPost = asyncHandler(async (req, res) => {
   const reason = String(req.body.reason || '').trim();
   if (!reason) return res.status(400).json({ message: 'Vui lòng chọn/nhập lý do từ chối.' });
@@ -234,7 +234,7 @@ export const rejectPost = asyncHandler(async (req, res) => {
   res.json(shapePost(post, req.user));
 });
 
-// POST /api/posts/:id/rate  { value 0..5 }  —  value=0 xoá đánh giá
+
 export const ratePost = asyncHandler(async (req, res) => {
   const value = Number(req.body.value);
   if (!Number.isFinite(value) || value < 0 || value > 5) {
@@ -263,14 +263,14 @@ export const ratePost = asyncHandler(async (req, res) => {
   res.json({ ratingAvg: post.ratingAvg, ratingCount: post.ratingCount, myRating: value === 0 ? null : value });
 });
 
-// POST /api/posts/:id/share
+
 export const sharePost = asyncHandler(async (req, res) => {
   const post = await Post.findByIdAndUpdate(req.params.id, { $inc: { shares: 1 } }, { new: true });
   if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });
   res.json({ shares: post.shares });
 });
 
-// GET /api/posts/:id/raters — who rated this post and with how many stars (public, for the rating popover)
+
 export const getPostRaters = asyncHandler(async (req, res) => {
   const post = await Post.findById(req.params.id).select('ratings').lean();
   if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết.' });

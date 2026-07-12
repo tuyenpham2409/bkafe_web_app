@@ -20,14 +20,14 @@
   <% if (locals.error) { %><div class="alert alert-danger"><%= error %></div><% } %>
   <% if (locals.success) { %><div class="alert alert-success"><%= success %></div><% } %>
 
-  <!-- Tabs -->
+  
   <div style="display: flex; gap: 4px; background-color: var(--slate-100); padding: 4px; border-radius: 12px; width: fit-content;">
     <% [['all', `Tất cả (${counts.all})`], ['pending', `Chờ duyệt (${counts.pending})`], ['approved', `Đã duyệt (${counts.approved})`]].forEach(([val, label]) => { %>
       <a href="/admin/posts?tab=<%= val %>&q=<%= encodeURIComponent(q) %>&sort=<%= sortBy %>" style="padding: 6px 16px; border-radius: 8px; font-size: 14px; font-weight: 700; text-decoration: none; <%= tab === val ? 'background-color: var(--white); box-shadow: var(--shadow-sm); color: var(--slate-900);' : 'color: var(--slate-500);' %>"><%= label %></a>
     <% }) %>
   </div>
 
-  <!-- Search + sort -->
+  
   <form method="GET" action="/admin/posts" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 12px; align-items: center;">
     <input type="hidden" name="tab" value="<%= tab %>">
     <div class="search-container" style="flex: 1; min-width: 240px;">
@@ -45,7 +45,7 @@
     <button type="submit" class="btn btn-secondary" style="font-size: 13px;">Lọc</button>
   </form>
 
-  <!-- Post list -->
+  
   <div class="card" style="padding: 0; overflow: hidden;">
     <% if (tabPosts.length === 0) { %>
       <div style="color: var(--slate-400); font-weight: 700; font-size: 12px; padding: 32px; text-align: center;">Không có câu hỏi nào.</div>

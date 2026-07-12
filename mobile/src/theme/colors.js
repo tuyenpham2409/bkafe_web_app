@@ -1,4 +1,4 @@
-// Shared palette — mirrors the blue/slate theme used on the BKafe web app.
+
 export const colors = {
   primary: '#2563eb',
   primaryDark: '#1d4ed8',

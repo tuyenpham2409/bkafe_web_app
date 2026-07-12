@@ -54,7 +54,7 @@
 
           <div style="font-size: 14px; color: var(--slate-700); line-height: 1.6; white-space: pre-wrap; margin-bottom: 16px;"><%= fb.message %></div>
 
-          <!-- Attachments preview -->
+          
           <% if (fb.media && fb.media.length > 0) { %>
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px;">
               <% fb.media.forEach((m, i) => { %>
@@ -89,7 +89,7 @@
   </div>
 </div>
 
-<!-- Media Lightbox Modal -->
+
 <div id="media-lightbox" class="modal-overlay" style="display: none; background-color: rgba(15, 23, 42, 0.95);" onclick="closeMediaLightbox()">
   <div style="position: absolute; top: 16px; right: 16px; z-index: 50;">
     <button type="button" class="btn-icon" style="color: var(--white); background-color: rgba(255,255,255,0.1);" onclick="closeMediaLightbox()">

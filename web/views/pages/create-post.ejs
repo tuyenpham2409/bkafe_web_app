@@ -32,7 +32,7 @@
         <textarea id="content" name="content" required class="form-input" style="min-height: 180px;" placeholder="Hãy viết chi tiết thắc mắc của bạn tại đây..."><%= locals.post ? post.content : '' %></textarea>
       </div>
 
-      <!-- Keep Media checkboxes (Only for Edit mode) -->
+      
       <% if (locals.post && post.media && post.media.length > 0) { %>
         <div class="form-group">
           <label class="form-label">Giữ lại hình ảnh/video hiện tại:</label>

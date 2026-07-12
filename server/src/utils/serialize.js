@@ -1,4 +1,4 @@
-// Turn Mongoose docs (possibly populated / lean) into the JSON shape the clients expect.
+
 
 function ratingOf(ratings, userId) {
   if (!ratings || !userId) return null;
@@ -10,7 +10,7 @@ function ratingOf(ratings, userId) {
 export function shapePost(post, user) {
   const a = post.author && post.author._id ? post.author : null;
   
-  // Calculate rating values dynamically to ignore legacy 0 ratings
+  
   const ratingsMap = post.ratings;
   const ratingValues = [];
   if (ratingsMap) {
@@ -51,7 +51,7 @@ export function shapePost(post, user) {
 export function shapeComment(comment, user) {
   const a = comment.author && comment.author._id ? comment.author : null;
   
-  // Calculate rating values dynamically to ignore legacy 0 ratings
+  
   const ratingsMap = comment.ratings;
   const ratingValues = [];
   if (ratingsMap) {

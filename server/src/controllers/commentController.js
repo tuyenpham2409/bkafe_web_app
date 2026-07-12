@@ -7,7 +7,6 @@ import { env } from '../config/env.js';
 
 const AUTHOR_FIELDS = 'displayName username photoURL';
 
-/** Build media array from multer files */
 function mediaFromFiles(files) {
   return (files || []).map((f) => ({
     type: f.mimetype.startsWith('video') ? 'video' : 'image',
@@ -15,7 +14,7 @@ function mediaFromFiles(files) {
   }));
 }
 
-// GET /api/posts/:postId/comments
+
 export const listComments = asyncHandler(async (req, res) => {
   const comments = await Comment.find({ post: req.params.postId })
     .sort({ createdAt: 1 })
@@ -24,7 +23,7 @@ export const listComments = asyncHandler(async (req, res) => {
   res.json(comments.map((c) => shapeComment(c, req.user)));
 });
 
-// POST /api/posts/:postId/comments  — multipart/form-data: { content, media[] }
+
 export const createComment = asyncHandler(async (req, res) => {
   if (req.user.bannedCommenting) {
     return res.status(403).json({ message: 'Tài khoản của bạn đã bị hạn chế quyền bình luận.' });
@@ -46,7 +45,7 @@ export const createComment = asyncHandler(async (req, res) => {
   });
   await comment.populate('author', AUTHOR_FIELDS);
 
-  // Notify the post's author (unless commenting on own post)
+  
   if (String(post.author) !== String(req.user._id)) {
     await Notification.create({
       user: post.author,
@@ -60,7 +59,7 @@ export const createComment = asyncHandler(async (req, res) => {
   res.status(201).json(shapeComment(comment, req.user));
 });
 
-// POST /api/comments/:id/reply  — multipart/form-data: { content, media[] }
+
 export const replyComment = asyncHandler(async (req, res) => {
   if (req.user.bannedCommenting) {
     return res.status(403).json({ message: 'Tài khoản của bạn đã bị hạn chế quyền bình luận.' });
@@ -82,7 +81,7 @@ export const replyComment = asyncHandler(async (req, res) => {
   });
   await reply.populate('author', AUTHOR_FIELDS);
 
-  // notify the parent comment's author (unless replying to self)
+  
   if (String(parent.author) !== String(req.user._id)) {
     await Notification.create({
       user: parent.author,
@@ -95,7 +94,7 @@ export const replyComment = asyncHandler(async (req, res) => {
   res.status(201).json(shapeComment(reply, req.user));
 });
 
-// PUT /api/comments/:id  (owner) — multipart/form-data: { content, keepMedia, media[] }
+
 export const updateComment = asyncHandler(async (req, res) => {
   const comment = await Comment.findById(req.params.id);
   if (!comment) return res.status(404).json({ message: 'Không tìm thấy bình luận.' });
@@ -107,13 +106,13 @@ export const updateComment = asyncHandler(async (req, res) => {
   if (!content) return res.status(400).json({ message: 'Nội dung bình luận không được để trống.' });
   comment.content = content;
 
-  // keepMedia: JSON array of existing media URLs to retain
+  
   if (req.body.keepMedia !== undefined) {
     let keepUrls = [];
     try { keepUrls = JSON.parse(req.body.keepMedia); } catch {}
     comment.media = comment.media.filter((m) => keepUrls.includes(m.url));
   }
-  // Append new uploaded files (total capped at 5)
+  
   if (req.files?.length) {
     const newMedia = mediaFromFiles(req.files);
     comment.media = [...comment.media, ...newMedia].slice(0, 5);
@@ -124,7 +123,7 @@ export const updateComment = asyncHandler(async (req, res) => {
   res.json(shapeComment(comment, req.user));
 });
 
-// POST /api/comments/:id/rate  { value }  —  value=0 xoá đánh giá
+
 export const rateComment = asyncHandler(async (req, res) => {
   const value = Number(req.body.value);
   if (!Number.isFinite(value) || value < 0 || value > 5) {
@@ -133,7 +132,7 @@ export const rateComment = asyncHandler(async (req, res) => {
   const comment = await Comment.findById(req.params.id);
   if (!comment) return res.status(404).json({ message: 'Không tìm thấy bình luận.' });
   if (value === 0) {
-    comment.ratings.delete(String(req.user._id)); // 0 = huỷ đánh giá
+    comment.ratings.delete(String(req.user._id)); 
     comment.markModified('ratings');
   } else {
     comment.ratings.set(String(req.user._id), value);
@@ -153,7 +152,7 @@ export const rateComment = asyncHandler(async (req, res) => {
   res.json({ ratingAvg: comment.ratingAvg, ratingCount: comment.ratingCount, myRating: value === 0 ? null : value });
 });
 
-// DELETE /api/comments/:id  (admin or owner)
+
 export const deleteComment = asyncHandler(async (req, res) => {
   const comment = await Comment.findById(req.params.id);
   if (!comment) return res.status(404).json({ message: 'Không tìm thấy bình luận.' });
@@ -162,7 +161,7 @@ export const deleteComment = asyncHandler(async (req, res) => {
     return res.status(403).json({ message: 'Bạn không có quyền xoá bình luận này.' });
   }
 
-  // Collect all descendant IDs recursively
+  
   const collectDescendants = async (parentId) => {
     const children = await Comment.find({ parent: parentId }).select('_id').lean();
     const ids = children.map((c) => c._id);
@@ -178,7 +177,7 @@ export const deleteComment = asyncHandler(async (req, res) => {
   res.json({ message: 'Đã xoá bình luận.' });
 });
 
-// GET /api/comments  (admin) — all comments for moderation
+
 export const listAllComments = asyncHandler(async (req, res) => {
   const comments = await Comment.find().sort({ createdAt: -1 }).populate('author', AUTHOR_FIELDS).lean();
   res.json(comments.map((c) => shapeComment(c, req.user)));

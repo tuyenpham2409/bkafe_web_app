@@ -10,10 +10,10 @@ import { useAuth } from '../context/AuthContext';
 import Avatar from '../components/Avatar';
 import { colors } from '../theme/colors';
 
-// Helper for relative active time
+
 function userActiveTime(date) {
   if (!date) return 'Chưa có lịch sử';
-  const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000); // seconds
+  const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000); 
   if (diff < 60) return 'Đang hoạt động';
   if (diff < 3600) return `Hoạt động ${Math.floor(diff / 60)} phút trước`;
   if (diff < 86400) return `Hoạt động ${Math.floor(diff / 3600)} giờ trước`;
@@ -23,29 +23,29 @@ function userActiveTime(date) {
 export default function AdminDashboardScreen({ navigation }) {
   const { user } = useAuth();
   
-  // Tab: 'stats', 'posts', 'comments', 'users'
+  
   const [activeTab, setActiveTab] = useState('stats');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Sub-tab for Duyệt bài: 'all', 'pending' or 'approved'
+  
   const [postStatusFilter, setPostStatusFilter] = useState('pending');
 
-  // States
+  
   const [stats, setStats] = useState(null);
   const [postsList, setPostsList] = useState([]);
   const [postQuery, setPostQuery] = useState('');
-  const [postSort, setPostSort] = useState('newest'); // 'newest' | 'oldest' | 'views'
+  const [postSort, setPostSort] = useState('newest'); 
 
   const [users, setUsers] = useState([]);
   const [userQuery, setUserQuery] = useState('');
-  const [userSort, setUserSort] = useState('newest'); // 'newest' | 'oldest' | 'active'
+  const [userSort, setUserSort] = useState('newest'); 
 
   const [commentsList, setCommentsList] = useState([]);
   const [commentQuery, setCommentQuery] = useState('');
-  const [commentSort, setCommentSort] = useState('newest'); // 'newest' | 'oldest'
+  const [commentSort, setCommentSort] = useState('newest'); 
 
-  // User Settings Modal
+  
   const [selectedUser, setSelectedUser] = useState(null);
   const [banPosting, setBanPosting] = useState(false);
   const [banCommenting, setBanCommenting] = useState(false);
@@ -53,7 +53,7 @@ export default function AdminDashboardScreen({ navigation }) {
   const [isAdminRole, setIsAdminRole] = useState(false);
   const [savingUser, setSavingUser] = useState(false);
 
-  // Check auth
+  
   useEffect(() => {
     if (!user || user.role !== 'admin') {
       Alert.alert('Không có quyền', 'Bạn không có quyền truy cập trang quản trị.');
@@ -99,7 +99,7 @@ export default function AdminDashboardScreen({ navigation }) {
     }, [loadData])
   );
 
-  // Poll admin data every 4 seconds to keep dashboard updated without sockets
+  
   useEffect(() => {
     const interval = setInterval(loadData, 4000);
     return () => clearInterval(interval);
@@ -122,14 +122,14 @@ export default function AdminDashboardScreen({ navigation }) {
     if (!selectedUser) return;
     setSavingUser(true);
     try {
-      // 1. Update ban settings
+      
       const banRes = await api.patch(`/users/${selectedUser.id}/ban`, {
         bannedPosting: banPosting,
         bannedCommenting: banCommenting,
         reason: banReason.trim(),
       });
 
-      // 2. Update role if role was toggled
+      
       const originalIsAdmin = selectedUser.role === 'admin';
       let finalRole = selectedUser.role;
       if (isAdminRole !== originalIsAdmin) {
@@ -139,7 +139,7 @@ export default function AdminDashboardScreen({ navigation }) {
         finalRole = isAdminRole ? 'admin' : 'user';
       }
       
-      // Update local state
+      
       setUsers((prev) =>
         prev.map((u) =>
           u.id === selectedUser.id
@@ -209,7 +209,7 @@ export default function AdminDashboardScreen({ navigation }) {
     .sort((a, b) => {
       if (postSort === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
       if (postSort === 'views') return (b.views || 0) - (a.views || 0);
-      return new Date(b.createdAt) - new Date(a.createdAt); // newest
+      return new Date(b.createdAt) - new Date(a.createdAt); 
     });
 
   const filteredUsers = users
@@ -225,7 +225,7 @@ export default function AdminDashboardScreen({ navigation }) {
     .sort((a, b) => {
       if (userSort === 'oldest') return new Date(a.joinedAt) - new Date(b.joinedAt);
       if (userSort === 'active') return new Date(b.lastActiveAt || 0) - new Date(a.lastActiveAt || 0);
-      return new Date(b.joinedAt) - new Date(a.joinedAt); // newest
+      return new Date(b.joinedAt) - new Date(a.joinedAt); 
     });
 
   const filteredAndSortedComments = commentsList
@@ -240,12 +240,12 @@ export default function AdminDashboardScreen({ navigation }) {
     })
     .sort((a, b) => {
       if (commentSort === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
-      return new Date(b.createdAt) - new Date(a.createdAt); // newest
+      return new Date(b.createdAt) - new Date(a.createdAt); 
     });
 
   return (
     <View style={styles.screen}>
-      {/* Top Tab Selector */}
+      {}
       <View style={styles.tabBar}>
         <TouchableOpacity style={[styles.tabItem, activeTab === 'stats' && styles.tabItemActive]} onPress={() => { setLoading(true); setActiveTab('stats'); }}>
           <Ionicons name="stats-chart" size={15} color={activeTab === 'stats' ? colors.primary : colors.slate500} />
@@ -272,7 +272,7 @@ export default function AdminDashboardScreen({ navigation }) {
           contentContainerStyle={styles.scrollContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         >
-          {/* STATS TAB */}
+          {}
           {activeTab === 'stats' && stats && (
             <View style={styles.statsGrid}>
               <View style={styles.statCard}>
@@ -308,10 +308,10 @@ export default function AdminDashboardScreen({ navigation }) {
             </View>
           )}
 
-          {/* POSTS TAB */}
+          {}
           {activeTab === 'posts' && (
             <View>
-              {/* Sub tabs for posts list */}
+              {}
               <View style={styles.subTabBar}>
                 <TouchableOpacity
                   style={[styles.subTabItem, postStatusFilter === 'all' && styles.subTabItemActive]}
@@ -398,7 +398,7 @@ export default function AdminDashboardScreen({ navigation }) {
             </View>
           )}
 
-          {/* BÌNH LUẬN TAB */}
+          {}
           {activeTab === 'comments' && (
             <View>
               <View style={styles.searchRow}>
@@ -454,7 +454,7 @@ export default function AdminDashboardScreen({ navigation }) {
             </View>
           )}
 
-          {/* USERS TAB */}
+          {}
           {activeTab === 'users' && (
             <View>
               <View style={styles.searchRow}>
@@ -494,7 +494,7 @@ export default function AdminDashboardScreen({ navigation }) {
                       <Text style={styles.userName}>{u.displayName}</Text>
                       <Text style={styles.userUsername}>@{u.username} · {u.role === 'admin' ? 'Quản trị viên' : 'Sinh viên'}</Text>
                       
-                      {/* Detailed last active and join date */}
+                      {}
                       <Text style={styles.userActive}>
                         {userActiveTime(u.lastActiveAt)} · Nhập học {new Date(u.joinedAt || u.createdAt).toLocaleDateString('vi-VN')}
                       </Text>
@@ -520,7 +520,7 @@ export default function AdminDashboardScreen({ navigation }) {
         </ScrollView>
       )}
 
-      {/* Settings / Ban User Modal */}
+      {}
       {selectedUser && (
         <Modal visible={true} transparent animationType="slide">
           <View style={styles.modalOverlay}>
@@ -538,7 +538,7 @@ export default function AdminDashboardScreen({ navigation }) {
 
               <Text style={styles.modalLabel}>Cấp quyền & Thiết lập</Text>
 
-              {/* Admin Role Toggle */}
+              {}
               <View style={styles.switchRow}>
                 <Text style={styles.switchLabel}>Quyền quản trị viên (Admin)</Text>
                 <Switch value={isAdminRole} onValueChange={setIsAdminRole} />
@@ -606,20 +606,20 @@ const styles = StyleSheet.create({
   tabTextActive: { color: colors.primary },
   scrollContent: { padding: 16, paddingBottom: 40 },
   
-  // Stats
+  
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   statCard: { width: '48%', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.slate200, borderRadius: 14, padding: 16, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
   statValue: { fontSize: 20, fontWeight: '900', color: colors.slate900, marginTop: 8 },
   statLabel: { fontSize: 11, fontWeight: '700', color: colors.slate500, marginTop: 2 },
   
-  // Duyệt bài Sub-tab
+  
   subTabBar: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   subTabItem: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.slate100, borderWidth: 1, borderColor: colors.slate200 },
   subTabItemActive: { backgroundColor: colors.primaryLight, borderColor: '#bfdbfe' },
   subTabText: { fontSize: 11.5, fontWeight: '700', color: colors.slate600 },
   subTabTextActive: { color: colors.primary },
 
-  // Pending posts
+  
   sectionTitle: { fontSize: 15, fontWeight: '900', color: colors.slate900, marginBottom: 12 },
   postCard: { backgroundColor: colors.white, borderRadius: 14, borderWidth: 1, borderColor: colors.slate200, padding: 12, marginBottom: 12 },
   postCardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
   postSnippet: { fontSize: 12, color: colors.slate600, lineHeight: 18 },
   emptyText: { fontSize: 13, fontWeight: '700', color: colors.slate400, textAlign: 'center', paddingVertical: 32 },
 
-  // Users tab
+  
   searchRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: 10, borderWidth: 1, borderColor: colors.slate300, paddingHorizontal: 12, marginBottom: 14 },
   searchIcon: { marginRight: 6 },
   searchInput: { flex: 1, fontSize: 13, color: colors.slate900, paddingVertical: 8 },
@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
   sortBtnText: { fontSize: 11.5, fontWeight: '700', color: colors.slate600 },
   sortBtnTextActive: { color: colors.white },
 
-  // Comments Tab
+  
   commentItemCard: { backgroundColor: colors.white, borderRadius: 14, borderWidth: 1, borderColor: colors.slate200, padding: 12, marginBottom: 12 },
   commentHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   commentAuthorName: { fontSize: 13, fontWeight: '800', color: colors.slate900 },
@@ -663,7 +663,7 @@ const styles = StyleSheet.create({
   viewPostLink: { alignSelf: 'flex-start', paddingVertical: 2 },
   viewPostLinkText: { fontSize: 11.5, fontWeight: '700', color: colors.primary },
 
-  // Modal
+  
   modalOverlay: { flex: 1, backgroundColor: '#00000055', justifyContent: 'flex-end' },
   modalContainer: { backgroundColor: colors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.slate100, paddingBottom: 12, marginBottom: 16 },

@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const bellWrapper = document.getElementById('notification-bell-wrapper');
-  if (!bellWrapper) return; // User not logged in
+  if (!bellWrapper) return; 
 
   const bellBtn = document.getElementById('notification-bell-btn');
   const dropdown = document.getElementById('notification-dropdown');
@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const listContainer = document.getElementById('notification-list');
   const markAllBtn = document.getElementById('notification-mark-all');
 
-  // Toggle dropdown
+  
   bellBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     const isHidden = dropdown.style.display === 'none';
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Fetch notifications
+  
   async function fetchNotifications() {
     try {
       const res = await fetch('/api/notifications');
@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Mark all as read
+  
   markAllBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
     try {
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Admin badge live update
+  
   async function fetchAdminStats() {
     const adminDot = document.getElementById('header-admin-dot');
     if (!adminDot) return;
@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch {}
   }
 
-  // Initial fetch and poll every 10 seconds
+  
   fetchNotifications();
   fetchAdminStats();
   setInterval(() => { fetchNotifications(); fetchAdminStats(); }, 10000);

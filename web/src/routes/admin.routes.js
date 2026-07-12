@@ -4,7 +4,7 @@ import { requireAdmin } from '../middlewares/requireAdmin.js';
 
 const router = Router();
 
-// GET /admin - Admin dashboard (KPIs + section shortcuts)
+
 router.get('/admin', requireAdmin, async (req, res, next) => {
   try {
     const stats = await api.get('/stats', req);
@@ -18,9 +18,9 @@ router.get('/admin', requireAdmin, async (req, res, next) => {
   }
 });
 
-// ───────────────────────── Users management ─────────────────────────
 
-// GET /admin/users - list + search + role filter + sort (all via query string, no JS needed)
+
+
 router.get('/admin/users', requireAdmin, async (req, res, next) => {
   try {
     const users = await api.get('/users', req);
@@ -36,7 +36,7 @@ router.get('/admin/users', requireAdmin, async (req, res, next) => {
     filtered = filtered.sort((a, b) => {
       if (sortBy === 'oldest') return new Date(a.joinedAt) - new Date(b.joinedAt);
       if (sortBy === 'active') return new Date(b.lastActiveAt || 0) - new Date(a.lastActiveAt || 0);
-      return new Date(b.joinedAt) - new Date(a.joinedAt); // newest
+      return new Date(b.joinedAt) - new Date(a.joinedAt); 
     });
 
     res.render('pages/admin-users', {
@@ -52,7 +52,7 @@ router.get('/admin/users', requireAdmin, async (req, res, next) => {
   }
 });
 
-// POST /admin/users - Create a new user
+
 router.post('/admin/users', requireAdmin, async (req, res) => {
   const { username, displayName, email, password, role } = req.body;
   try {
@@ -63,7 +63,7 @@ router.post('/admin/users', requireAdmin, async (req, res) => {
   }
 });
 
-// POST /admin/users/:id/reset-password - Admin resets a user's password
+
 router.post('/admin/users/:id/reset-password', requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { password } = req.body;
@@ -75,7 +75,7 @@ router.post('/admin/users/:id/reset-password', requireAdmin, async (req, res) =>
   }
 });
 
-// POST /admin/users/:id/ban - Ban/unban user
+
 router.post('/admin/users/:id/ban', requireAdmin, async (req, res) => {
   const { id } = req.params;
   const bannedPosting = req.body.bannedPosting === 'on' || req.body.bannedPosting === 'true';
@@ -94,7 +94,7 @@ router.post('/admin/users/:id/ban', requireAdmin, async (req, res) => {
   }
 });
 
-// POST /admin/users/:id/role - Update user role
+
 router.post('/admin/users/:id/role', requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { role } = req.body;
@@ -106,7 +106,7 @@ router.post('/admin/users/:id/role', requireAdmin, async (req, res) => {
   }
 });
 
-// POST /admin/users/:id/delete - Delete user
+
 router.post('/admin/users/:id/delete', requireAdmin, async (req, res) => {
   const { id } = req.params;
   try {
@@ -117,9 +117,9 @@ router.post('/admin/users/:id/delete', requireAdmin, async (req, res) => {
   }
 });
 
-// ───────────────────────── Posts management ─────────────────────────
 
-// GET /admin/posts - tabs (all/pending/approved) + search + sort, all via query string
+
+
 router.get('/admin/posts', requireAdmin, async (req, res, next) => {
   try {
     const [pending, approved, rejected] = await Promise.all([
@@ -162,9 +162,9 @@ router.get('/admin/posts', requireAdmin, async (req, res, next) => {
   }
 });
 
-// ───────────────────────── Comments moderation ─────────────────────────
 
-// GET /admin/comments - list all comments + search + sort
+
+
 router.get('/admin/comments', requireAdmin, async (req, res, next) => {
   try {
     const allComments = await api.get('/comments', req);
@@ -189,7 +189,7 @@ router.get('/admin/comments', requireAdmin, async (req, res, next) => {
   }
 });
 
-// POST /admin/comments/:id/delete - Delete a comment (moderation)
+
 router.post('/admin/comments/:id/delete', requireAdmin, async (req, res) => {
   const { id } = req.params;
   try {

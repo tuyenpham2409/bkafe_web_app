@@ -4,7 +4,7 @@ import Comment from '../models/Comment.js';
 import User from '../models/User.js';
 import { asyncHandler } from '../middlewares/errorHandler.js';
 
-// POST /api/stats/view  (public) — increment the global website view counter
+
 export const trackView = asyncHandler(async (_req, res) => {
   const c = await Counter.findOneAndUpdate(
     { key: 'totalViews' },
@@ -14,7 +14,7 @@ export const trackView = asyncHandler(async (_req, res) => {
   res.json({ totalViews: c.value });
 });
 
-// GET /api/stats  — numbers for the admin dashboard + sidebar
+
 export const getStats = asyncHandler(async (_req, res) => {
   const [viewsDoc, approved, pending, rejected, comments, users, active] = await Promise.all([
     Counter.findOne({ key: 'totalViews' }).lean(),
@@ -32,6 +32,6 @@ export const getStats = asyncHandler(async (_req, res) => {
     rejectedPosts: rejected,
     comments,
     users,
-    activeUsers: active || 1, // ít nhất là admin hiện tại đang xem
+    activeUsers: active || 1, 
   });
 });

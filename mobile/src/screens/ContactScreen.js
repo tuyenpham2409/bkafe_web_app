@@ -28,7 +28,7 @@ function guessFile(asset) {
 export default function ContactScreen() {
   const { user } = useAuth();
   
-  // User form states
+  
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -36,7 +36,7 @@ export default function ContactScreen() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  // Admin inbox states
+  
   const [contacts, setContacts] = useState([]);
   const [loadingInbox, setLoadingInbox] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -45,12 +45,12 @@ export default function ContactScreen() {
 
   const isAdmin = user?.role === 'admin';
 
-  // Prefill user data
+  
   useEffect(() => {
     if (user && !isAdmin) { setName(user.displayName || ''); setEmail(user.email || ''); }
   }, [user, isAdmin]);
 
-  // Load inbox feedbacks (Admin only)
+  
   const loadInbox = useCallback(async () => {
     if (!isAdmin) return;
     try {
@@ -73,7 +73,7 @@ export default function ContactScreen() {
     }, [isAdmin, loadInbox])
   );
 
-  // Poll inbox updates every 4 seconds to keep contacts updated without sockets
+  
   useEffect(() => {
     if (!isAdmin) return;
     const interval = setInterval(loadInbox, 4000);
@@ -161,10 +161,7 @@ export default function ContactScreen() {
   };
 
   if (isAdmin) {
-    /* ────────────────────────────────────────────────────────
-       ADMIN INBOX VIEW
-       ──────────────────────────────────────────────────────── */
-    if (loadingInbox) {
+        if (loadingInbox) {
       return (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -206,7 +203,7 @@ export default function ContactScreen() {
 
             <Text style={styles.inboxMessage}>{c.message}</Text>
 
-            {/* Media attachments */}
+            {}
             {c.media?.length > 0 && (
               <View style={styles.inboxMediaRow}>
                 {c.media.map((m, idx) => m.type === 'video' ? (
@@ -246,10 +243,7 @@ export default function ContactScreen() {
     );
   }
 
-  /* ────────────────────────────────────────────────────────
-     REGULAR USER CONTACT FORM VIEW
-     ──────────────────────────────────────────────────────── */
-  return (
+    return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
       <ScrollView style={styles.screen} contentContainerStyle={{ padding: 16, paddingTop: 56, paddingBottom: 40 }}>
         <View style={styles.card}>
@@ -313,7 +307,7 @@ export default function ContactScreen() {
         </View>
       </ScrollView>
 
-      {/* Image Preview Modal / Lightbox */}
+      {}
       {previewImage && (
         <Modal visible={true} transparent animationType="fade" onRequestClose={() => setPreviewImage(null)}>
           <TouchableOpacity 
@@ -360,7 +354,7 @@ const styles = StyleSheet.create({
   successBox: { backgroundColor: colors.greenLight, borderWidth: 1, borderColor: '#bbf7d0', borderRadius: 12, padding: 14 },
   successText: { color: colors.green, fontWeight: '700', fontSize: 13, textAlign: 'center' },
   
-  // Admin Inbox styles
+  
   handledCard: { opacity: 0.65, borderColor: colors.slate200 },
   inboxHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 },
   inboxName: { fontSize: 14.5, fontWeight: '800', color: colors.slate900 },

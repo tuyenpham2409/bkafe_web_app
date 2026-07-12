@@ -2,12 +2,6 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { getToken } from './storage';
 
-// Resolve the BKafe API base URL automatically:
-// - On a physical device / Android emulator, `localhost` refers to the device
-//   itself, not the dev machine, so we reuse the LAN IP that Expo already used
-//   to serve the JS bundle (Constants.expoConfig.hostUri, e.g. "192.168.1.5:8081").
-// - Android emulator (not a real device) uses the special alias 10.0.2.2.
-// - Everything else (web, iOS simulator) can just use localhost.
 function resolveApiUrl() {
   const hostUri = Constants.expoConfig?.hostUri || Constants.expoGoConfig?.debuggerHost;
   const host = hostUri ? hostUri.split(':')[0] : null;
@@ -23,8 +17,6 @@ function resolveApiUrl() {
 
 export const API_URL = resolveApiUrl();
 
-// Same host-resolution logic as the API, but pointing at the web app (port 3000)
-// so a shared link opens the BKafe website instead of the API.
 function resolveWebUrl() {
   const hostUri = Constants.expoConfig?.hostUri || Constants.expoGoConfig?.debuggerHost;
   const host = hostUri ? hostUri.split(':')[0] : null;
@@ -47,7 +39,7 @@ async function request(path, { method = 'GET', body, isForm } = {}) {
 
   let payload;
   if (isForm) {
-    payload = body; // FormData: let RN set the multipart boundary
+    payload = body;
   } else if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
     payload = JSON.stringify(body);

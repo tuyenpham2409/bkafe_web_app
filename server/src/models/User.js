@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema(
   {
-    // login username: unique, lowercase. Can be changed exactly once by the user.
+    
     username: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
     usernameChanged: { type: Boolean, default: false },
     displayName: { type: String, required: true, trim: true },
@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema(
     photoURL: { type: String, default: '' },
     bio: { type: String, default: '' },
     lastActiveAt: { type: Date, default: Date.now },
-    // Admin can restrict specific activities
+    
     bannedPosting:    { type: Boolean, default: false },
     bannedCommenting: { type: Boolean, default: false },
     banReason:        { type: String, default: '' },
@@ -29,7 +29,7 @@ userSchema.methods.verifyPassword = function (plain) {
   return bcrypt.compare(plain, this.passwordHash);
 };
 
-// Shape returned to clients (never leak the hash).
+
 userSchema.methods.toPublic = function () {
   return {
     id: this._id,

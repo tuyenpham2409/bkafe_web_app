@@ -4,7 +4,7 @@ import { requireAuth } from '../middlewares/requireAuth.js';
 
 const router = Router();
 
-// Get notification list
+
 router.get('/notifications', requireAuth, async (req, res) => {
   try {
     const data = await api.get('/notifications', req);
@@ -14,7 +14,7 @@ router.get('/notifications', requireAuth, async (req, res) => {
   }
 });
 
-// Mark all notifications read
+
 router.post('/notifications/read-all', requireAuth, async (req, res) => {
   try {
     const data = await api.patch('/notifications/read-all', {}, req);
@@ -24,7 +24,7 @@ router.post('/notifications/read-all', requireAuth, async (req, res) => {
   }
 });
 
-// Mark specific notification read
+
 router.post('/notifications/:id/read', requireAuth, async (req, res) => {
   const { id } = req.params;
   try {
@@ -35,7 +35,7 @@ router.post('/notifications/:id/read', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/admin/stats — pending posts + unread contacts (admin only)
+
 router.get('/admin/stats', async (req, res) => {
   if (!res.locals.currentUser || res.locals.currentUser.role !== 'admin') {
     return res.status(403).json({ message: 'Forbidden' });
@@ -54,7 +54,7 @@ router.get('/admin/stats', async (req, res) => {
   }
 });
 
-// GET /api/posts — approved posts JSON for client-side polling
+
 router.get('/posts', async (req, res) => {
   try {
     const { topic, sort = 'newest' } = req.query;
@@ -67,7 +67,7 @@ router.get('/posts', async (req, res) => {
   }
 });
 
-// Increment website views count
+
 router.post('/stats/view', async (req, res) => {
   try {
     const data = await api.post('/stats/view', {}, req);

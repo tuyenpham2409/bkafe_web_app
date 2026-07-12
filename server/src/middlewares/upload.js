@@ -23,7 +23,7 @@ function fileFilter(_req, file, cb) {
   else cb(new Error('Chỉ chấp nhận ảnh (jpg, png, gif, webp) hoặc video (mp4, webm, ogg).'));
 }
 
-// up to 5 files, 25MB each
+
 export const upload = multer({
   storage,
   fileFilter,

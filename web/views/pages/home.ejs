@@ -22,7 +22,7 @@
       <%= currentTopic ? `Chủ đề: ${currentTopic.name}` : 'Dành cho bạn' %>
     </h1>
 
-    <!-- Sort controls -->
+    
     <div style="display: flex; align-items: center; gap: 4px; background-color: var(--slate-100); padding: 4px; border-radius: var(--radius-lg);">
       <% const base = currentTopic ? '/topic/' + currentTopic.slug : '/'; %>
       <a href="<%= base %>?sort=newest"

@@ -24,11 +24,11 @@ export default function HomeScreen({ navigation }) {
   const [query, setQuery] = useState('');
   const [posts, setPosts] = useState([]);
   const [users, setUsers] = useState([]);
-  const [searchTab, setSearchTab] = useState('posts'); // 'posts' or 'users'
+  const [searchTab, setSearchTab] = useState('posts'); 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
-  const [postSort, setPostSort] = useState('newest'); // 'newest' | 'oldest' | 'rating_desc' | 'rating_asc'
+  const [postSort, setPostSort] = useState('newest'); 
 
   useEffect(() => {
     api.get('/topics').then(setTopics).catch(() => {});
@@ -61,7 +61,7 @@ export default function HomeScreen({ navigation }) {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  // Poll posts list every 10 seconds to keep timeline updated without sockets
+  
   useEffect(() => {
     const interval = setInterval(load, 10000);
     return () => clearInterval(interval);
@@ -69,7 +69,7 @@ export default function HomeScreen({ navigation }) {
 
   const onRefresh = () => { setRefreshing(true); load(); };
 
-  // Count one website view per app session (mirrors the web sessionStorage counter)
+  
   useEffect(() => {
     (async () => {
       const tracked = await AsyncStorage.getItem(SITE_VIEW_KEY);
@@ -80,7 +80,7 @@ export default function HomeScreen({ navigation }) {
     })();
   }, []);
 
-  // Ad popup 1 minute after opening the app, suppressed forever once closed (AsyncStorage ~ cookie)
+  
   useEffect(() => {
     let timer;
     (async () => {
@@ -102,7 +102,7 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.screen}>
-      {/* Header */}
+      {}
       <View style={styles.header}>
         <Text style={styles.brand}>☕ BKafe</Text>
         <TouchableOpacity style={styles.addBtn} onPress={openCreatePost}>
@@ -123,7 +123,7 @@ export default function HomeScreen({ navigation }) {
         />
       </View>
 
-      {/* Search Tab Switcher */}
+      {}
       <View style={styles.searchTabRow}>
         <TouchableOpacity
           style={[styles.searchTabItem, searchTab === 'posts' && styles.searchTabActive]}
@@ -141,7 +141,7 @@ export default function HomeScreen({ navigation }) {
 
       {searchTab === 'posts' ? (
         <>
-          {/* Topic chips */}
+          {}
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -187,7 +187,7 @@ export default function HomeScreen({ navigation }) {
                   if (postSort === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
                   if (postSort === 'rating_desc') return (b.ratingAvg || 0) - (a.ratingAvg || 0);
                   if (postSort === 'rating_asc') return (a.ratingAvg || 0) - (b.ratingAvg || 0);
-                  return new Date(b.createdAt) - new Date(a.createdAt); // newest
+                  return new Date(b.createdAt) - new Date(a.createdAt); 
                 })}
                 keyExtractor={(p) => p.id}
                 contentContainerStyle={styles.list}
@@ -240,7 +240,7 @@ export default function HomeScreen({ navigation }) {
         </>
       )}
 
-      {/* Ad popup */}
+      {}
       <Modal visible={showPopup} transparent animationType="fade" onRequestClose={closePopup}>
         <View style={styles.overlay}>
           <View style={styles.popup}>

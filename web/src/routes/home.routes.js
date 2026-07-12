@@ -26,7 +26,7 @@ router.get('/topic/:slug', async (req, res, next) => {
   try {
     const posts = await api.get(`/posts?status=approved&topic=${slug}&sort=${sort}`, req);
     
-    // Resolve topic display name
+    
     const topicObj = res.locals.topics?.find(t => t.slug === slug);
     const topicName = topicObj ? topicObj.name : slug;
 

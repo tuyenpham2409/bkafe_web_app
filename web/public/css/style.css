@@ -1,6 +1,5 @@
 :root {
-  /* Colors */
-  --primary-blue: #2563eb;
+    --primary-blue: #2563eb;
   --primary-hover: #1d4ed8;
   --primary-light: #eff6ff;
   --primary-dark: #1e3a8a;
@@ -34,30 +33,24 @@
   --white: #ffffff;
   --transparent: transparent;
   
-  /* Typography */
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   
-  /* Borders & Radius */
-  --radius-sm: 6px;
+    --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-full: 9999px;
   
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
   
-  /* Transitions & Animations */
-  --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   
-  /* Breakpoints */
-  --breakpoint-md: 800px;
+    --breakpoint-md: 800px;
   --breakpoint-lg: 1200px;
 }
 
-/* 1. Global Reset & Base Styles */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -96,7 +89,6 @@ img, video {
   display: block;
 }
 
-/* Helper styles */
 .text-center { text-align: center; }
 .font-semibold { font-weight: 600; }
 .font-bold { font-weight: 700; }
@@ -115,9 +107,7 @@ img, video {
   overflow: hidden;
 }
 
-/* 2. Common Components */
 
-/* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -168,7 +158,6 @@ img, video {
   border-radius: var(--radius-full);
 }
 
-/* Inputs & Form Elements */
 .form-group {
   margin-bottom: 16px;
 }
@@ -213,7 +202,6 @@ img, video {
   min-height: 100px;
 }
 
-/* Cards & Badges */
 .card {
   background-color: var(--white);
   border: 1px solid var(--slate-200);
@@ -239,7 +227,6 @@ img, video {
 .badge-amber { background-color: var(--amber-light); color: var(--amber); }
 .badge-red { background-color: var(--red-light); color: var(--red); }
 
-/* Alerts */
 .alert {
   padding: 12px;
   border-radius: var(--radius-lg);
@@ -259,7 +246,6 @@ img, video {
   border-color: #dcfce7;
 }
 
-/* 3. Layout Styles (header, sidebar, layout-grid) */
 .layout-wrapper {
   min-height: 100vh;
   display: flex;
@@ -463,7 +449,6 @@ img, video {
   justify-content: center;
 }
 
-/* Dropdown Menu (Notifications) */
 .dropdown-menu {
   position: absolute;
   right: 0;
@@ -557,7 +542,6 @@ img, video {
   margin-top: 4px;
 }
 
-/* Mobile Menu */
 .mobile-menu-overlay {
   position: fixed;
   inset: 0;
@@ -576,7 +560,6 @@ img, video {
   box-shadow: var(--shadow-lg);
 }
 
-/* Main Layout Grid */
 .main-layout {
   flex: 1;
   width: 100%;
@@ -615,7 +598,6 @@ img, video {
   gap: 16px;
 }
 
-/* Navigation List */
 .sidebar-nav {
   display: flex;
   flex-direction: column;
@@ -679,7 +661,6 @@ img, video {
   flex-shrink: 0;
 }
 
-/* Sidebar Gradient Card */
 .sidebar-banner {
   padding: 16px;
   background: linear-gradient(135deg, var(--primary-blue) 0%, #4f46e5 100%);
@@ -714,7 +695,6 @@ img, video {
   background-color: var(--primary-light);
 }
 
-/* Right Sidebar (Aside Right) */
 .aside-right {
   display: none;
 }
@@ -764,7 +744,6 @@ img, video {
   color: var(--primary-blue);
 }
 
-/* Footer */
 .footer {
   background-color: var(--white);
   border-top: 1px solid var(--slate-200);
@@ -781,7 +760,6 @@ img, video {
   font-weight: 600;
 }
 
-/* Modal Overlay & Modal Window */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -841,9 +819,7 @@ img, video {
   width: 100%;
 }
 
-/* 4. Page Specific Layout Styles */
 
-/* Auth Layout */
 .auth-card {
   max-width: 448px;
   margin: 48px auto 0 auto;
@@ -871,7 +847,6 @@ img, video {
   text-decoration: underline;
 }
 
-/* Home / Forum Page */
 .home-container {
   display: flex;
   flex-direction: column;
@@ -921,7 +896,6 @@ img, video {
   background-color: var(--primary-light);
 }
 
-/* Post Cards */
 .post-list {
   display: flex;
   flex-direction: column;
@@ -1027,7 +1001,6 @@ img, video {
   color: var(--slate-500);
 }
 
-/* Post Details */
 .post-detail-container {
   display: flex;
   flex-direction: column;
@@ -1065,7 +1038,6 @@ img, video {
   transform: scale(1.1);
 }
 
-/* Comment Box and Nested Comments */
 .comments-container {
   display: flex;
   flex-direction: column;
@@ -1106,7 +1078,6 @@ img, video {
   gap: 12px;
 }
 
-/* About / Contact / Feedback page */
 .about-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -1137,7 +1108,6 @@ img, video {
   margin-bottom: 8px;
 }
 
-/* Profile screen */
 .profile-header-card {
   display: flex;
   flex-direction: column;
@@ -1168,7 +1138,6 @@ img, video {
   box-shadow: var(--shadow-md);
 }
 
-/* Admin screen styling */
 .admin-grid {
   display: flex;
   flex-direction: column;
@@ -1197,7 +1166,6 @@ img, video {
   letter-spacing: 0.05em;
 }
 
-/* Tab menu inside admin */
 .admin-tabs {
   display: flex;
   align-items: center;
@@ -1225,7 +1193,6 @@ img, video {
   box-shadow: var(--shadow-sm);
 }
 
-/* Table style */
 .table-responsive {
   width: 100%;
   overflow-x: auto;
@@ -1257,7 +1224,6 @@ img, video {
   background-color: rgba(248, 250, 252, 0.5);
 }
 
-/* Pagination */
 .pagination {
   display: flex;
   align-items: center;
@@ -1287,7 +1253,6 @@ img, video {
   border-color: var(--primary-blue);
 }
 
-/* Inline card list items (Admin screen user rows actions, search pages, etc) */
 .flex-between {
   display: flex;
   align-items: center;
@@ -1300,7 +1265,6 @@ img, video {
 .gap-2 { gap: 8px; }
 .gap-3 { gap: 12px; }
 
-/* Micro-animations */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -1317,7 +1281,6 @@ img, video {
   50% { opacity: .5; }
 }
 
-/* Dropdown Context Menu */
 .context-menu {
   position: absolute;
   right: 0;
@@ -1352,7 +1315,6 @@ img, video {
   color: var(--red-hover);
 }
 
-/* Toast Notifications */
 .toast-container {
   position: fixed;
   bottom: 24px;
@@ -1405,9 +1367,6 @@ img, video {
   background-color: var(--slate-100);
 }
 
-/* Highlight flash for the comment/reply the user just acted on, so the
-   redirect-driven page reload can point back at the right spot instead of
-   just jumping to the top of the page. */
 .comment-flash {
   animation: commentFlash 2s ease-out;
   border-radius: var(--radius-lg);

@@ -8,7 +8,7 @@
     <div class="alert alert-success"><%= success %></div>
   <% } %>
 
-  <!-- Header -->
+  
   <div class="card">
     <h1 class="forum-title" style="display: flex; align-items: center; gap: 8px;">
       <%- include('../partials/icons', { name: 'shield-check', size: 28, style: 'color: var(--red)' }) %> Trang quản trị
@@ -18,7 +18,7 @@
     </p>
   </div>
 
-  <!-- KPI cards -->
+  
   <%
     const colorStyles = {
       blue: 'background-color: var(--primary-light); color: var(--primary-blue);',
@@ -52,7 +52,7 @@
     <% }) %>
   </div>
 
-  <!-- Section cards -->
+  
   <%
     const sections = [
       { href: '/admin/users', icon: 'users', label: 'Quản lý tài khoản', desc: 'Thêm, sửa, xoá và phân quyền tài khoản người dùng.', color: 'blue', badge: stats.users },
@@ -82,7 +82,7 @@
     <% }) %>
   </div>
 
-  <!-- Pending posts alert -->
+  
   <% if (stats.pendingPosts > 0) { %>
     <a href="/admin/posts?tab=pending" class="btn" style="width: 100%; background-color: var(--amber-light); border-color: rgba(245,158,11,0.15); border: 1px solid; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 12px; text-align: left; box-shadow: none; justify-content: flex-start; text-decoration: none;">
       <%- include('../partials/icons', { name: 'alert-circle', size: 20, style: 'color: var(--amber); flex-shrink: 0;' }) %>

@@ -101,7 +101,7 @@ export default function NotificationScreen({ navigation }) {
 
   return (
     <View style={styles.screen}>
-      {/* Header */}
+      {}
       <View style={styles.header}>
         <Text style={styles.brand}>🔔 Thông báo</Text>
         {data.unread > 0 && (
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   time: { fontSize: 10, color: colors.slate400, fontWeight: '600' },
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 40 },
   emptyText: { fontSize: 13, fontWeight: '700', color: colors.slate400, marginTop: 12, textAlign: 'center' },
-  // Logged out styles
+  
   loggedOut: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   loggedOutIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   loggedOutTitle: { fontSize: 17, fontWeight: '900', color: colors.slate900, marginBottom: 6 },

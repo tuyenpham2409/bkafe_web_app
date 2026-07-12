@@ -3,7 +3,6 @@ import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
-// Password field with a show/hide eye toggle (mirrors the web PasswordInput).
 export default function PasswordInput({ value, onChangeText, placeholder = 'Mật khẩu', autoComplete }) {
   const [show, setShow] = useState(false);
   return (

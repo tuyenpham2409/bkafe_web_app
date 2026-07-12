@@ -7,12 +7,12 @@ import { commentsSignature } from '../lib/commentsSig.js';
 
 const router = Router();
 
-// Render post detail page
+
 router.get('/post/:id', async (req, res, next) => {
   const { id } = req.params;
   const noView = req.query.noview === '1';
   try {
-    // Fetch post and comments in parallel
+    
     const [post, comments] = await Promise.all([
       api.get(`/posts/${id}${noView ? '?noview=1' : ''}`, req),
       api.get(`/posts/${id}/comments`, req)
@@ -33,7 +33,7 @@ router.get('/post/:id', async (req, res, next) => {
   }
 });
 
-// Render create post page
+
 router.get('/create-post', requireAuth, (req, res) => {
   res.render('pages/create-post', {
     post: null,
@@ -41,7 +41,7 @@ router.get('/create-post', requireAuth, (req, res) => {
   });
 });
 
-// Handle post creation
+
 router.post('/create-post', requireAuth, upload.array('media', 5), async (req, res) => {
   const { title, content, topic } = req.body;
   try {
@@ -59,7 +59,7 @@ router.post('/create-post', requireAuth, upload.array('media', 5), async (req, r
 
     const post = await api.post('/posts', formData, req);
     
-    // Redirect with message based on approval status
+    
     if (post.status === 'approved') {
       res.redirect(`/post/${post.id}?success=${encodeURIComponent('Đăng bài viết thành công!')}`);
     } else {
@@ -70,7 +70,7 @@ router.post('/create-post', requireAuth, upload.array('media', 5), async (req, r
   }
 });
 
-// Render edit post page
+
 router.get('/post/:id/edit', requireAuth, async (req, res, next) => {
   const { id } = req.params;
   try {
@@ -89,7 +89,7 @@ router.get('/post/:id/edit', requireAuth, async (req, res, next) => {
   }
 });
 
-// Handle post update
+
 router.post('/post/:id/edit', requireAuth, upload.array('media', 5), async (req, res) => {
   const { id } = req.params;
   const { title, content, topic, keepMedia } = req.body;
@@ -129,8 +129,8 @@ router.post('/post/:id/edit', requireAuth, upload.array('media', 5), async (req,
   }
 });
 
-// Admin Approve post (returnTo lets the admin posts list stay on itself instead of
-// jumping to the post detail page)
+
+
 router.post('/admin/posts/:id/approve', requireAdmin, async (req, res) => {
   const { id } = req.params;
   const returnTo = req.body.returnTo || `/post/${id}?noview=1`;
@@ -149,7 +149,7 @@ router.post('/admin/posts/:id/approve', requireAdmin, async (req, res) => {
   }
 });
 
-// Admin Reject post
+
 router.post('/admin/posts/:id/reject', requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { reason, returnTo: rt } = req.body;
@@ -169,7 +169,7 @@ router.post('/admin/posts/:id/reject', requireAdmin, async (req, res) => {
   }
 });
 
-// Delete post (Admin or Owner)
+
 router.post('/admin/posts/:id/delete', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { reason, returnTo: rt } = req.body;
@@ -183,7 +183,7 @@ router.post('/admin/posts/:id/delete', requireAuth, async (req, res) => {
   }
 });
 
-// Rate post route
+
 router.post('/post/:id/rate', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { value } = req.body;
@@ -201,7 +201,7 @@ router.post('/post/:id/rate', requireAuth, async (req, res) => {
   }
 });
 
-// Comments feed (polled from the client to auto-refresh the discussion without a reload)
+
 router.get('/post/:id/comments/feed', async (req, res) => {
   const { id } = req.params;
   try {
@@ -218,7 +218,7 @@ router.get('/post/:id/comments/feed', async (req, res) => {
   }
 });
 
-// Who-rated list (polled from the client while the modal is open)
+
 router.get('/post/:id/raters', async (req, res) => {
   const { id } = req.params;
   try {
@@ -229,7 +229,7 @@ router.get('/post/:id/raters', async (req, res) => {
   }
 });
 
-// Share post route
+
 router.post('/post/:id/share', async (req, res) => {
   const { id } = req.params;
   try {

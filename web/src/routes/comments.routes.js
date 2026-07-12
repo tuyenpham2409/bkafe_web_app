@@ -4,7 +4,7 @@ import { upload } from '../middlewares/upload.js';
 
 const router = Router();
 
-// 1. Submit a top-level comment
+
 router.post('/post/:postId/comments', upload.array('media', 5), async (req, res) => {
   const { postId } = req.params;
   const { content } = req.body;
@@ -41,7 +41,7 @@ router.post('/post/:postId/comments', upload.array('media', 5), async (req, res)
   }
 });
 
-// 2. Submit a nested reply
+
 router.post('/comments/:id/reply', upload.array('media', 5), async (req, res) => {
   const { id } = req.params;
   const { content, postId } = req.body;
@@ -79,7 +79,7 @@ router.post('/comments/:id/reply', upload.array('media', 5), async (req, res) =>
   }
 });
 
-// 3. Rate a comment
+
 router.post('/comments/:id/rate', async (req, res) => {
   const { id } = req.params;
   const { value, postId } = req.body;
@@ -97,7 +97,7 @@ router.post('/comments/:id/rate', async (req, res) => {
   }
 });
 
-// 4. Edit a comment
+
 router.post('/comments/:id/edit', upload.array('media', 5), async (req, res) => {
   const { id } = req.params;
   const { content, keepMedia, postId } = req.body;
@@ -135,7 +135,7 @@ router.post('/comments/:id/edit', upload.array('media', 5), async (req, res) => 
   }
 });
 
-// 5. Delete a comment
+
 router.post('/comments/:id/delete', async (req, res) => {
   const { id } = req.params;
   const { postId } = req.body;

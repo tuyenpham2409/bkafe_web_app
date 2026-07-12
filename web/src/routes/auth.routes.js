@@ -19,10 +19,10 @@ router.post('/login', async (req, res) => {
   try {
     const data = await api.post('/auth/login', { identifier, password });
     
-    // Store JWT in HTTP-only cookie
+    
     res.cookie('bkafe_token', data.token, {
       httpOnly: true,
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      maxAge: 30 * 24 * 60 * 60 * 1000, 
       sameSite: 'lax',
     });
     
@@ -47,10 +47,10 @@ router.post('/register', async (req, res) => {
   try {
     const data = await api.post('/auth/register', { username, displayName, email, password });
     
-    // Log user in automatically on successful registration
+    
     res.cookie('bkafe_token', data.token, {
       httpOnly: true,
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      maxAge: 30 * 24 * 60 * 60 * 1000, 
       sameSite: 'lax',
     });
     

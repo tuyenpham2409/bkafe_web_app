@@ -6,7 +6,7 @@ import { asyncHandler } from '../middlewares/errorHandler.js';
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,15}$/;
 
-// GET /api/users/:id  (public profile + activity counts)
+
 export const getProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) return res.status(404).json({ message: 'Không tìm thấy người dùng.' });
@@ -17,7 +17,7 @@ export const getProfile = asyncHandler(async (req, res) => {
   res.json({ ...user.toPublic(), postCount, commentCount });
 });
 
-// PUT /api/users/me  (own profile) { displayName, bio, photoURL }
+
 export const updateMe = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
   const { displayName, bio, photoURL } = req.body;
@@ -26,14 +26,13 @@ export const updateMe = asyncHandler(async (req, res) => {
     user.displayName = displayName.trim();
   }
   if (bio !== undefined) user.bio = bio;
-  if (photoURL !== undefined) user.photoURL = photoURL; // data URL or /uploads path
+  if (photoURL !== undefined) user.photoURL = photoURL; 
   await user.save();
   res.json({ user: user.toPublic() });
 });
 
-/* ---------------- Admin: user CRUD ---------------- */
 
-// GET /api/users  (admin)
+
 export const listUsers = asyncHandler(async (_req, res) => {
   const users = await User.find().sort({ createdAt: -1 }).lean();
   res.json(
@@ -53,7 +52,7 @@ export const listUsers = asyncHandler(async (_req, res) => {
   );
 });
 
-// POST /api/users  (admin) { username, displayName, email, password, role }
+
 export const createUser = asyncHandler(async (req, res) => {
   const { username, displayName, email, password, role } = req.body;
   const uname = String(username || '').trim().toLowerCase();
@@ -72,7 +71,7 @@ export const createUser = asyncHandler(async (req, res) => {
   res.status(201).json({ user: user.toPublic() });
 });
 
-// PUT /api/users/:id  (admin) { displayName, email, role, password? }
+
 export const adminUpdateUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) return res.status(404).json({ message: 'Không tìm thấy người dùng.' });
@@ -85,7 +84,7 @@ export const adminUpdateUser = asyncHandler(async (req, res) => {
   res.json({ user: user.toPublic() });
 });
 
-// DELETE /api/users/:id  (admin)
+
 export const deleteUser = asyncHandler(async (req, res) => {
   if (String(req.user._id) === String(req.params.id)) {
     return res.status(400).json({ message: 'Bạn không thể tự xoá tài khoản admin đang đăng nhập.' });
@@ -95,7 +94,7 @@ export const deleteUser = asyncHandler(async (req, res) => {
   res.json({ message: 'Đã xoá người dùng.' });
 });
 
-// GET /api/users/search?q=  (public) — tìm kiếm user theo displayName hoặc username
+
 export const searchUsers = asyncHandler(async (req, res) => {
   const q = String(req.query.q || '').trim();
   if (!q) return res.json([]);
@@ -116,7 +115,7 @@ export const searchUsers = asyncHandler(async (req, res) => {
   );
 });
 
-// PATCH /api/users/:id/ban  (admin)  { bannedPosting, bannedCommenting, reason }
+
 export const banUser = asyncHandler(async (req, res) => {
   if (String(req.user._id) === String(req.params.id)) {
     return res.status(400).json({ message: 'Không thể khóa tài khoản của chính mình.' });
@@ -138,13 +137,13 @@ export const banUser = asyncHandler(async (req, res) => {
 
   const isBannedNow = target.bannedPosting || target.bannedCommenting;
 
-  // Nếu mở khóa tất cả thì xóa lý do
+  
   if (!isBannedNow) {
     target.banReason = '';
   }
   await target.save();
 
-  // Gửi thông báo cho người dùng bị khóa hoặc mở khóa
+  
   if (isBannedNow) {
     const restrictions = [];
     if (target.bannedPosting)    restrictions.push('đăng bài');
@@ -157,7 +156,7 @@ export const banUser = asyncHandler(async (req, res) => {
       link: '/',
     });
   } else if (wasBanned && !isBannedNow) {
-    // Gửi thông báo mở khóa
+    
     await Notification.create({
       user: target._id,
       type: 'account_banned',

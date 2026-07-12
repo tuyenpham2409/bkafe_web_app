@@ -4,13 +4,13 @@ import User from '../models/User.js';
 import { asyncHandler } from '../middlewares/errorHandler.js';
 import { env } from '../config/env.js';
 
-// POST /api/contacts  (public; auth optional) { name, email, message } + media files
+
 export const createContact = asyncHandler(async (req, res) => {
   const { name, email, message } = req.body;
   if (!name?.trim() || !email?.trim() || !message?.trim()) {
     return res.status(400).json({ message: 'Vui lòng điền đầy đủ họ tên, email và nội dung.' });
   }
-  // Xử lý file media đính kèm (nếu có)
+  
   const media = (req.files || []).map((f) => ({
     type: f.mimetype.startsWith('video') ? 'video' : 'image',
     url: `${env.apiUrl}/uploads/${f.filename}`,
@@ -22,7 +22,7 @@ export const createContact = asyncHandler(async (req, res) => {
     user: req.user?._id || null,
     media,
   });
-  // Gửi thông báo đến tất cả admin khi có góp ý mới
+  
   const admins = await User.find({ role: 'admin' }).select('_id').lean();
   await Promise.all(
     admins.map((a) =>
@@ -38,7 +38,7 @@ export const createContact = asyncHandler(async (req, res) => {
   res.status(201).json({ message: 'Cảm ơn bạn đã gửi ý kiến! Chúng tôi sẽ phản hồi sớm nhất.' });
 });
 
-// GET /api/contacts  (admin)
+
 export const listContacts = asyncHandler(async (_req, res) => {
   const contacts = await Contact.find().sort({ createdAt: -1 }).lean();
   res.json(
@@ -54,7 +54,7 @@ export const listContacts = asyncHandler(async (_req, res) => {
   );
 });
 
-// PATCH /api/contacts/:id/handled  (admin)
+
 export const toggleHandled = asyncHandler(async (req, res) => {
   const c = await Contact.findById(req.params.id);
   if (!c) return res.status(404).json({ message: 'Không tìm thấy liên hệ.' });
@@ -63,7 +63,7 @@ export const toggleHandled = asyncHandler(async (req, res) => {
   res.json({ id: String(c._id), handled: c.handled });
 });
 
-// DELETE /api/contacts/:id  (admin)
+
 export const deleteContact = asyncHandler(async (req, res) => {
   const c = await Contact.findByIdAndDelete(req.params.id);
   if (!c) return res.status(404).json({ message: 'Không tìm thấy liên hệ.' });

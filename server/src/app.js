@@ -13,13 +13,13 @@ export function createApp() {
 
   app.use(
     cors({
-      origin: env.corsOrigins.length ? env.corsOrigins : true, // reflect origin (allow all) when unset
+      origin: env.corsOrigins.length ? env.corsOrigins : true, 
     })
   );
-  app.use(express.json({ limit: '10mb' })); // large limit for base64 avatars
+  app.use(express.json({ limit: '10mb' })); 
   app.use(express.urlencoded({ extended: true }));
 
-  // serve uploaded media
+  
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
   app.get('/', (_req, res) => res.json({ service: 'BKafe API', docs: '/api/health' }));

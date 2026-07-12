@@ -14,7 +14,7 @@
 
   <div class="card">
     <div style="display: flex; flex-direction: row; gap: 24px; flex-wrap: wrap; align-items: flex-start;">
-      <!-- Avatar -->
+      
       <div class="relative" style="flex-shrink: 0; margin: 0 auto;">
         <% if (profile.photoURL) { %>
           <img src="<%= profile.photoURL %>" alt="" class="profile-large-avatar" />
@@ -35,7 +35,7 @@
         <% } %>
       </div>
 
-      <!-- Info -->
+      
       <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; width: 100%;">
         <% if (isEditing) { %>
           <form method="POST" action="/profile/edit" style="display: flex; flex-direction: column; gap: 12px;">
@@ -83,7 +83,7 @@
       </div>
     </div>
 
-    <!-- Account settings (own profile) -->
+    
     <% if (isOwn && showSettings && !isEditing) { %>
       <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--slate-100); display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
         <form method="POST" action="/profile/username" style="display: flex; flex-direction: column; gap: 8px;">
@@ -110,7 +110,7 @@
     <% } %>
   </div>
 
-  <!-- Posts -->
+  
   <div class="card">
     <h2 class="forum-title" style="font-size: 20px; margin-bottom: 16px;">Câu hỏi đã đăng (<%= posts.length %>)</h2>
     <div class="post-list">

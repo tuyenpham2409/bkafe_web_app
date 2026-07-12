@@ -51,10 +51,9 @@ export function BadgeProvider({ children }) {
   useEffect(() => {
     if (user) {
       refreshAll();
-      
-      // Fast polling (every 4 seconds) to keep badges updated without socket.io
+
       const interval = setInterval(refreshAll, 4000);
-      
+
       return () => clearInterval(interval);
     } else {
       setUnreadNotifications(0);

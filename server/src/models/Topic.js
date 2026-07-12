@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-// Fixed set of discussion topics ("4 chủ đề"). Posts belong to exactly one topic.
+
 const topicSchema = new mongoose.Schema(
   {
     slug: { type: String, required: true, unique: true, lowercase: true, trim: true },

@@ -3,9 +3,7 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
-// A single shared "please log in" popup, used everywhere a guest tries a
-// members-only action (comment, rate, reply, create post, ...).
-const Ctx = createContext({ requireLogin: () => {} });
+const Ctx = createContext({ requireLogin: () => { } });
 export const useLoginGate = () => useContext(Ctx);
 
 export function LoginGateProvider({ children, navigationRef }) {
@@ -27,7 +25,7 @@ export function LoginGateProvider({ children, navigationRef }) {
       {children}
       <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
         <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setVisible(false)}>
-          <TouchableOpacity activeOpacity={1} style={styles.card} onPress={() => {}}>
+          <TouchableOpacity activeOpacity={1} style={styles.card} onPress={() => { }}>
             <TouchableOpacity style={styles.closeBtn} onPress={() => setVisible(false)}>
               <Ionicons name="close" size={20} color={colors.slate400} />
             </TouchableOpacity>

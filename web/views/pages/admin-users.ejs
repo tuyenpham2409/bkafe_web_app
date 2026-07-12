@@ -1,7 +1,7 @@
 <%- include('../partials/header', { title: 'Quản lý tài khoản' }) %>
 
 <%
-// Same wording/thresholds as the original Admin.tsx userActiveTime() helper.
+
 function userActiveTime(date) {
   if (!date) return 'Chưa có lịch sử';
   const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -26,7 +26,7 @@ function isOnline(date) {
   <% if (locals.error) { %><div class="alert alert-danger"><%= error %></div><% } %>
   <% if (locals.success) { %><div class="alert alert-success"><%= success %></div><% } %>
 
-  <!-- Add user form -->
+  
   <div class="card" style="padding: 0; overflow: hidden;">
     <div style="padding: 12px 20px; border-bottom: 1px solid var(--slate-100); background-color: var(--slate-50); font-size: 12px; font-weight: 900; color: var(--slate-500); text-transform: uppercase; letter-spacing: 0.05em;">Thêm tài khoản mới</div>
     <form method="POST" action="/admin/users" style="padding: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; align-items: end;">
@@ -39,7 +39,7 @@ function isOnline(date) {
     </form>
   </div>
 
-  <!-- Search + filter (GET form, no JS required) -->
+  
   <form method="GET" action="/admin/users" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 12px; align-items: center;">
     <div class="search-container" style="flex: 1; min-width: 240px;">
       <%- include('../partials/icons', { name: 'search', size: 16, class: 'search-icon' }) %>
@@ -58,7 +58,7 @@ function isOnline(date) {
     <button type="submit" class="btn btn-secondary" style="font-size: 13px;">Lọc</button>
   </form>
 
-  <!-- User list -->
+  
   <div class="card" style="padding: 0; overflow: hidden;">
     <% if (users.length === 0) { %>
       <div style="color: var(--slate-400); font-weight: 700; font-size: 14px; padding: 32px; text-align: center;">Không tìm thấy tài khoản nào.</div>
@@ -130,7 +130,7 @@ function isOnline(date) {
   </div>
 </div>
 
-<!-- Ban/Unban User Modal -->
+
 <div id="ban-modal" class="modal-overlay" style="display: none;">
   <div class="modal-container" style="max-width: 440px; width: 90%;">
     <button type="button" class="modal-close-btn" onclick="closeBanModal()">
